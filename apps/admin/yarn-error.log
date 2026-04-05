@@ -1,0 +1,44 @@
+Arguments: 
+  C:\Users\user\Desktop\deerDrone\.tools\node-v24.14.1-win-x64\node.exe C:\Users\user\AppData\Roaming\npm\node_modules\yarn\bin\yarn.js add --exact --dev @types/react @types/node
+
+PATH: 
+  C:\Users\user\Desktop\deerDrone\apps\admin\node_modules\.bin;C:\Users\user\Desktop\deerDrone\apps\node_modules\.bin;C:\Users\user\Desktop\deerDrone\node_modules\.bin;C:\Users\user\Desktop\node_modules\.bin;C:\Users\user\node_modules\.bin;C:\Users\node_modules\.bin;C:\node_modules\.bin;C:\Users\user\Desktop\deerDrone\.tools\node-v24.14.1-win-x64\node_modules\npm\node_modules\@npmcli\run-script\lib\node-gyp-bin;C:\Users\user\Desktop\deerDrone\node_modules\.bin;C:\Users\user\Desktop\node_modules\.bin;C:\Users\user\node_modules\.bin;C:\Users\node_modules\.bin;C:\node_modules\.bin;C:\Users\user\Desktop\deerDrone\.tools\node-v24.14.1-win-x64\node_modules\npm\node_modules\@npmcli\run-script\lib\node-gyp-bin;C:\Users\user\Desktop\deerDrone\.tools\node-v24.14.1-win-x64;C:\Users\user\.codex\tmp\arg0\codex-arg0PgqFQE;C:\Program Files (x86)\Common Files\Oracle\Java\java8path;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Python312\Scripts\;C:\Python312\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\dotnet\;C:\Program Files\PuTTY\;C:\Program Files\Go\bin;C:\Program Files\Git\cmd;C:\ProgramData\chocolatey\bin;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Users\user\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files\GitHub CLI\;C:\Users\user\.cargo\bin;C:\Program Files\MySQL\MySQL Shell 8.0\bin\;C:\Users\user\AppData\Local\Programs\Eclipse Adoptium\jdk-17.0.10.7-hotspot\bin;C:\Users\user\AppData\Local\Microsoft\WindowsApps;C:\Users\user\go\bin;C:\Users\user\AppData\Roaming\npm;C:\Users\user\.dotnet\tools;C:\Users\user\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\user\AppData\Local\Programs\Antigravity\bin;C:\Users\user\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\user\AppData\Local\OpenAI\Codex\bin;C:\Program Files\WindowsApps\OpenAI.Codex_26.325.3894.0_x64__2p2nqsd0c76g0\app\resources
+
+Yarn version: 
+  1.22.19
+
+Node version: 
+  24.14.1
+
+Platform: 
+  win32 x64
+
+Trace: 
+  Error: EPERM: operation not permitted, unlink 'C:\Users\user\Desktop\deerDrone\node_modules\@next\swc-win32-x64-msvc\next-swc.win32-x64-msvc.node'
+
+npm manifest: 
+  {
+    "name": "admin",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+      "dev": "next dev --port 3001",
+      "build": "next build",
+      "lint": "next lint",
+      "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+      "@deer-drone/data": "*",
+      "@deer-drone/ui": "*",
+      "@deer-drone/utils": "*",
+      "next": "^15.2.0",
+      "react": "^19.0.0",
+      "react-dom": "^19.0.0"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile

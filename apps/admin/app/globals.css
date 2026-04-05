@@ -1,0 +1,188 @@
+:root {
+  --admin-bg: #08111d;
+  --admin-surface: #0f1b2c;
+  --admin-card: #132339;
+  --admin-card-soft: rgba(255, 255, 255, 0.04);
+  --admin-border: rgba(255, 255, 255, 0.08);
+  --admin-text: #f6fbff;
+  --admin-muted: #a3b5cb;
+  --admin-accent: #2b74ff;
+  --admin-success: #12b886;
+  --admin-warning: #ffb020;
+  --font-body: "Manrope", "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background:
+    radial-gradient(circle at top right, rgba(43, 116, 255, 0.2), transparent 25%),
+    linear-gradient(180deg, #08111d, #040a12);
+  color: var(--admin-text);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.admin-root {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+}
+
+.admin-sidebar {
+  padding: 28px;
+  border-right: 1px solid var(--admin-border);
+  background: rgba(6, 12, 22, 0.82);
+  backdrop-filter: blur(16px);
+}
+
+.admin-nav {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.admin-nav a {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--admin-muted);
+  transition: background 160ms ease;
+}
+
+.admin-nav a:hover {
+  background: var(--admin-card-soft);
+  color: var(--admin-text);
+}
+
+.admin-content {
+  padding: 32px;
+}
+
+.admin-title h1,
+.admin-panel h2,
+.dd-metric-card strong {
+  font-family: var(--font-display);
+}
+
+.admin-title {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.admin-title h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+}
+
+.admin-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.75rem;
+  color: var(--admin-accent);
+}
+
+.admin-grid,
+.metric-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.metric-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 24px;
+}
+
+.admin-grid {
+  grid-template-columns: 1.1fr 0.9fr;
+}
+
+.admin-panel {
+  padding: 24px;
+  border: 1px solid var(--admin-border);
+  border-radius: 24px;
+  background: rgba(19, 35, 57, 0.88);
+  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.2);
+}
+
+.admin-panel h2 {
+  margin-top: 0;
+}
+
+.admin-list,
+.table-like {
+  display: grid;
+  gap: 12px;
+}
+
+.table-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dd-metric-card {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid var(--admin-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dd-metric-card p,
+.dd-metric-card span,
+.admin-muted {
+  color: var(--admin-muted);
+  margin: 0;
+}
+
+.dd-metric-card strong {
+  font-size: 2rem;
+}
+
+.dd-metric-accent {
+  border-color: rgba(43, 116, 255, 0.35);
+}
+
+.dd-metric-success {
+  border-color: rgba(18, 184, 134, 0.35);
+}
+
+.dd-metric-warning {
+  border-color: rgba(255, 176, 32, 0.35);
+}
+
+.status-pill {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--admin-text);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 1080px) {
+  .admin-root {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-grid,
+  .admin-grid,
+  .table-row {
+    grid-template-columns: 1fr;
+  }
+}
