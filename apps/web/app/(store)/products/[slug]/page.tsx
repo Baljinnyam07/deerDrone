@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getProductBySlug } from "../../../../lib/supabase/queries";
+import { getProductBySlug, getSimilarProducts } from "../../../../lib/supabase/queries";
 import ProductDetailView from "./ProductDetailView";
 
 export default async function ProductDetailPage({
@@ -16,5 +16,7 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  return <ProductDetailView product={product as any} />;
+  const similarProducts = await getSimilarProducts(product.categoryId!, product.id!);
+
+  return <ProductDetailView product={product as any} similarProducts={similarProducts} />;
 }

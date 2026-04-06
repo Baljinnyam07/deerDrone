@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { products } from "@deer-drone/data";
-import { pickFeaturedProducts } from "@deer-drone/utils";
+import { getCatalogProducts } from "../../../../../lib/supabase/catalog";
 
-export function GET() {
+export async function GET() {
   return NextResponse.json({
-    items: pickFeaturedProducts(products, 4),
+    items: await getCatalogProducts({ featuredOnly: true, limit: 4 }),
   });
 }

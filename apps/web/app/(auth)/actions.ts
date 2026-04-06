@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
+import { getSiteUrl } from "../../lib/server-env";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -49,11 +50,7 @@ export async function signup(formData: FormData) {
 export async function loginWithFacebook() {
   const supabase = await createClient();
 
-  // If running locally, request.url isn't easily accessible here in Server actions currently,
-  // so we dynamically resolve via headers or hardcode for now. 
-  // Next.js config often handles resolving origins via NEXT_PUBLIC_SITE_URL or we just assume localhost in dev
-  // We'll use a dynamic approach or an env var
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const origin = getSiteUrl();
   
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'facebook',

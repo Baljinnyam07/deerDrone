@@ -7,10 +7,39 @@ import { SiteFooter } from "../components/layout/site-footer";
 import { SiteHeader } from "../components/layout/site-header";
 import { ToastProvider } from "../components/layout/toast-provider";
 import { QueryProvider } from "../components/query-provider";
+import { getSiteUrl } from "../lib/server-env";
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
-  title: "DEER droneshop",
-  description: "E-commerce homepage for DEER droneshop.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "DEER Drone",
+    template: "%s | DEER Drone",
+  },
+  description:
+    "DEER Drone is a production-ready storefront for industrial drones, creator kits, service support, and delivery across Mongolia.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "DEER Drone",
+    description:
+      "Industrial drones, creator tools, accessories, and after-sales support from DEER.",
+    siteName: "DEER Drone",
+    type: "website",
+    url: siteUrl,
+  },
+  robots: {
+    follow: true,
+    index: true,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DEER Drone",
+    description:
+      "Industrial drones, creator tools, accessories, and after-sales support from DEER.",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

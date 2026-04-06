@@ -1,29 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 :root {
-  --admin-bg: #08111d;
-  --admin-surface: #0f1b2c;
-  --admin-card: #132339;
-  --admin-card-soft: rgba(255, 255, 255, 0.04);
-  --admin-border: rgba(255, 255, 255, 0.08);
-  --admin-text: #f6fbff;
-  --admin-muted: #a3b5cb;
-  --admin-accent: #2b74ff;
-  --admin-success: #12b886;
-  --admin-warning: #ffb020;
-  --font-body: "Manrope", "Segoe UI", sans-serif;
-  --font-display: "Space Grotesk", "Segoe UI", sans-serif;
+  /* Odoo-inspired Color System */
+  --admin-bg: #ffffff;
+  --admin-surface: #f8f9fa;
+  --admin-sidebar: #ffffff;
+  --admin-card: #ffffff;
+  --admin-border: #e2e8f0;
+  --admin-text: #0f172a;
+  --admin-text-secondary: #475569;
+  --admin-muted: #94a3b8;
+  --admin-primary: #7c3aed;
+  --admin-primary-light: #8b5cf6;
+  --admin-primary-dark: #6d28d9;
+  --admin-success: #10b981;
+  --admin-warning: #f59e0b;
+  --admin-danger: #ef4444;
+  --admin-info: #3b82f6;
+  --admin-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --admin-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --admin-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  --sidebar-width: 260px;
+  --header-height: 64px;
 }
 
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
   margin: 0;
   font-family: var(--font-body);
-  background:
-    radial-gradient(circle at top right, rgba(43, 116, 255, 0.2), transparent 25%),
-    linear-gradient(180deg, #08111d, #040a12);
+  background: var(--admin-surface);
   color: var(--admin-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
@@ -31,158 +47,728 @@ a {
   text-decoration: none;
 }
 
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* ============================================
+   ROOT LAYOUT
+   ============================================ */
+
 .admin-root {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
 }
+
+/* ============================================
+   SIDEBAR - Odoo Style
+   ============================================ */
 
 .admin-sidebar {
-  padding: 28px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: var(--admin-sidebar);
   border-right: 1px solid var(--admin-border);
-  background: rgba(6, 12, 22, 0.82);
-  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  transition: transform 0.3s ease;
 }
 
-.admin-nav {
-  display: grid;
+.admin-sidebar-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  margin-top: 28px;
 }
 
-.admin-nav a {
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: transparent;
+.admin-brand-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-light));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.admin-brand-text h2 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--admin-text);
+  line-height: 1.2;
+}
+
+.admin-brand-text span {
+  font-size: 0.75rem;
   color: var(--admin-muted);
-  transition: background 160ms ease;
+  font-weight: 500;
 }
 
-.admin-nav a:hover {
-  background: var(--admin-card-soft);
+.admin-mobile-close {
+  display: none;
+  padding: 6px;
+  border-radius: 6px;
+  color: var(--admin-text-secondary);
+}
+
+.admin-mobile-close:hover {
+  background: var(--admin-surface);
+}
+
+/* Navigation */
+.admin-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-nav-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-nav-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--admin-muted);
+  padding: 8px 12px;
+  margin-bottom: 4px;
+}
+
+.admin-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--admin-text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.admin-nav-item:hover {
+  background: var(--admin-surface);
   color: var(--admin-text);
 }
 
-.admin-content {
-  padding: 32px;
+.admin-nav-item.is-active {
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-light));
+  color: white;
+  box-shadow: var(--admin-shadow-md);
 }
 
-.admin-title h1,
-.admin-panel h2,
-.dd-metric-card strong {
-  font-family: var(--font-display);
+.admin-nav-indicator {
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 24px;
+  background: var(--admin-primary);
+  border-radius: 4px;
 }
+
+.admin-nav-item.is-active .admin-nav-indicator {
+  background: white;
+}
+
+.admin-nav-divider {
+  height: 1px;
+  background: var(--admin-border);
+  margin: 12px 0;
+}
+
+/* Sidebar Footer */
+.admin-sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--admin-border);
+}
+
+.admin-user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--admin-surface);
+}
+
+.admin-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--admin-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-user-name {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-user-role {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--admin-muted);
+}
+
+.admin-user-menu-btn {
+  padding: 4px;
+  color: var(--admin-muted);
+}
+
+/* ============================================
+   MAIN WRAPPER
+   ============================================ */
+
+.admin-wrapper {
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--admin-surface);
+}
+
+/* ============================================
+   HEADER - Odoo Style
+   ============================================ */
+
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--header-height);
+  background: white;
+  border-bottom: 1px solid var(--admin-border);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  box-shadow: var(--admin-shadow);
+}
+
+.admin-menu-toggle {
+  display: none;
+  padding: 8px;
+  border-radius: 8px;
+  color: var(--admin-text-secondary);
+}
+
+.admin-menu-toggle:hover {
+  background: var(--admin-surface);
+}
+
+.admin-header-start {
+  flex-shrink: 0;
+}
+
+.admin-header-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  margin: 0;
+}
+
+.admin-header-center {
+  flex: 1;
+  max-width: 600px;
+}
+
+.admin-search-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--admin-surface);
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+}
+
+.admin-search-box svg {
+  color: var(--admin-muted);
+  flex-shrink: 0;
+}
+
+.admin-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  color: var(--admin-text);
+}
+
+.admin-search-input:focus {
+  outline: none;
+}
+
+.admin-search-input::placeholder {
+  color: var(--admin-muted);
+}
+
+.admin-header-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+
+.admin-header-btn {
+  position: relative;
+  padding: 8px;
+  border-radius: 8px;
+  color: var(--admin-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.admin-header-btn:hover {
+  background: var(--admin-surface);
+  color: var(--admin-text);
+}
+
+.admin-notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--admin-danger);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+}
+
+.admin-header-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-header-user:hover {
+  background: var(--admin-surface);
+}
+
+.admin-header-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--admin-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-header-username {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.admin-user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: white;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  box-shadow: var(--admin-shadow-lg);
+  padding: 8px;
+  z-index: 100;
+}
+
+.admin-user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--admin-text-secondary);
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.admin-user-dropdown-item:hover {
+  background: var(--admin-surface);
+  color: var(--admin-text);
+}
+
+.admin-user-dropdown-divider {
+  height: 1px;
+  background: var(--admin-border);
+  margin: 4px 0;
+}
+
+/* ============================================
+   CONTENT AREA
+   ============================================ */
+
+.admin-content {
+  flex: 1;
+  padding: 32px;
+  background: var(--admin-surface);
+}
+
+/* ============================================
+   PAGE TITLES - Odoo Style
+   ============================================ */
 
 .admin-title {
-  display: grid;
-  gap: 10px;
-  margin-bottom: 24px;
-}
-
-.admin-title h1 {
-  margin: 0;
-  font-size: clamp(2rem, 4vw, 3.4rem);
+  margin-bottom: 32px;
 }
 
 .admin-kicker {
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
   font-size: 0.75rem;
-  color: var(--admin-accent);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--admin-primary);
+  margin-bottom: 8px;
 }
 
-.admin-grid,
+.admin-title h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 700;
+  color: var(--admin-text);
+  margin: 0 0 8px;
+  line-height: 1.2;
+}
+
+.admin-muted {
+  color: var(--admin-muted);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* ============================================
+   METRIC CARDS - Odoo Style
+   ============================================ */
+
 .metric-grid {
   display: grid;
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
 }
 
-.metric-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-bottom: 24px;
+.metric-card {
+  background: white;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--admin-primary), var(--admin-primary-light));
+}
+
+.metric-card:hover {
+  box-shadow: var(--admin-shadow-md);
+  transform: translateY(-2px);
+}
+
+.metric-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--admin-muted);
+  margin-bottom: 12px;
+}
+
+.metric-value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  margin: 0 0 8px;
+  line-height: 1;
+}
+
+.metric-hint {
+  font-size: 0.8rem;
+  color: var(--admin-muted);
+  margin: 0;
+}
+
+.metric-accent::before {
+  background: linear-gradient(90deg, var(--admin-primary), var(--admin-primary-light));
+}
+
+.metric-success::before {
+  background: linear-gradient(90deg, var(--admin-success), #34d399);
+}
+
+.metric-warning::before {
+  background: linear-gradient(90deg, var(--admin-warning), #fbbf24);
+}
+
+/* ============================================
+   PANELS - Odoo Style
+   ============================================ */
 
 .admin-grid {
-  grid-template-columns: 1.1fr 0.9fr;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
 }
 
 .admin-panel {
-  padding: 24px;
+  background: white;
   border: 1px solid var(--admin-border);
-  border-radius: 24px;
-  background: rgba(19, 35, 57, 0.88);
-  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--admin-shadow);
 }
 
 .admin-panel h2 {
-  margin-top: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  margin: 0 0 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--admin-border);
 }
+
+/* ============================================
+   TABLES & LISTS - Odoo Style
+   ============================================ */
 
 .admin-list,
 .table-like {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
 .table-row {
   display: grid;
-  gap: 12px;
-  grid-template-columns: 1.2fr 1fr 1fr 1fr;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.dd-metric-card {
-  display: grid;
-  gap: 8px;
-  padding: 18px;
-  border-radius: 20px;
+  gap: 16px;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--admin-surface);
   border: 1px solid var(--admin-border);
-  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.2s ease;
+  align-items: center;
 }
 
-.dd-metric-card p,
-.dd-metric-card span,
-.admin-muted {
-  color: var(--admin-muted);
-  margin: 0;
+.table-row:hover {
+  background: white;
+  box-shadow: var(--admin-shadow);
+  border-color: var(--admin-primary);
 }
 
-.dd-metric-card strong {
-  font-size: 2rem;
-}
-
-.dd-metric-accent {
-  border-color: rgba(43, 116, 255, 0.35);
-}
-
-.dd-metric-success {
-  border-color: rgba(18, 184, 134, 0.35);
-}
-
-.dd-metric-warning {
-  border-color: rgba(255, 176, 32, 0.35);
+.table-row strong {
+  font-weight: 600;
+  color: var(--admin-text);
 }
 
 .status-pill {
   display: inline-flex;
-  width: fit-content;
-  padding: 6px 10px;
+  padding: 4px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--admin-text);
-  font-size: 0.8rem;
+  background: var(--admin-surface);
+  color: var(--admin-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
 }
 
-@media (max-width: 1080px) {
+/* ============================================
+   BUTTONS - Odoo Style
+   ============================================ */
+
+.admin-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-light));
+  color: white;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  box-shadow: var(--admin-shadow);
+}
+
+.admin-primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--admin-shadow-md);
+  color: white;
+  text-decoration: none;
+}
+
+.admin-secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: white;
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.admin-secondary-btn:hover {
+  background: var(--admin-surface);
+  border-color: var(--admin-primary);
+  color: var(--admin-primary);
+  text-decoration: none;
+}
+
+/* ============================================
+   RESPONSIVE - Mobile First
+   ============================================ */
+
+@media (max-width: 1024px) {
   .admin-root {
     grid-template-columns: 1fr;
   }
 
-  .metric-grid,
-  .admin-grid,
+  .admin-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .admin-sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .admin-wrapper {
+    margin-left: 0;
+  }
+
+  .admin-menu-toggle {
+    display: flex;
+  }
+
+  .admin-mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+  }
+
+  .admin-mobile-close {
+    display: flex;
+  }
+
+  .admin-header {
+    padding: 0 16px;
+  }
+
+  .admin-content {
+    padding: 20px 16px;
+  }
+
+  .admin-search-box {
+    display: none;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
   .table-row {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-header-title {
+    font-size: 0.9rem;
+  }
+
+  .admin-header-username {
+    display: none;
+  }
+
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-value {
+    font-size: 1.75rem;
   }
 }

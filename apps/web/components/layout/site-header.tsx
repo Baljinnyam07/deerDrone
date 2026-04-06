@@ -5,44 +5,45 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Search, ShoppingCart, User, X } from "lucide-react";
+import Image from "next/image";
 import { useStore } from "../../store/useStore";
 import { SearchOverlay } from "./search-overlay";
 
 type MenuChild = {
-  label: string;
   href: string;
+  label: string;
 };
 
 type MenuItem = {
+  children?: MenuChild[];
+  featured?: boolean;
+  href: string;
   id: string;
   label: string;
-  href: string;
-  featured?: boolean;
-  children?: MenuChild[];
 };
 
 const menuItems: MenuItem[] = [
   {
     id: "products",
     label: "Products",
-    href: "/#drones",
+    href: "/products",
     children: [
       { label: "Professional Drones", href: "/products?category=professional" },
       { label: "Creator Drones", href: "/products?category=consumer" },
       { label: "Accessories", href: "/products?category=accessories" },
     ],
   },
-  { id: "discover", label: "Compare", href: "/#discover" },
+  { id: "compare", label: "Compare", href: "/#discover" },
   { id: "stories", label: "Stories", href: "/#stories" },
   { id: "service", label: "Service", href: "/#service" },
   { id: "shop", label: "Shop", href: "/products", featured: true },
 ];
 
 const navLinks = [
-  { label: "Drone", href: "/products" },
-  { label: "Action Camera", href: "/products?cat=camera" },
-  { label: "Gimbal", href: "/products?cat=gimbal" },
-  { label: "Accessories", href: "/products?cat=accessories" },
+  { label: "Professional", href: "/products?category=professional" },
+  { label: "Creator", href: "/products?category=consumer" },
+  { label: "Accessories", href: "/products?category=accessories" },
+  { label: "Compare", href: "/#discover" },
   { label: "Support", href: "/#service" },
 ];
 
@@ -53,34 +54,56 @@ export function SiteHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [openMobileSection, setOpenMobileSection] = useState<string | null>(null);
-  const cartItems = useStore((state) => state.cartItems);
   const [user, setUser] = useState<any>(null);
+  const cartItems = useStore((state) => state.cartItems);
 
   const isHomePage = pathname === "/";
 
   useEffect(() => {
     setMounted(true);
-    const checkAuth = async () => {
+
+    let isActive = true;
+    let unsubscribe: (() => void) | undefined;
+
+    async function syncAuth() {
       try {
         const { createClient } = await import("../../lib/supabase/client");
         const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
-        const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (isActive) {
           setUser(session?.user ?? null);
+        }
+
+        const { data } = supabase.auth.onAuthStateChange((_, nextSession) => {
+          if (isActive) {
+            setUser(nextSession?.user ?? null);
+          }
         });
-        return () => authListener.subscription.unsubscribe();
-      } catch (e) {
-        console.log("Supabase not fully configured yet.");
+
+        unsubscribe = () => data.subscription.unsubscribe();
+      } catch {
+        if (isActive) {
+          setUser(null);
+        }
       }
+    }
+
+    void syncAuth();
+
+    return () => {
+      isActive = false;
+      unsubscribe?.();
     };
-    checkAuth();
   }, []);
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
+
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -89,79 +112,100 @@ export function SiteHeader() {
 
   return (
     <>
-      <header 
+      <header
         className={`fixed-top transition-all duration-300 ${
-          isHomePage 
-            ? (isScrolled ? "bg-white border-bottom shadow-sm py-2" : "bg-transparent py-3") 
+          isHomePage
+            ? isScrolled
+              ? "bg-white border-bottom shadow-sm py-2"
+              : "bg-transparent py-3"
             : "bg-white border-bottom shadow-sm py-2"
         }`}
-        style={{ 
+        style={{
           backdropFilter: isScrolled || !isHomePage ? "blur(30px)" : "none",
-          backgroundColor: isScrolled || !isHomePage ? "rgba(255,255,255,0.85)" : "transparent",
-          zIndex: 1050
+          backgroundColor:
+            isScrolled || !isHomePage ? "rgba(255,255,255,0.85)" : "transparent",
+          zIndex: 1050,
         }}
       >
         <div className="container-fluid px-4 d-flex align-items-center justify-content-between">
-          {/* Logo */}
           <Link href="/" className="d-flex align-items-center text-decoration-none">
-            <img 
-              alt="DEER" 
-              src="/assets/brand/deer-logo.svg" 
-              height="28" 
-              style={{ filter: (!isScrolled && isHomePage) ? "invert(1)" : "none" }} 
+            <Image
+              alt="DEER"
+              src="/assets/brand/deer-logo.svg"
+              width={100}
+              height={28}
+              style={{ filter: !isScrolled && isHomePage ? "invert(1)" : "none", width: "auto", height: "28px" }}
+              priority
             />
           </Link>
 
-          {/* Desktop Nav */}
           <nav className="d-none d-lg-flex align-items-center gap-5 position-absolute start-50 translate-middle-x">
-             {navLinks.map((link) => (
-                <Link 
-                  key={link.href} 
-                  href={link.href} 
-                  className={`text-decoration-none fw-medium small transition-colors ${
-                    (!isScrolled && isHomePage) ? "text-white hover-opacity-75" : "text-dark-blue hover-text-primary"
-                  }`}
-                  style={{ letterSpacing: "0.5px" }}
-                >
-                  {link.label}
-                </Link>
-             ))}
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`text-decoration-none fw-medium small transition-colors ${
+                  !isScrolled && isHomePage
+                    ? "text-white hover-opacity-75"
+                    : "text-dark-blue hover-text-primary"
+                }`}
+                style={{ letterSpacing: "0.5px" }}
+              >
+                {link.label}
+              </Link>
+            ))}
           </nav>
 
-          {/* Right Actions */}
           <div className="d-flex align-items-center gap-4">
-            <button 
-              className={`btn btn-link p-0 ${(!isScrolled && isHomePage) ? "text-white" : "text-dark-blue text-dark"}`}
+            <button
+              className={`btn btn-link p-0 ${
+                !isScrolled && isHomePage ? "text-white" : "text-dark-blue text-dark"
+              }`}
               onClick={() => setIsSearchOpen(true)}
+              type="button"
             >
               <Search size={22} strokeWidth={1.5} />
             </button>
-            <Link 
-              href={user ? "/account" : "/login"} 
-              className={`btn btn-link p-0 d-flex align-items-center gap-2 text-decoration-none ${(!isScrolled && isHomePage) ? "text-white" : "text-dark-blue text-dark"}`}
+            <Link
+              href={user ? "/account" : "/login"}
+              className={`btn btn-link p-0 d-flex align-items-center gap-2 text-decoration-none ${
+                !isScrolled && isHomePage ? "text-white" : "text-dark-blue text-dark"
+              }`}
             >
               <User size={22} strokeWidth={1.5} />
             </Link>
-            <Link href="/cart" className={`position-relative btn btn-link p-0 ${(!isScrolled && isHomePage) ? "text-white" : "text-dark-blue text-dark"}`}>
+            <Link
+              href="/cart"
+              className={`position-relative btn btn-link p-0 ${
+                !isScrolled && isHomePage ? "text-white" : "text-dark-blue text-dark"
+              }`}
+            >
               <ShoppingCart size={22} strokeWidth={1.5} />
-              {mounted && cartItemCount > 0 && (
-                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary" style={{ fontSize: "0.6rem", padding: "0.3em 0.5em" }}>
+              {mounted && cartItemCount > 0 ? (
+                <span
+                  className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary"
+                  style={{ fontSize: "0.6rem", padding: "0.3em 0.5em" }}
+                >
                   {cartItemCount}
                 </span>
-              )}
+              ) : null}
             </Link>
-            <button className={`btn btn-link p-0 d-lg-none ${(!isScrolled && isHomePage) ? "text-white" : "text-dark-blue text-dark"}`} onClick={() => setIsMenuOpen(true)}>
+            <button
+              className={`btn btn-link p-0 d-lg-none ${
+                !isScrolled && isHomePage ? "text-white" : "text-dark-blue text-dark"
+              }`}
+              onClick={() => setIsMenuOpen(true)}
+              type="button"
+            >
               <Menu size={24} />
             </button>
           </div>
         </div>
       </header>
-      
-      {/* Search Overlay */}
+
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
-      {/* Spacer */}
-      {!isHomePage && <div style={{ height: "65px" }} />}
+      {!isHomePage ? <div style={{ height: "65px" }} /> : null}
 
       <AnimatePresence>
         {isMenuOpen ? (
@@ -187,7 +231,13 @@ export function SiteHeader() {
             >
               <div className="mobile-nav-top">
                 <Link className="brand-lockup" href="/" onClick={() => setIsMenuOpen(false)}>
-                  <img alt="Deer Technology" className="brand-logo" src="/assets/brand/deer-logo.svg" />
+                  <Image 
+                    alt="Deer Technology" 
+                    className="brand-logo" 
+                    src="/assets/brand/deer-logo.svg"
+                    width={120}
+                    height={34}
+                  />
                 </Link>
 
                 <button
@@ -205,7 +255,7 @@ export function SiteHeader() {
                   <Link href="/products" onClick={() => setIsMenuOpen(false)}>
                     Browse Products
                   </Link>
-                  <Link href="/checkout" onClick={() => setIsMenuOpen(false)}>
+                  <Link href="/cart" onClick={() => setIsMenuOpen(false)}>
                     Open Cart
                   </Link>
                 </div>
@@ -230,9 +280,13 @@ export function SiteHeader() {
                     return (
                       <div className="mobile-nav-group" key={item.id}>
                         <button
-                          className={`mobile-nav-link mobile-nav-button ${isOpen ? "is-open" : ""}`}
+                          className={`mobile-nav-link mobile-nav-button ${
+                            isOpen ? "is-open" : ""
+                          }`}
                           onClick={() =>
-                            setOpenMobileSection((current) => (current === item.id ? null : item.id))
+                            setOpenMobileSection((current) =>
+                              current === item.id ? null : item.id,
+                            )
                           }
                           type="button"
                         >

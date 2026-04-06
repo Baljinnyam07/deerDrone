@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { products } from "@deer-drone/data";
-import { filterProducts } from "@deer-drone/utils";
+import { getCatalogProducts } from "../../../../../lib/supabase/catalog";
 
-export function GET(request: NextRequest) {
-  const query = request.nextUrl.searchParams.get("q") ?? request.nextUrl.searchParams.get("query") ?? "";
+export async function GET(request: NextRequest) {
+  const query =
+    request.nextUrl.searchParams.get("q") ??
+    request.nextUrl.searchParams.get("query") ??
+    request.nextUrl.searchParams.get("search") ??
+    "";
 
   return NextResponse.json({
-    items: filterProducts(products, query).slice(0, 5),
+    items: await getCatalogProducts({ query, limit: 5 }),
   });
 }

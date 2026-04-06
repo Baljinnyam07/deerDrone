@@ -1,11 +1,13 @@
 import Fastify from "fastify";
 import type { ChatRequest } from "@deer-drone/types";
-import { systemPrompt } from "./prompts/system";
 import { runConversation, streamChunks } from "./engine/conversation";
+import { systemPrompt } from "./prompts/system";
 
 const server = Fastify({
   logger: true,
 });
+
+const serviceSecret = process.env.CHATBOT_SERVICE_SECRET?.trim();
 
 server.get("/health", async () => ({
   ok: true,
@@ -14,6 +16,16 @@ server.get("/health", async () => ({
 }));
 
 server.post("/chat", async (request, reply) => {
+  if (serviceSecret) {
+    const incomingSecret = request.headers["x-deer-service-secret"];
+
+    if (incomingSecret !== serviceSecret) {
+      return reply.status(401).send({
+        error: "Unauthorized chatbot request.",
+      });
+    }
+  }
+
   const body = request.body as ChatRequest;
 
   if (!body?.sessionId || !body?.message) {
@@ -22,7 +34,7 @@ server.post("/chat", async (request, reply) => {
     });
   }
 
-  const response = runConversation(body);
+  const response = await runConversation(body);
 
   return reply.send({
     ...response,

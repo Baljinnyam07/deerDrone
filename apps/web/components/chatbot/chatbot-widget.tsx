@@ -2,60 +2,26 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { products } from "@deer-drone/data";
-import type { ChatMessage, ChatResponse, Product } from "@deer-drone/types";
+import type { ChatMessage, ChatResponse } from "@deer-drone/types";
 import { formatMoney } from "@deer-drone/utils";
 
 const initialMessages: ChatMessage[] = [
   {
     id: "welcome",
     role: "assistant",
-    content: "Сайн байна уу. Хэрэглээ, төсөв, эсвэл тодорхой загвараа хэлбэл би санал болгоё.",
+    content:
+      "Сайн байна уу. Хэрэглээ, төсөв, эсвэл тодорхой загвараа хэлбэл би санал болгоё.",
     createdAt: new Date().toISOString(),
   },
 ];
 
-function buildLocalReply(input: string): ChatResponse {
-  const normalized = input.toLowerCase();
-  let matches: Product[] = [];
-  let reply =
-    "Танд яг ямар зориулалт хэрэгтэй байгааг хэлбэл би илүү оновчтой санал болгоно. Жишээ нь зураглал, уул уурхай, контент зураг авалт гэх мэт.";
-
-  if (normalized.includes("thermal") || normalized.includes("дулаан")) {
-    matches = products.filter((product) => product.tags.includes("thermal"));
-    reply = "Дулаан мэдрэгч хэрэгтэй бол энэ загвар хамгийн ойр таарч байна.";
-  } else if (
-    normalized.includes("зураг") ||
-    normalized.includes("зураглал") ||
-    normalized.includes("mapping")
-  ) {
-    matches = products.filter((product) => product.tags.includes("mapping") || product.tags.includes("inspection"));
-    reply = "Зураглал болон inspection ажилд RTK эсвэл industrial ангилал илүү тохиромжтой.";
-  } else if (normalized.includes("үнэ") || normalized.includes("price")) {
-    matches = products.filter((product) =>
-      normalized.split(" ").some((chunk) => chunk.length > 3 && product.name.toLowerCase().includes(chunk)),
-    );
-    reply = matches.length
-      ? "Олдсон загваруудын үнийг доор харууллаа."
-      : "Ямар загварын үнэ сонирхож байгаагаа нэртэй нь бичээрэй.";
-  } else if (normalized.includes("лизинг")) {
-    matches = products.filter((product) => product.isLeasable).slice(0, 2);
-    reply = "Лизинг боломжтой загваруудаас эхлээд эдгээрийг үзээрэй.";
-  } else if (normalized.includes("анхан")) {
-    matches = products.filter((product) => product.slug === "dji-mini-4-pro");
-    reply = "Анхан шатанд хөнгөн, удирдахад амар загвар тохиромжтой.";
-  }
-
+function buildErrorMessage(): ChatMessage {
   return {
-    sessionId: "local-session",
-    reply,
-    cards: matches.slice(0, 2).map((product) => ({
-      id: product.id,
-      name: product.name,
-      slug: product.slug,
-      price: product.price,
-      heroNote: product.heroNote,
-    })),
+    id: crypto.randomUUID(),
+    role: "assistant",
+    content:
+      "AI зөвлөх түр ажиллагаагүй байна. Хэсэг хугацааны дараа дахин оролдох эсвэл support багтай холбогдоно уу.",
+    createdAt: new Date().toISOString(),
   };
 }
 
@@ -73,20 +39,20 @@ export function ChatbotWidget() {
     }
 
     setDraft("");
-    const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: input,
-      createdAt: new Date().toISOString(),
-    };
 
-    setMessages((current) => [...current, userMessage]);
+    setMessages((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: input,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
 
     startTransition(async () => {
-      const endpoint = process.env.NEXT_PUBLIC_CHATBOT_URL ?? "http://localhost:8787/chat";
-
       try {
-        const response = await fetch(endpoint, {
+        const response = await fetch("/api/v1/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -96,35 +62,28 @@ export function ChatbotWidget() {
           }),
         });
 
-        if (!response.ok) {
-          throw new Error("service unavailable");
+        const payload = (await response.json()) as Partial<ChatResponse> & {
+          error?: string;
+        };
+
+        if (!response.ok || !payload.reply || !payload.sessionId) {
+          throw new Error(payload.error || "service unavailable");
         }
 
-        const payload = (await response.json()) as ChatResponse;
+        const reply = payload.reply;
 
         setMessages((current) => [
           ...current,
           {
             id: crypto.randomUUID(),
             role: "assistant",
-            content: payload.reply,
+            content: reply,
             cards: payload.cards,
             createdAt: new Date().toISOString(),
           },
         ]);
       } catch {
-        const fallback = buildLocalReply(input);
-
-        setMessages((current) => [
-          ...current,
-          {
-            id: crypto.randomUUID(),
-            role: "assistant",
-            content: fallback.reply,
-            cards: fallback.cards,
-            createdAt: new Date().toISOString(),
-          },
-        ]);
+        setMessages((current) => [...current, buildErrorMessage()]);
       }
     });
   }
@@ -146,7 +105,11 @@ export function ChatbotWidget() {
           <div className="chatbot-body">
             {messages.map((message) => (
               <div
-                className={message.role === "user" ? "chat-bubble chat-bubble-user" : "chat-bubble chat-bubble-assistant"}
+                className={
+                  message.role === "user"
+                    ? "chat-bubble chat-bubble-user"
+                    : "chat-bubble chat-bubble-assistant"
+                }
                 key={message.id}
               >
                 <div>{message.content}</div>
@@ -178,7 +141,12 @@ export function ChatbotWidget() {
                 placeholder="Жишээ: лизингтэй мэргэжлийн дрон"
                 value={draft}
               />
-              <button className="dd-button" disabled={isPending} onClick={() => void handleSend()} type="button">
+              <button
+                className="dd-button"
+                disabled={isPending}
+                onClick={() => void handleSend()}
+                type="button"
+              >
                 {isPending ? "..." : "Илгээх"}
               </button>
             </div>

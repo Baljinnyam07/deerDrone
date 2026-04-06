@@ -43,6 +43,7 @@ export interface Product {
   slug: string;
   name: string;
   brand: string;
+  categoryId?: string;
   categorySlug: string;
   categoryName: string;
   shortDescription: string;
