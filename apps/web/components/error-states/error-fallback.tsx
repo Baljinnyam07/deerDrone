@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, RefreshCw } from "lucide-react";
+import Link from "next/link";
 
 export function ErrorFallback({
   error,
@@ -160,7 +161,7 @@ export function LoadingError({ onRetry }: { onRetry: () => void }) {
           marginBottom: "16px",
         }}
       >
-        We couldn't load this content. Please try again.
+        We couldn&apos;t load this content. Please try again.
       </p>
 
       <button
@@ -232,10 +233,10 @@ export function PageNotFound() {
           maxWidth: "400px",
         }}
       >
-        The page you're looking for doesn't exist or has been moved.
+        The page you&apos;re looking for doesn&apos;t exist or has been moved.
       </p>
 
-      <a
+      <Link
         href="/"
         style={{
           display: "inline-block",
@@ -255,7 +256,7 @@ export function PageNotFound() {
         }
       >
         Go Home
-      </a>
+      </Link>
     </div>
   );
 }

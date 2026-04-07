@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import type { CheckoutPayload } from "@deer-drone/types";
 import { formatMoney } from "@deer-drone/utils";
 import Link from "next/link";
@@ -138,13 +138,9 @@ export function CheckoutForm() {
   const [result, setResult] = useState<OrderResult | null>(null);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
-  const [mounted, setMounted] = useState(false);
+  const [mounted] = useState(true);
   const [copied, setCopied] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   function updateField<Key extends keyof CheckoutPayload>(key: Key, value: CheckoutPayload[Key]) {
     setForm((current) => ({ ...current, [key]: value }));

@@ -49,7 +49,7 @@ export function EmptyProducts() {
           maxWidth: "400px",
         }}
       >
-        We couldn't find any products matching your search. Try adjusting your
+        We couldn&apos;t find any products matching your search. Try adjusting your
         filters or browse our full collection.
       </p>
 
@@ -199,7 +199,7 @@ export function EmptySearch() {
           maxWidth: "400px",
         }}
       >
-        Try different search terms or check your spelling to find what you're
+        Try different search terms or check your spelling to find what you&apos;re
         looking for.
       </p>
 

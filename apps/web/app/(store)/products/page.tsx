@@ -232,8 +232,8 @@ export default async function ProductsPage({
                 product={product}
                 badge={idx === 0 ? "new" : idx === 1 ? "best-seller" : undefined}
                 discount={idx === 2 ? 15 : undefined}
-                rating={4.2 + Math.random() * 0.8}
-                reviewCount={Math.floor(Math.random() * 150) + 20}
+                rating={Number((4.2 + (idx % 5) * 0.16).toFixed(1))}
+                reviewCount={20 + (idx % 8) * 19}
               />
             ))}
           </div>

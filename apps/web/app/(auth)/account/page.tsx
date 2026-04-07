@@ -165,7 +165,7 @@ export default async function AccountPage() {
                     <div className="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3 mx-auto" style={{ width: "80px", height: "80px" }}>
                       <Package size={32} className="text-secondary" />
                     </div>
-                    <h6 className="fw-medium text-dark mb-2">Танд одоогоор хийгдсэн захиалга байхгүй байна</h6>
+                    <h6 className="fw-medium text-dark mb-2">Танд одоогоор ямар нэгэн захиалга байхгүй байна</h6>
                     <p className="text-secondary small mb-4">Та шинэ худалдан авалт хийж манай үйлчилгээтэй танилцана уу</p>
                     <Link href="/products" className="btn rounded-pill px-4 py-3 text-white fw-semibold" style={{ backgroundColor: "#7c3aed" }}>
                       Дэлгүүр хэсэх
