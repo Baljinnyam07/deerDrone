@@ -53,6 +53,7 @@ export function SiteHeader() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(true);
   const [openMobileSection, setOpenMobileSection] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const cartItems = useStore((state) => state.cartItems);
@@ -108,94 +109,210 @@ export function SiteHeader() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 992);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize, { passive: true });
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   return (
     <>
       <header
-        className={`fixed-top transition-all duration-300 ${
-          isHomePage
-            ? isScrolled
-              ? "bg-white border-bottom shadow-sm py-2"
-              : "bg-transparent py-3"
-            : "bg-white border-bottom shadow-sm py-2"
-        }`}
         style={{
-          backdropFilter: isScrolled || !isHomePage ? "blur(30px)" : "none",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
           backgroundColor:
-            isScrolled || !isHomePage ? "rgba(255,255,255,0.85)" : "transparent",
+            isScrolled || !isHomePage ? "rgba(255, 255, 255, 0.85)" : "transparent",
+          backdropFilter: isScrolled || !isHomePage ? "blur(30px)" : "none",
+          borderBottom: isScrolled || !isHomePage ? "1px solid #E2E8F0" : "none",
+          boxShadow: isScrolled || !isHomePage ? "0 1px 3px rgba(0, 0, 0, 0.05)" : "none",
           zIndex: 1050,
+          transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+          paddingTop: isScrolled || !isHomePage ? "12px" : "16px",
+          paddingBottom: isScrolled || !isHomePage ? "12px" : "16px",
         }}
       >
-        <div className="container-fluid px-4 d-flex align-items-center justify-content-between">
-          <Link href="/" className="d-flex align-items-center text-decoration-none">
+        <div
+          style={{
+            maxWidth: "1440px",
+            margin: "0 auto",
+            paddingLeft: "32px",
+            paddingRight: "32px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "32px",
+          }}
+        >
+          {/* Logo */}
+          <Link
+            href="/"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              textDecoration: "none",
+              flexShrink: 0,
+            }}
+          >
             <Image
               alt="DEER"
               src="/assets/brand/deer-logo.svg"
               width={100}
               height={28}
-              style={{ filter: !isScrolled && isHomePage ? "invert(1)" : "none", width: "auto", height: "28px" }}
+              style={{
+                filter: !isScrolled && isHomePage ? "invert(1)" : "none",
+                width: "auto",
+                height: "28px",
+                transition: "filter 250ms",
+              }}
               priority
             />
           </Link>
 
-          <nav className="d-none d-lg-flex align-items-center gap-5 position-absolute start-50 translate-middle-x">
+          {/* Desktop Navigation */}
+          <nav
+            style={{
+              display: isDesktop ? "flex" : "none",
+              alignItems: "center",
+              gap: "40px",
+              position: "absolute",
+              left: "50%",
+              transform: "translateX(-50%)",
+            }}
+          >
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-decoration-none fw-medium small transition-colors ${
-                  !isScrolled && isHomePage
-                    ? "text-white hover-opacity-75"
-                    : "text-dark-blue hover-text-primary"
-                }`}
-                style={{ letterSpacing: "0.5px" }}
+                style={{
+                  textDecoration: "none",
+                  fontWeight: 500,
+                  fontSize: "0.95rem",
+                  letterSpacing: "0.5px",
+                  color: !isScrolled && isHomePage ? "#FFFFFF" : "#0F172A",
+                  transition: "opacity 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.6")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
               >
                 {link.label}
               </Link>
             ))}
           </nav>
 
-          <div className="d-flex align-items-center gap-4">
+          {/* Right Actions */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "24px",
+              marginLeft: "auto",
+            }}
+          >
+            {/* Search Button */}
             <button
-              className={`btn btn-link p-0 ${
-                !isScrolled && isHomePage ? "text-white" : "text-dark-blue text-dark"
-              }`}
               onClick={() => setIsSearchOpen(true)}
+              style={{
+                background: "none",
+                border: "none",
+                padding: "8px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: !isScrolled && isHomePage ? "#FFFFFF" : "#0F172A",
+                transition: "opacity 250ms",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.6")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
               type="button"
+              aria-label="Search"
             >
               <Search size={22} strokeWidth={1.5} />
             </button>
+
+            {/* Account Button */}
             <Link
               href={user ? "/account" : "/login"}
-              className={`btn btn-link p-0 d-flex align-items-center gap-2 text-decoration-none ${
-                !isScrolled && isHomePage ? "text-white" : "text-dark-blue text-dark"
-              }`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                textDecoration: "none",
+                padding: "8px",
+                color: !isScrolled && isHomePage ? "#FFFFFF" : "#0F172A",
+                transition: "opacity 250ms",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.6")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
               <User size={22} strokeWidth={1.5} />
             </Link>
+
+            {/* Cart Button */}
             <Link
               href="/cart"
-              className={`position-relative btn btn-link p-0 ${
-                !isScrolled && isHomePage ? "text-white" : "text-dark-blue text-dark"
-              }`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative",
+                padding: "8px",
+                textDecoration: "none",
+                color: !isScrolled && isHomePage ? "#FFFFFF" : "#0F172A",
+                transition: "opacity 250ms",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.6")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
               <ShoppingCart size={22} strokeWidth={1.5} />
-              {mounted && cartItemCount > 0 ? (
+              {mounted && cartItemCount > 0 && (
                 <span
-                  className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary"
-                  style={{ fontSize: "0.6rem", padding: "0.3em 0.5em" }}
+                  style={{
+                    position: "absolute",
+                    top: "-4px",
+                    right: "-4px",
+                    backgroundColor: "#2563EB",
+                    color: "#FFFFFF",
+                    borderRadius: "12px",
+                    padding: "2px 6px",
+                    fontSize: "0.65rem",
+                    fontWeight: 600,
+                    minWidth: "18px",
+                    textAlign: "center",
+                  }}
                 >
                   {cartItemCount}
                 </span>
-              ) : null}
+              )}
             </Link>
+
+            {/* Mobile Menu Button */}
             <button
-              className={`btn btn-link p-0 d-lg-none ${
-                !isScrolled && isHomePage ? "text-white" : "text-dark-blue text-dark"
-              }`}
               onClick={() => setIsMenuOpen(true)}
+              style={{
+                display: isDesktop ? "none" : "flex",
+                background: "none",
+                border: "none",
+                padding: "8px",
+                cursor: "pointer",
+                alignItems: "center",
+                justifyContent: "center",
+                color: !isScrolled && isHomePage ? "#FFFFFF" : "#0F172A",
+                transition: "opacity 250ms",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.6")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
               type="button"
+              aria-label="Menu"
             >
               <Menu size={24} />
             </button>
@@ -205,10 +322,10 @@ export function SiteHeader() {
 
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
-      {!isHomePage ? <div style={{ height: "65px" }} /> : null}
+      {!isHomePage && <div style={{ height: "65px" }} />}
 
       <AnimatePresence>
-        {isMenuOpen ? (
+        {isMenuOpen && (
           <motion.div
             animate={{ opacity: 1 }}
             className="mobile-nav-drawer"
@@ -246,7 +363,7 @@ export function SiteHeader() {
                   onClick={() => setIsMenuOpen(false)}
                   type="button"
                 >
-                  <X className="w-5 h-5" />
+                  <X size={24} />
                 </button>
               </div>
 
@@ -322,7 +439,7 @@ export function SiteHeader() {
               </div>
             </motion.div>
           </motion.div>
-        ) : null}
+        )}
       </AnimatePresence>
     </>
   );

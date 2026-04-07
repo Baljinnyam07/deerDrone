@@ -10,17 +10,19 @@ import {
   Plus,
   Truck,
   PackageCheck,
-  Star
+  Star,
+  Share2,
 } from "lucide-react";
 import type { Product } from "@deer-drone/types";
 import { formatMoney } from "@deer-drone/utils";
 import { useStore } from "../../../../store/useStore";
 import { useState } from "react";
 import { MinimalProductCarousel } from "../../../../components/product/minimal-product-carousel";
+import { RatingStars } from "../../../../components";
 
 export default function ProductDetailView({
   product,
-  similarProducts = []
+  similarProducts = [],
 }: {
   product: Product;
   similarProducts?: Product[];
@@ -30,9 +32,14 @@ export default function ProductDetailView({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("info");
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
-  const images = product.images?.length > 0 ? product.images : [{ url: "/assets/drone-product.png", alt: product.name }];
-  const imageUrl = images[currentImageIndex]?.url || "/assets/drone-product.png";
+  const images =
+    product.images?.length > 0
+      ? product.images
+      : [{ url: "/assets/drone-product.png", alt: product.name }];
+  const imageUrl =
+    images[currentImageIndex]?.url || "/assets/drone-product.png";
 
   function addCurrentProductToCart() {
     for (let i = 0; i < quantity; i++) {
@@ -52,127 +59,209 @@ export default function ProductDetailView({
   }
 
   const decrementQty = () => {
-    if (quantity > 1) setQuantity(prev => prev - 1);
+    if (quantity > 1) setQuantity((prev) => prev - 1);
   };
 
   const incrementQty = () => {
-    if (quantity < (product.stockQty || 99)) setQuantity(prev => prev + 1);
+    if (quantity < (product.stockQty || 99)) setQuantity((prev) => prev + 1);
   };
 
   return (
-    <div className="bg-white pb-5">
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        .xgimi-tabs {
+    <div
+      style={{
+        backgroundColor: "#FFFFFF",
+        minHeight: "100vh",
+        paddingBottom: "60px",
+      }}
+    >
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        .product-detail-tabs {
           display: flex;
           gap: 32px;
-          border-bottom: 1px solid #eaeaea;
+          border-bottom: 1px solid #E2E8F0;
           margin-bottom: 24px;
         }
-        .xgimi-tab {
+        .product-detail-tab {
           padding: 12px 0;
           font-weight: 600;
-          color: #6b7280;
+          color: #64748B;
           cursor: pointer;
           position: relative;
-          transition: all 0.2s;
+          transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
           font-size: 0.95rem;
         }
-        .xgimi-tab:hover {
-          color: #111827;
+        .product-detail-tab:hover {
+          color: #0F172A;
         }
-        .xgimi-tab.active {
-          color: #111827;
+        .product-detail-tab.active {
+          color: #2563EB;
         }
-        .xgimi-tab.active::after {
+        .product-detail-tab.active::after {
           content: '';
           position: absolute;
           bottom: -1px;
           left: 0;
           width: 100%;
           height: 2px;
-          background-color: #10b981;
+          background-color: #2563EB;
         }
         .spec-row {
           display: flex;
           justify-content: space-between;
           padding: 14px 24px;
-          font-size: 0.85rem;
+          font-size: 0.95rem;
+          color: #475569;
+          border-bottom: 1px solid #E2E8F0;
         }
-        .spec-row:nth-child(even) {
-          background-color: #f9fafb;
+        .spec-row:last-child {
+          border-bottom: none;
+        }
+        .spec-row span:last-child {
+          font-weight: 600;
+          color: #0F172A;
         }
         .action-link {
           display: flex;
           align-items: center;
-          gap: 6px;
-          font-size: 0.8rem;
-          color: #4b5563;
+          gap: 8px;
+          font-size: 0.9rem;
+          color: #475569;
           cursor: pointer;
-          transition: color 0.2s;
+          transition: color 250ms;
+          padding: 8px 12px;
+          border-radius: 6px;
         }
         .action-link:hover {
-          color: #111827;
+          color: #2563EB;
+          background-color: #F0F4FF;
         }
-      `}} />
+      `,
+        }}
+      />
 
       {/* Breadcrumb */}
-      <div className="container py-4">
-        <nav aria-label="breadcrumb">
-          <ol className="breadcrumb mb-10" style={{ fontSize: "0.85rem" }}>
-            <li className="breadcrumb-item">
-              <Link href="/" className="text-secondary text-decoration-none">Нүүр</Link>
+      <div
+        style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px 32px" }}
+      >
+        <nav aria-label="breadcrumb" style={{ fontSize: "0.9rem" }}>
+          <ol
+            style={{
+              display: "flex",
+              gap: "8px",
+              listStyle: "none",
+              padding: 0,
+              margin: 0,
+            }}
+          >
+            <li>
+              <Link
+                href="/"
+                style={{ color: "#64748B", textDecoration: "none" }}
+              >
+                Нүүр
+              </Link>
             </li>
-            <li className="breadcrumb-item">
-              <Link href={`/products?category=${product.categorySlug}`} className="text-secondary text-decoration-none">
+            <li style={{ color: "#CBD5E1" }}>/</li>
+            <li>
+              <Link
+                href={`/products?category=${product.categorySlug}`}
+                style={{ color: "#64748B", textDecoration: "none" }}
+              >
                 {product.categoryName}
               </Link>
             </li>
-            <li className="breadcrumb-item active text-dark fw-medium" aria-current="page">
+            <li style={{ color: "#CBD5E1" }}>/</li>
+            <li style={{ color: "#0F172A", fontWeight: 500 }}>
               {product.name}
             </li>
           </ol>
         </nav>
       </div>
 
-      <div className="container pb-5">
-        <div className="row g-5">
+      <div
+        style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 32px 40px" }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "48px",
+            alignItems: "start",
+          }}
+        >
           {/* Left Column: Gallery */}
-          <div className="col-12 col-md-6 col-lg-5">
+          <div>
             <div
-              className="w-100 position-relative d-flex align-items-center justify-content-center mb-3"
+              style={{
+                width: "100%",
+                aspectRatio: "1",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: "24px",
+                backgroundColor: "#F8FAFC",
+                borderRadius: "12px",
+                overflow: "hidden",
+              }}
             >
               <img
                 src={imageUrl}
                 alt={images[currentImageIndex]?.alt || product.name}
-                className="w-100 h-100 rounded-2xl transition-all"
-                style={{ objectFit: "contain" }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  transition: "transform 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
               />
             </div>
 
-            {/* Thumbnails */}
+            {/* Image Thumbnails */}
             {images.length > 1 && (
-              <div className="d-flex gap-2 overflow-auto pb-2" style={{ scrollbarWidth: "none" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  overflowX: "auto",
+                  paddingBottom: "8px",
+                }}
+              >
                 {images.map((img, idx) => (
                   <button
                     key={`${img.url}-${idx}`}
                     onClick={() => setCurrentImageIndex(idx)}
-                    className="flex-shrink-0 bg-white p-1"
                     style={{
-                      width: "100%",
-                      height: "100%",
-                      border: idx === currentImageIndex
-                        ? "1.5px solid #10b981"
-                        : "1px solid #e5e7eb",
+                      flex: "0 0 100px",
+                      height: "100px",
+                      border:
+                        idx === currentImageIndex
+                          ? "2px solid #2563EB"
+                          : "1px solid #E2E8F0",
+                      borderRadius: "8px",
+                      backgroundColor: "#F8FAFC",
                       cursor: "pointer",
-                      borderRadius: "2px"
+                      padding: "4px",
+                      transition: "all 250ms",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.target as HTMLElement).style.borderColor = "#2563EB";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (idx !== currentImageIndex) {
+                        (e.target as HTMLElement).style.borderColor = "#E2E8F0";
+                      }
                     }}
                   >
                     <img
                       src={img.url}
                       alt={`Thumbnail ${idx + 1}`}
-                      className="w-100 h-100"
-                      style={{ objectFit: "contain" }}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                      }}
                     />
                   </button>
                 ))}
@@ -181,221 +270,534 @@ export default function ProductDetailView({
           </div>
 
           {/* Right Column: Product Details */}
-          <div className="col-12 col-md-6 col-lg-7 d-flex flex-column pt-2">
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {/* Header */}
+            <div style={{ marginBottom: "24px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "start",
+                  marginBottom: "12px",
+                }}
+              >
+                <h1
+                  style={{
+                    fontSize: "2rem",
+                    fontWeight: 700,
+                    color: "#0F172A",
+                    margin: 0,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {product.name}
+                </h1>
+                <span
+                  style={{
+                    fontSize: "0.9rem",
+                    color: "#64748B",
+                    fontWeight: 500,
+                  }}
+                >
+                  SKU:{" "}
+                  {product.id
+                    ? product.id.substring(0, 8).toUpperCase()
+                    : "N/A"}
+                </span>
+              </div>
 
-            <div className="d-flex justify-content-between align-items-start mb-1">
-              <h1 className="fw-bold mb-0" style={{ fontSize: "1.75rem", letterSpacing: "-0.01em", color: "#111827" }}>
-                {product.name}
-              </h1>
-              {/* Brand Logo Placeholder */}
-              <div className="text-secondary fw-bold" style={{ fontSize: "1.2rem", letterSpacing: "0.1em" }}>
-                {product.brand || "XGIMI"}
+              {/* Rating and Category */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "16px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <RatingStars
+                  rating={4.5}
+                  reviewCount={28}
+                  size="md"
+                  showCount={true}
+                />
+                <span
+                  style={{
+                    fontSize: "0.85rem",
+                    color: "#64748B",
+                    padding: "4px 12px",
+                    backgroundColor: "#F0F4FF",
+                    borderRadius: "20px",
+                  }}
+                >
+                  {product.categoryName || "Дрон"}
+                </span>
               </div>
             </div>
 
-            <div className="d-flex flex-column gap-1 mb-4 border-bottom pb-4">
-              <span className="text-secondary" style={{ fontSize: "0.8rem" }}>
-                #{product.id ? product.id.substring(0, 8).toUpperCase() : "10370017"}
+            {/* Price Section */}
+            <div
+              style={{
+                marginBottom: "24px",
+                paddingBottom: "24px",
+                borderBottom: "1px solid #E2E8F0",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.85rem",
+                  color: "#64748B",
+                  display: "block",
+                  marginBottom: "8px",
+                }}
+              >
+                Үнэ
               </span>
+              <div
+                style={{ fontSize: "2rem", fontWeight: 700, color: "#2563EB" }}
+              >
+                {formatMoney(product.price)}
+              </div>
             </div>
 
-            {/* Price Block */}
-            <div className="d-flex justify-content-between align-items-end mb-4 border-bottom pb-4">
-              <div>
-                <span className="text-secondary d-block mb-1" style={{ fontSize: "1.2rem" }}>Үнэ</span>
-                <div className="d-flex align-items-baseline gap-2">
-                  <span className="fw-bold text-dark" style={{ fontSize: "1.8rem" }}>
-                    {formatMoney(product.price)}
+            {/* Actions Links */}
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                marginBottom: "24px",
+                flexWrap: "wrap",
+              }}
+            >
+              <div
+                className="action-link"
+                onClick={() => {}}
+                style={{ cursor: "pointer" }}
+              >
+                <ArrowLeftRight size={18} /> Харьцуулах
+              </div>
+              <div
+                className="action-link"
+                onClick={() => {}}
+                style={{ cursor: "pointer" }}
+              >
+                <Share2 size={18} /> Хуваалцах
+              </div>
+            </div>
+
+            {/* Quantity and Buttons */}
+            <div
+              style={{
+                marginBottom: "24px",
+                paddingBottom: "24px",
+                borderBottom: "1px solid #E2E8F0",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  marginBottom: "12px",
+                  flexWrap: "wrap",
+                }}
+              >
+                {/* Quantity Control */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    backgroundColor: "#F8FAFC",
+                    borderRadius: "8px",
+                    border: "1px solid #E2E8F0",
+                  }}
+                >
+                  <button
+                    onClick={decrementQty}
+                    style={{
+                      border: "none",
+                      backgroundColor: "transparent",
+                      padding: "12px 16px",
+                      cursor: "pointer",
+                      color: "#64748B",
+                      transition: "color 250ms",
+                    }}
+                    onMouseEnter={(e: any) =>
+                      (e.currentTarget.style.color = "#2563EB")
+                    }
+                    onMouseLeave={(e: any) =>
+                      (e.currentTarget.style.color = "#64748B")
+                    }
+                  >
+                    <Minus size={18} />
+                  </button>
+                  <div
+                    style={{
+                      padding: "12px 24px",
+                      fontWeight: 600,
+                      color: "#0F172A",
+                      minWidth: "60px",
+                      textAlign: "center",
+                    }}
+                  >
+                    {quantity}
+                  </div>
+                  <button
+                    onClick={incrementQty}
+                    style={{
+                      border: "none",
+                      backgroundColor: "transparent",
+                      padding: "12px 16px",
+                      cursor: "pointer",
+                      color: "#64748B",
+                      transition: "color 250ms",
+                    }}
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
+
+                {/* Wishlist Button */}
+                <button
+                  onClick={() => setIsWishlisted(!isWishlisted)}
+                  style={{
+                    border: "1px solid #E2E8F0",
+                    backgroundColor: isWishlisted ? "#FEE2E2" : "#FFFFFF",
+                    padding: "12px 16px",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    color: isWishlisted ? "#DC2626" : "#64748B",
+                    fontWeight: 500,
+                    fontSize: "0.95rem",
+                    transition: "all 250ms",
+                  }}
+                >
+                  <Heart
+                    size={18}
+                    fill={isWishlisted ? "currentColor" : "none"}
+                  />{" "}
+                  Wishlist
+                </button>
+              </div>
+
+              {/* Add to Cart and Buy Now Buttons */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "12px",
+                }}
+              >
+                <button
+                  onClick={addCurrentProductToCart}
+                  disabled={product.stockQty === 0}
+                  style={{
+                    padding: "12px 24px",
+                    border: "1px solid #2563EB",
+                    backgroundColor: "#FFFFFF",
+                    color: "#2563EB",
+                    fontWeight: 600,
+                    borderRadius: "8px",
+                    cursor: product.stockQty === 0 ? "not-allowed" : "pointer",
+                    transition: "all 250ms",
+                    fontSize: "0.95rem",
+                    opacity: product.stockQty === 0 ? 0.5 : 1,
+                  }}
+                >
+                  Сагсанд хийх
+                </button>
+
+                <button
+                  onClick={handleBuyNow}
+                  disabled={product.stockQty === 0}
+                  style={{
+                    padding: "12px 24px",
+                    border: "none",
+                    backgroundColor: "#2563EB",
+                    color: "#FFFFFF",
+                    fontWeight: 600,
+                    borderRadius: "8px",
+                    cursor: product.stockQty === 0 ? "not-allowed" : "pointer",
+                    transition: "all 250ms",
+                    fontSize: "0.95rem",
+                    opacity: product.stockQty === 0 ? 0.5 : 1,
+                  }}
+                >
+                  Худалдан авах
+                </button>
+              </div>
+            </div>
+
+            {/* Info Messages */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+                marginBottom: "24px",
+                paddingBottom: "24px",
+                borderBottom: "1px solid #E2E8F0",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  fontSize: "0.9rem",
+                }}
+              >
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    backgroundColor:
+                      product.stockQty > 0 ? "#DCFCE7" : "#FEE2E2",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <PackageCheck
+                    size={18}
+                    style={{
+                      color: product.stockQty > 0 ? "#16A34A" : "#DC2626",
+                    }}
+                  />
+                </div>
+                <div>
+                  <span style={{ color: "#64748B" }}>Stock Status: </span>
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      color: product.stockQty > 0 ? "#16A34A" : "#DC2626",
+                    }}
+                  >
+                    {product.stockQty > 0
+                      ? `${product.stockQty} шт нэмэлт`
+                      : "Дууссан"}
+                  </span>
+                </div>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  fontSize: "0.9rem",
+                }}
+              >
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    backgroundColor: "#DBEAFE",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Truck size={18} style={{ color: "#0284C7" }} />
+                </div>
+                <div>
+                  <span style={{ color: "#0F172A", fontWeight: 500 }}>
+                    Үлэнд хүргүүлэлтэнд хамаатай
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Actions Links */}
-            <div className="d-flex gap-4 mb-4">
-              <div className="action-link">
-                <ArrowLeftRight size={16} /> Харьцуулах
-              </div>
-              <div className="action-link">
-                <Copy size={16} /> Төстэй бараа
-              </div>
-            </div>
-
-            {/* Buy Row */}
-            <div className="d-flex align-items-center gap-3 mb-4 pb-4 border-bottom flex-wrap">
-              <div className="d-flex align-items-center bg-light rounded" style={{ height: "48px" }}>
-                <button
-                  onClick={decrementQty}
-                  className="btn border-0 py-0 px-3 h-100 text-secondary"
-                  style={{ backgroundColor: "#f3f4f6" }}
-                  type="button"
-                >
-                  <Minus size={16} />
-                </button>
-                <div className="d-flex align-items-center justify-content-center bg-dark text-white fw-medium h-100 px-3" style={{ minWidth: "40px" }}>
-                  {quantity}
-                </div>
-                <button
-                  onClick={incrementQty}
-                  className="btn border-0 py-0 px-3 h-100 text-secondary"
-                  style={{ backgroundColor: "#f3f4f6" }}
-                  type="button"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-
-              <button
-                onClick={addCurrentProductToCart}
-                disabled={product.stockQty === 0}
-                className="btn flex-grow-1 fw-bold"
+            {/* Alternative Actions */}
+            <div
+              style={{
+                paddingBottom: "24px",
+                borderBottom: "1px solid #E2E8F0",
+              }}
+            >
+              <span
                 style={{
-                  height: "48px",
-                  border: "1px solid #d1d5db",
-                  backgroundColor: "#ffffff",
-                  color: "#111827",
-                  opacity: product.stockQty === 0 ? 0.5 : 1
+                  fontSize: "0.85rem",
+                  color: "#64748B",
+                  display: "block",
+                  marginBottom: "12px",
+                  fontWeight: 500,
                 }}
-                type="button"
               >
-                Сагсанд хийх
-              </button>
-
-              <button
-                onClick={handleBuyNow}
-                disabled={product.stockQty === 0}
-                className="btn flex-grow-1 fw-bold text-white"
-                style={{
-                  height: "48px",
-                  backgroundColor: "#000000",
-                  border: "1px solid #000000",
-                  opacity: product.stockQty === 0 ? 0.5 : 1
-                }}
-                type="button"
-              >
-                Худалдан авах
-              </button>
-            </div>
-
-            {/* Info Messages */}
-            <div className="d-flex flex-column gap-2 mb-4 pb-4 border-bottom">
-              <div className="d-flex align-items-center gap-2" style={{ fontSize: "0.85rem" }}>
-                <PackageCheck size={16} className="text-secondary" />
-                <span className="text-secondary">Үлдэгдэл:</span>
-                <span className="fw-bold" style={{ color: product.stockQty > 0 ? "#10b981" : "#ef4444" }}>
-                  {product.stockQty > 0 ? "Боломжтой" : "Дууссан"}
-                </span>
-              </div>
-              <div className="d-flex align-items-center gap-2" style={{ fontSize: "0.85rem" }}>
-                <Truck size={16} className="text-secondary" />
-                <span className="text-dark">Бүх бэлэн бараа хүргэгдэнэ</span>
-              </div>
-            </div>
-
-            {/* Payment Methods Placeholder */}
-            <div>
-              <div className="text-secondary mb-3" style={{ fontSize: "0.85rem" }}>
-                Төлбөрийн нөхцөлүүд
-              </div>
-              <div className="d-flex gap-2">
-                <img src="https://storepay.mn/logo/storepay-icon.svg" style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#000" }} />
-                <div className="rounded-circle bg-info d-flex align-items-center justify-content-center text-white" style={{ width: "24px", height: "24px", fontSize: "10px", fontWeight: "bold" }}>P</div>
-                <div className="rounded-circle bg-success d-flex align-items-center justify-content-center text-white" style={{ width: "24px", height: "24px", fontSize: "10px", fontWeight: "bold" }}>S</div>
+                Бусад сонголт
+              </span>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <button
+                  style={{
+                    padding: "8px 16px",
+                    border: "1px solid #E2E8F0",
+                    backgroundColor: "#FFFFFF",
+                    borderRadius: "6px",
+                    fontSize: "0.85rem",
+                    color: "#475569",
+                    cursor: "pointer",
+                    transition: "all 250ms",
+                  }}
+                >
+                  💬 Bot-тай сошлох
+                </button>
+                <button
+                  style={{
+                    padding: "8px 16px",
+                    border: "1px solid #E2E8F0",
+                    backgroundColor: "#FFFFFF",
+                    borderRadius: "6px",
+                    fontSize: "0.85rem",
+                    color: "#475569",
+                    cursor: "pointer",
+                    transition: "all 250ms",
+                  }}
+                >
+                  📞 Лизинг авах
+                </button>
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
       {/* Specifications Section */}
-      <div className="container pb-5">
-        <h5 className="fw-bold mb-4" style={{ fontSize: "1rem" }}>
+      <div
+        style={{ maxWidth: "1280px", margin: "0 auto", padding: "40px 32px" }}
+      >
+        <h2
+          style={{
+            fontSize: "1.3rem",
+            fontWeight: 700,
+            marginBottom: "24px",
+            color: "#0F172A",
+          }}
+        >
           Бүтээгдэхүүний үзүүлэлтүүд
-        </h5>
-        <div className="d-flex flex-column w-100" style={{ maxWidth: "100%" }}>
+        </h2>
+        <div
+          style={{
+            border: "1px solid #E2E8F0",
+            borderRadius: "8px",
+            overflow: "hidden",
+          }}
+        >
           {product.specs && product.specs.length > 0 ? (
             product.specs.map((spec, index) => (
               <div key={`${spec.label}-${index}`} className="spec-row">
-                <span style={{ color: "#4b5563" }}>{spec.label}</span>
-                <span style={{ fontWeight: "600", color: "#111827" }}>{spec.value}</span>
+                <span>{spec.label}</span>
+                <span>{spec.value}</span>
               </div>
             ))
           ) : (
-            // Dummy Specifications if empty
             <>
               <div className="spec-row">
-                <span style={{ color: "#4b5563" }}>Нягтаршил</span>
-                <span style={{ fontWeight: "600", color: "#111827" }}>1080p HD</span>
+                <span>Разрешение камеры</span>
+                <span>4K UHD</span>
               </div>
               <div className="spec-row">
-                <span style={{ color: "#4b5563" }}>Гэрэлтэлт</span>
-                <span style={{ fontWeight: "600", color: "#111827" }}>400 ISO Lumens</span>
+                <span>Время полета</span>
+                <span>46 минут</span>
               </div>
               <div className="spec-row">
-                <span style={{ color: "#4b5563" }}>Lamp life</span>
-                <span style={{ fontWeight: "600", color: "#111827" }}>25000 hours</span>
+                <span>Батарея</span>
+                <span>5935 мАч</span>
               </div>
               <div className="spec-row">
-                <span style={{ color: "#4b5563" }}>Чанга яригч</span>
-                <span style={{ fontWeight: "600", color: "#111827" }}>Dolby</span>
+                <span>Вес</span>
+                <span>907 г</span>
               </div>
               <div className="spec-row">
-                <span style={{ color: "#4b5563" }}>Жин</span>
-                <span style={{ fontWeight: "600", color: "#111827" }}>1.18кг</span>
+                <span>Дальность связи</span>
+                <span>15 км</span>
               </div>
             </>
           )}
         </div>
       </div>
 
-      {/* Tabs and Similar Items */}
-      <div className="container">
-        <div className="xgimi-tabs">
+      {/* Tabs Section */}
+      <div
+        style={{ maxWidth: "1280px", margin: "0 auto", padding: "40px 32px" }}
+      >
+        <div className="product-detail-tabs">
           <div
-            className={`xgimi-tab ${activeTab === 'info' ? 'active' : ''}`}
-            onClick={() => setActiveTab('info')}
+            className={`product-detail-tab ${activeTab === "info" ? "active" : ""}`}
+            onClick={() => setActiveTab("info")}
           >
             Бүтээгдэхүүний мэдээлэл
           </div>
           <div
-            className={`xgimi-tab ${activeTab === 'stores' ? 'active' : ''}`}
-            onClick={() => setActiveTab('stores')}
+            className={`product-detail-tab ${activeTab === "stores" ? "active" : ""}`}
+            onClick={() => setActiveTab("stores")}
           >
             Худалдаалж буй дэлгүүр
           </div>
           <div
-            className={`xgimi-tab ${activeTab === 'reviews' ? 'active' : ''}`}
-            onClick={() => setActiveTab('reviews')}
+            className={`product-detail-tab ${activeTab === "reviews" ? "active" : ""}`}
+            onClick={() => setActiveTab("reviews")}
           >
             Хэрэглэгчдийн сэтгэгдэл
           </div>
         </div>
 
-        <div className="tab-content mb-5">
-          {activeTab === 'info' && (
-            <p className="text-secondary" style={{ fontSize: "0.95rem", lineHeight: 1.6, maxWidth: "1200px" }}>
-              {product.description || "Бүтээгдэхүүний дэлгэрэнгүй мэдээлэл одоогоор алга байна."}
+        <div style={{ paddingBottom: "60px" }}>
+          {activeTab === "info" && (
+            <p
+              style={{
+                fontSize: "0.95rem",
+                lineHeight: 1.7,
+                color: "#475569",
+                maxWidth: "100%",
+                margin: 0,
+              }}
+            >
+              {product.description ||
+                "Бүтээгдэхүүний дэлгэрэнгүй мэдээлэл одоогоор алга байна."}
             </p>
           )}
-          {activeTab === 'stores' && (
-            <p className="text-secondary" style={{ fontSize: "0.95rem" }}>
+          {activeTab === "stores" && (
+            <p
+              style={{
+                fontSize: "0.95rem",
+                lineHeight: 1.7,
+                color: "#475569",
+                margin: 0,
+              }}
+            >
               Манай албан ёсны салбар дэлгүүрүүдэд бэлэн худалдаалагдаж байна.
             </p>
           )}
-          {activeTab === 'reviews' && (
-            <p className="text-secondary" style={{ fontSize: "0.95rem" }}>
+          {activeTab === "reviews" && (
+            <p
+              style={{
+                fontSize: "0.95rem",
+                lineHeight: 1.7,
+                color: "#475569",
+                margin: 0,
+              }}
+            >
               Сэтгэгдэл байхгүй байна.
             </p>
           )}
         </div>
 
-        <h5 className="fw-bold mb-4" style={{ fontSize: "1rem" }}>
+        <h2
+          style={{
+            fontSize: "1.3rem",
+            fontWeight: 700,
+            marginBottom: "24px",
+            color: "#0F172A",
+          }}
+        >
           Төстэй бараа
-        </h5>
+        </h2>
 
-        {/* Similar Items rendered by previously created ProductCarousel */}
-        <div className="w-100 mb-5">
+        {/* Similar Items Carousel */}
+        <div style={{ marginBottom: "60px" }}>
           <MinimalProductCarousel products={similarProducts} />
         </div>
       </div>

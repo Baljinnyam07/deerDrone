@@ -3,189 +3,309 @@
 import Link from "next/link";
 import { loginWithFacebook } from "../actions";
 import { motion } from "framer-motion";
-import { ArrowLeft, Shield, Sparkles, Zap, ChevronRight } from "lucide-react";
+import { ArrowLeft, Shield, Zap } from "lucide-react";
 
-/**
- * Premium Facebook Icon Svg
- */
 const FacebookIcon = ({ size = 20 }: { size?: number }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
     fill="currentColor"
   >
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
   </svg>
 );
 
 export default function LoginPage() {
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center overflow-hidden position-relative" style={{ backgroundColor: "#080808" }}>
-      
-      {/* Dynamic Background Glows */}
-      <div 
-        className="position-absolute" 
-        style={{ 
-          top: "-10%", 
-          right: "-5%", 
-          width: "60vw", 
-          height: "60vw", 
-          background: "radial-gradient(circle, rgba(0, 153, 255, 0.08) 0%, transparent 70%)", 
-          filter: "blur(60px)",
-          zIndex: 0
-        }} 
-      />
-      <div 
-        className="position-absolute" 
-        style={{ 
-          bottom: "-10%", 
-          left: "-5%", 
-          width: "50vw", 
-          height: "50vw", 
-          background: "radial-gradient(circle, rgba(124, 58, 237, 0.05) 0%, transparent 70%)", 
-          filter: "blur(60px)",
-          zIndex: 0
-        }} 
-      />
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "32px 16px",
+        backgroundColor: "#FFFFFF",
+        background: "linear-gradient(135deg, #F8FAFC 0%, #F0F4FF 100%)",
+      }}
+    >
+      {/* Top Navigation */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        style={{
+          position: "absolute",
+          top: "24px",
+          left: "24px",
+        }}
+      >
+        <Link
+          href="/"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "8px 16px",
+            borderRadius: "8px",
+            backgroundColor: "#F8FAFC",
+            border: "1px solid #E2E8F0",
+            color: "#64748B",
+            textDecoration: "none",
+            fontSize: "14px",
+            fontWeight: 500,
+            transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#F0F4FF";
+            e.currentTarget.style.color = "#2563EB";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "#F8FAFC";
+            e.currentTarget.style.color = "#64748B";
+          }}
+        >
+          <ArrowLeft size={16} />
+          Буцах
+        </Link>
+      </motion.div>
 
-      <div className="container position-relative" style={{ zIndex: 1 }}>
-        <div className="row justify-content-center">
-          <div className="col-12 col-md-8 col-lg-5 col-xl-4 text-sans-serif">
-            
-            {/* Top Navigation */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-center mb-5"
-            >
-              <Link
-                href="/"
-                className="text-decoration-none d-inline-flex align-items-center gap-2 px-4 py-2 rounded-pill transition-all"
-                style={{ 
-                  backgroundColor: "rgba(255,255,255,0.03)", 
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  color: "rgba(255,255,255,0.6)",
-                  fontSize: "0.85rem"
-                }}
-              >
-                <ArrowLeft size={14} /> Нүүр хуудас руу буцах
-              </Link>
-            </motion.div>
-
-            {/* Login Card */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.98, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="p-5 rounded-5"
+      {/* Login Card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+        style={{
+          width: "100%",
+          maxWidth: "400px",
+          padding: "40px 32px",
+          backgroundColor: "#FFFFFF",
+          borderRadius: "16px",
+          border: "1px solid #E2E8F0",
+          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.07)",
+        }}
+      >
+        {/* Logo Section */}
+        <div
+          style={{
+            textAlign: "center",
+            marginBottom: "32px",
+          }}
+        >
+          <motion.div
+            initial={{ rotate: -15, scale: 0.8 }}
+            animate={{ rotate: 0, scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            style={{
+              width: "64px",
+              height: "64px",
+              margin: "0 auto 16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#F0F4FF",
+              borderRadius: "12px",
+              border: "1px solid #E0E7FF",
+            }}
+          >
+            <img
+              alt="DEER"
+              src="/assets/brand/deer-logo.svg"
               style={{
-                backgroundColor: "rgba(255,255,255,0.02)",
-                backdropFilter: "blur(40px)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)"
+                width: "40px",
+                height: "auto",
+                filter: "hue-rotate(200deg) brightness(1.2)",
+              }}
+            />
+          </motion.div>
+
+          <h1
+            style={{
+              fontSize: "24px",
+              fontWeight: 700,
+              color: "#0F172A",
+              margin: "0 0 8px 0",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            DEER Drone
+          </h1>
+          <p
+            style={{
+              fontSize: "14px",
+              color: "#64748B",
+              margin: 0,
+            }}
+          >
+            Нүүр хуудас руу нэвтэрнэ үү
+          </p>
+        </div>
+
+        {/* Description */}
+        <div style={{ marginBottom: "32px", textAlign: "center" }}>
+          <h2
+            style={{
+              fontSize: "18px",
+              fontWeight: 600,
+              color: "#0F172A",
+              marginBottom: "8px",
+            }}
+          >
+            Тавтай морил
+          </h2>
+          <p
+            style={{
+              fontSize: "14px",
+              color: "#64748B",
+              margin: 0,
+              lineHeight: "1.5",
+            }}
+          >
+            Захиалгыг түүхээ удирдахын тулд нэвтэрнэ үү
+          </p>
+        </div>
+
+        {/* Login Button */}
+        <form action={loginWithFacebook} style={{ marginBottom: "24px" }}>
+          <button
+            type="submit"
+            style={{
+              width: "100%",
+              height: "44px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "12px",
+              backgroundColor: "#1877F2",
+              color: "#FFFFFF",
+              border: "none",
+              borderRadius: "8px",
+              fontSize: "15px",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#0A66C2";
+              e.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#1877F2";
+              e.currentTarget.style.transform = "translateY(0)";
+            }}
+          >
+            <FacebookIcon size={18} />
+            Facebook-ээр үргэлжлүүлэх
+          </button>
+        </form>
+
+        {/* Trust Indicators */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+            paddingTop: "24px",
+            borderTop: "1px solid #E2E8F0",
+          }}
+        >
+          {[
+            { icon: Shield, text: "Байлалтай аюулгүй", desc: "Facebook баталгаатай" },
+            { icon: Zap, text: "Хэдэв нэвтэрэх", desc: "Нэг товшилтын нэвтэрэлт" },
+          ].map((item, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
               }}
             >
-              <div className="text-center mb-5">
-                <motion.div
-                  initial={{ rotate: -15, scale: 0.8 }}
-                  animate={{ rotate: 0, scale: 1 }}
-                  transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-                  className="mb-4 d-inline-block p-4 rounded-4"
-                  style={{ backgroundColor: "rgba(0,153,255,0.1)", border: "1px solid rgba(0,153,255,0.2)" }}
-                >
-                  <img
-                    alt="DEER Drone"
-                    src="/assets/brand/deer-logo.svg"
-                    width="48"
-                    height="48"
-                    style={{ filter: "invert(1) brightness(1.5)" }}
-                  />
-                </motion.div>
-                
-                <h1 className="text-white fw-bold mb-2" style={{ fontSize: "2.2rem", letterSpacing: "-0.04em" }}>
-                  DEER DRONE
-                </h1>
-                <p className="small text-uppercase fw-semibold" style={{ color: "rgba(255,255,255,0.4)", letterSpacing: "0.2em" }}>
-                  Premium Creator Hub
-                </p>
+              <div
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#F0F4FF",
+                  borderRadius: "8px",
+                  color: "#2563EB",
+                }}
+              >
+                <item.icon size={16} />
               </div>
-
-              <div className="mb-5 text-center">
-                <h4 className="text-white mb-2 fw-medium">Тавтай морил</h4>
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.95rem" }}>
-                  Бүтээгдэхүүн болон захиалгын түүхээ <br /> удирдахын тулд нэвтэрнэ үү
-                </p>
-              </div>
-
-              {/* Login Button Area */}
-              <form action={loginWithFacebook}>
-                <button
-                  type="submit"
-                  className="btn w-100 py-3 rounded-pill d-flex align-items-center justify-content-center gap-3 transition-all"
-                  style={{ 
-                    backgroundColor: "#1877F2", 
-                    color: "white", 
-                    border: "none",
-                    fontWeight: "600",
-                    height: "60px",
-                    boxShadow: "0 10px 20px -5px rgba(24, 119, 242, 0.4)"
+              <div>
+                <div
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    color: "#0F172A",
                   }}
                 >
-                  <FacebookIcon size={22} />
-                  Facebook-ээр үргэлжлүүлэх
-                </button>
-              </form>
-
-              {/* Minimal Trust Assets */}
-              <div className="mt-5 pt-4 d-flex flex-column gap-3" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                {[
-                  { icon: Shield, text: "Secure Auth", desc: "Facebook Verified" },
-                  { icon: Zap, text: "Instant Login", desc: "One-Click access" }
-                ].map((item, i) => (
-                  <div key={i} className="d-flex align-items-center gap-3">
-                    <div className="p-2 rounded-circle" style={{ backgroundColor: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.4)" }}>
-                      <item.icon size={16} />
-                    </div>
-                    <div>
-                      <div className="fw-bold text-white small" style={{ fontSize: "0.8rem", opacity: 0.9 }}>{item.text}</div>
-                      <div className="small" style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>{item.desc}</div>
-                    </div>
-                  </div>
-                ))}
+                  {item.text}
+                </div>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#94A3B8",
+                  }}
+                >
+                  {item.desc}
+                </div>
               </div>
-            </motion.div>
-
-            {/* Footer Links */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1, duration: 1 }}
-              className="mt-5 text-center px-4"
-            >
-              <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.8rem", lineHeight: 1.6 }}>
-                Нэвтэрч орсноор та манай <Link href="/terms" className="text-white text-decoration-none fw-semibold">Үйлчилгээний нөхцөл</Link> болон <Link href="/privacy" className="text-white text-decoration-none fw-semibold">Нууцлалын бодлого</Link>-ыг зөвшөөрч байгаа болно.
-              </p>
-            </motion.div>
-
-          </div>
+            </div>
+          ))}
         </div>
-      </div>
+      </motion.div>
 
-      <style jsx global>{`
-        body {
-          background-color: #080808 !important;
-        }
-        .btn:hover {
-          transform: translateY(-2px);
-          filter: brightness(1.1);
-        }
-        .btn:active {
-          transform: translateY(0);
-        }
-      `}</style>
+      {/* Footer Links */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4, duration: 0.6 }}
+        style={{
+          marginTop: "32px",
+          textAlign: "center",
+          padding: "0 32px",
+          maxWidth: "400px",
+        }}
+      >
+        <p
+          style={{
+            fontSize: "12px",
+            color: "#94A3B8",
+            lineHeight: "1.6",
+            margin: 0,
+          }}
+        >
+          Нэвтэрч орсноор та манай{" "}
+          <Link
+            href="/terms"
+            style={{
+              color: "#2563EB",
+              textDecoration: "none",
+              fontWeight: 600,
+            }}
+          >
+            Үйлчилгээний нөхцөл
+          </Link>{" "}
+          болон{" "}
+          <Link
+            href="/privacy"
+            style={{
+              color: "#2563EB",
+              textDecoration: "none",
+              fontWeight: 600,
+            }}
+          >
+            Нууцлалын бодлого
+          </Link>
+          -ыг зөвшөөрч байгаа болно.
+        </p>
+      </motion.div>
     </div>
   );
 }

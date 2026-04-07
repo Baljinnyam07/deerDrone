@@ -1,10 +1,7 @@
 import { getProducts, getCategories, getBrands } from "../../../lib/supabase/queries";
-import { ListingBreadcrumbs } from "../../../components/product/listing-breadcrumbs";
-import { ListingSidebar } from "../../../components/product/listing-sidebar";
-import { ListingHeader } from "../../../components/product/listing-header";
-import { ListingProductCard } from "../../../components/product/listing-product-card";
+import { PremiumProductCard, SkeletonCard } from "../../../components";
+import type { Category } from "../../../components";
 import Link from "next/link";
-import { Filter } from "lucide-react";
 
 type ProductsSearchParams = Promise<{
   category?: string;
@@ -22,15 +19,15 @@ export default async function ProductsPage({
   searchParams: ProductsSearchParams;
 }) {
   const params = await searchParams;
-  const activeCategory = params.category || params.cat;
+  const activeCategory = params.category || params.cat || "all";
   const activeBrand = params.brand;
   const searchQuery = params.q || params.query || params.search;
-  const sort = params.sort;
+  const sort = params.sort || "popular";
 
   // Fetch all required data
   const [products, categories, brands] = await Promise.all([
     getProducts({
-      categorySlug: activeCategory,
+      categorySlug: activeCategory === "all" ? undefined : activeCategory,
       brand: activeBrand,
       search: searchQuery,
       sort: sort
@@ -39,80 +36,261 @@ export default async function ProductsPage({
     getBrands()
   ]);
 
-  // Find active category object for breadcrumbs
-  const categoryObj = categories.find(c => c.slug === activeCategory);
-
-  const breadcrumbItems: { label: string; href?: string }[] = [
-    { label: "Бүтээгдэхүүн", href: "/products" },
+  // Transform categories for CategoryTabs component
+  const categoryTabs: Category[] = [
+    {
+      id: "all",
+      name: "Бүхэлдээ",
+      slug: "all",
+      icon: "🛍️",
+      count: products.length,
+    },
+    ...categories.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      slug: cat.slug,
+      icon: "🚁",
+      count: products.filter(p => p.categoryId === cat.id).length,
+    }))
   ];
 
-  if (categoryObj) {
-    breadcrumbItems.push({ label: categoryObj.name });
-  } else if (activeBrand) {
-    breadcrumbItems.push({ label: activeBrand });
-  } else if (searchQuery) {
-    breadcrumbItems.push({ label: `Хайлт: ${searchQuery}` });
-  }
-
   return (
-    <div className="bg-white min-h-screen">
-      <div className="container py-4">
-        {/* Top Breadcrumbs */}
-        <ListingBreadcrumbs items={breadcrumbItems} />
+    <main style={{ minHeight: "100vh", backgroundColor: "#FFFFFF" }}>
+      {/* Page Header */}
+      <div
+        style={{
+          maxWidth: "1280px",
+          margin: "0 auto",
+          padding: "40px 32px 32px",
+        }}
+      >
+        <h1
+          style={{
+            fontSize: "2.8rem",
+            fontWeight: 700,
+            color: "#0F172A",
+            marginBottom: "8px",
+            lineHeight: 1.2,
+          }}
+        >
+          Дрон каталог
+        </h1>
+        <p
+          style={{
+            fontSize: "1rem",
+            color: "#475569",
+            margin: 0,
+          }}
+        >
+          {products.length} үр дүн · {activeCategory === "all" ? "Бүхэл каталог" : activeCategory}
+        </p>
+      </div>
 
-        <div className="row g-4 mt-2">
-          {/* Left Sidebar - 3 columns on LG */}
-          <div className="col-12 col-lg-3 d-none d-lg-block">
-            <ListingSidebar
-              categories={categories}
-              brands={brands}
-              activeCategory={activeCategory}
-              activeBrand={activeBrand}
-            />
-          </div>
-
-          {/* Main Content - 9 columns on LG */}
-          <div className="col-12 col-lg-9">
-
-            {/* Brands Logo Highlights or Series Tabs could go here */}
-            {activeCategory === 'consumer' || !activeCategory && (
-              <div className="mb-4">
-                <div className="d-flex align-items-center gap-4 mb-4 pb-2 overflow-auto" style={{ scrollbarWidth: "none" }}>
-                  <div className="d-flex align-items-center gap-2">
-                    <span className="text-secondary small fw-bold">Брэндүүд:</span>
-                    <img src="https://www.dji.com/assets/images/v3/nav/dji-logo.svg" alt="DJI" style={{ height: "24px", opacity: 0.8 }} />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Header: Count and Sort */}
-            <ListingHeader count={products.length} />
-
-            {/* Grid */}
-            {products.length > 0 ? (
-              <div className="row g-4 listing-grid">
-                {products.map((product) => (
-                  <div key={product.id} className="col-6 col-md-4 col-xl-3">
-                    <ListingProductCard product={product} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-5 text-center">
-                <div className="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style={{ width: "80px", height: "80px" }}>
-                  <Filter size={32} className="text-muted" />
-                </div>
-                <h4 className="fw-bold">Бараа олдсонгүй</h4>
-                <p className="text-secondary">Та шүүлтүүрээ өөрчлөөд дахин оролдоно уу.</p>
-                <Link href="/products" className="btn btn-dark rounded-pill px-4 py-2 mt-2">
-                  Бүх барааг харах
-                </Link>
-              </div>
-            )}
-          </div>
+      {/* Category Tabs - Using Links for Server Navigation */}
+      <div
+        style={{
+          maxWidth: "1280px",
+          margin: "0 auto",
+          padding: "0 32px 24px",
+          borderBottom: "1px solid #E2E8F0",
+        }}
+      >
+        <div style={{ display: "flex", gap: "8px", overflowX: "auto", scrollBehavior: "smooth", paddingBottom: "8px" }}>
+          {categoryTabs.map((cat) => (
+            <Link
+              key={cat.slug}
+              href={cat.slug === "all" ? "/products" : `/products?category=${cat.slug}`}
+              style={{
+                padding: "8px 16px",
+                borderRadius: "24px",
+                backgroundColor: activeCategory === cat.slug ? "#2563EB" : "#F1F5F9",
+                color: activeCategory === cat.slug ? "#FFFFFF" : "#64748B",
+                textDecoration: "none",
+                fontSize: "0.95rem",
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+                transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+                border: "none",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              <span>{cat.icon}</span>
+              <span>{cat.name}</span>
+              {(cat.count ?? 0) > 0 && (
+                <span
+                  style={{
+                    fontSize: "0.85rem",
+                    opacity: 0.7,
+                    marginLeft: "4px",
+                  }}
+                >
+                  ({cat.count})
+                </span>
+              )}
+            </Link>
+          ))}
         </div>
       </div>
-    </div>
+
+      {/* Search Bar - Server-side Form */}
+      <div
+        style={{
+          maxWidth: "1280px",
+          margin: "0 auto",
+          padding: "24px 32px",
+        }}
+      >
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <form
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              backgroundColor: "#F8FAFC",
+              borderRadius: "8px",
+              border: "1px solid #E2E8F0",
+              padding: "10px 16px",
+            }}
+            method="GET"
+            action="/products"
+          >
+            <input
+              type="text"
+              name="q"
+              placeholder="Дроны нэрээр хайх..."
+              defaultValue={searchQuery || ""}
+              style={{
+                flex: 1,
+                border: "none",
+                backgroundColor: "transparent",
+                fontSize: "0.95rem",
+                color: "#0F172A",
+                outline: "none",
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                backgroundColor: "#2563EB",
+                color: "#FFFFFF",
+                border: "none",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "0.9rem",
+                fontWeight: 500,
+                transition: "background-color 250ms",
+              }}
+            >
+              Хайх
+            </button>
+          </form>
+          {(searchQuery || activeBrand) && (
+            <Link
+              href="/products"
+              style={{
+                padding: "8px 16px",
+                backgroundColor: "#F1F5F9",
+                borderRadius: "6px",
+                textDecoration: "none",
+                color: "#475569",
+                fontSize: "0.9rem",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              Цэвэрлэх
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* Products Grid */}
+      <div
+        style={{
+          maxWidth: "1280px",
+          margin: "0 auto",
+          padding: "0 32px 80px",
+        }}
+      >
+        {products.length > 0 ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: "24px",
+            }}
+            className="products-grid"
+          >
+            {products.map((product, idx) => (
+              <PremiumProductCard
+                key={product.id}
+                product={product}
+                badge={idx === 0 ? "new" : idx === 1 ? "best-seller" : undefined}
+                discount={idx === 2 ? 15 : undefined}
+                rating={4.2 + Math.random() * 0.8}
+                reviewCount={Math.floor(Math.random() * 150) + 20}
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "60px 20px",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "1.1rem",
+                color: "#475569",
+                marginBottom: "12px",
+              }}
+            >
+              Хайлтын үр дүн олдсонгүй
+            </p>
+            <p
+              style={{
+                fontSize: "0.9rem",
+                color: "#94A3B8",
+                marginBottom: "20px",
+              }}
+            >
+              Өөр хайлт эсвэл шүүлтүүр оролдоно уу
+            </p>
+            <Link 
+              href="/products" 
+              style={{
+                display: "inline-block",
+                padding: "10px 24px",
+                backgroundColor: "#2563EB",
+                color: "#FFFFFF",
+                borderRadius: "24px",
+                textDecoration: "none",
+                fontSize: "0.95rem",
+                fontWeight: 500,
+                transition: "background-color 250ms",
+              }}
+            >
+              Бүх барааг харах
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* Responsive Styles */}
+      <style>{`
+        @media (max-width: 768px) {
+          .products-grid {
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+            gap: 12px !important;
+          }
+        }
+      `}</style>
+    </main>
   );
 }
