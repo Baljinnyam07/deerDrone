@@ -7,9 +7,7 @@ const __dirname = path.dirname(__filename);
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@deer-drone/data", "@deer-drone/ui", "@deer-drone/utils", "@deer-drone/types"],
-  experimental: {
-    outputFileTracingRoot: path.join(__dirname, '../../'),
-  },
+  outputFileTracingRoot: path.join(__dirname, '../../'),
 };
 
 export default nextConfig;
