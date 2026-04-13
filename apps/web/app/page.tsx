@@ -1,11 +1,22 @@
 import Link from "next/link";
-import { getProducts } from "../lib/supabase/queries";
+import { getProducts, getSiteSettings } from "../lib/supabase/queries";
 import { ArrowRight, Camera, Battery, Zap, Globe } from "lucide-react";
 import { ProductCarousel } from "../components/product/product-carousel";
 
 export default async function HomePage() {
-  const products = await getProducts();
+  const [products, settings] = await Promise.all([
+    getProducts(),
+    getSiteSettings()
+  ]);
+
   const featured = products.slice(0, 6);
+
+  // Fallback URLs (The original DJI videos)
+  const fallbackVideos = {
+    home_hero: "https://terra-1-g.djicdn.com/851d20f7b9f64838a34cd02351370894/WA150%20SHOT%20ON/F75_WA150__DJI_home_page_Shot_on_Video_CLEAN_2400x1440_N_N.mp4",
+    home_showcase_main: "https://terra-1-g.djicdn.com/851d20f7b9f64838a34cd02351370894/OW001%20shot%20on/F81_OW001_%E2%89%A410s_DJI_home_page_Shot_on_Video_CLEAN_2400x1440_N_N.mp4",
+    home_showcase_side: "https://terra-1-g.djicdn.com/851d20f7b9f64838a34cd02351370894/WA150%20SHOT%20ON/F75_WA150__DJI_home_page_Shot_on_Video_CLEAN_2400x1440_N_N.mp4",
+  };
 
   const carouselItems = [
     ...featured.slice(0, 2),
@@ -49,10 +60,10 @@ export default async function HomePage() {
           muted
           loop
           playsInline
-          preload="auto"
+          key={settings.home_hero || fallbackVideos.home_hero}
         >
           <source
-            src="https://terra-1-g.djicdn.com/851d20f7b9f64838a34cd02351370894/WA150%20SHOT%20ON/F75_WA150__DJI_home_page_Shot_on_Video_CLEAN_2400x1440_N_N.mp4"
+            src={settings.home_hero || fallbackVideos.home_hero}
             type="video/mp4"
           />
         </video>
@@ -105,7 +116,7 @@ export default async function HomePage() {
               Яагаад DEER Drone гэж?
             </h2>
             <p className="text-secondary mx-auto" style={{ fontSize: "1.1rem", maxWidth: "600px", fontWeight: 400, opacity: 0.7 }}>
-              Бинд дроны хамгийн сүүлийн үеийн технологи, мэргэжлийн үйлчилгээг хослуулан хүргэж байна.
+              Бид дроны хамгийн сүүлийн үеийн технология, мэргэжлийн үйлчилгээг хослуулан хүргэж байна.
             </p>
           </div>
 
@@ -163,10 +174,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-
-
-
-
       {/* Product Grid - DJI Style Tiles */}
       <section className="bg-light pb-5">
         <div className="container-fluid w-100">
@@ -194,9 +201,10 @@ export default async function HomePage() {
                   muted
                   loop
                   playsInline
+                  key={settings.home_showcase_main || fallbackVideos.home_showcase_main}
                 >
                   <source
-                    src="https://terra-1-g.djicdn.com/851d20f7b9f64838a34cd02351370894/OW001%20shot%20on/F81_OW001_%E2%89%A410s_DJI_home_page_Shot_on_Video_CLEAN_2400x1440_N_N.mp4"
+                    src={settings.home_showcase_main || fallbackVideos.home_showcase_main}
                     type="video/mp4"
                   />
                 </video>
@@ -220,9 +228,10 @@ export default async function HomePage() {
                   muted
                   loop
                   playsInline
+                  key={settings.home_showcase_side || fallbackVideos.home_showcase_side}
                 >
                   <source
-                    src="https://terra-1-g.djicdn.com/851d20f7b9f64838a34cd02351370894/WA150%20SHOT%20ON/F75_WA150__DJI_home_page_Shot_on_Video_CLEAN_2400x1440_N_N.mp4"
+                    src={settings.home_showcase_side || fallbackVideos.home_showcase_side}
                     type="video/mp4"
                   />
                 </video>

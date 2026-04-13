@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { Shield, Zap, Eye, EyeOff, LogIn } from "lucide-react";
+import Image from "next/image";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -23,18 +24,24 @@ export default function AdminLoginPage() {
     setError("");
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setError(error.message);
+      if (error) {
+        setError("Нэвтрэх мэдээлэл буруу байна.");
+        setLoading(false);
+        return;
+      }
+
+      router.push("/");
+    } catch (err: any) {
+      console.error("Login unexpected error:", err);
+      setError("Системд алдаа гарлаа. Дараа дахин оролдоно уу.");
       setLoading(false);
-      return;
     }
-
-    router.push("/");
   }
 
   return (
@@ -45,9 +52,8 @@ export default function AdminLoginPage() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #F8FAFC 0%, #F0F4FF 100%)",
-        fontFamily:
-          "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        background: "var(--admin-surface)",
+        fontFamily: "var(--font-body)",
         padding: "16px",
       }}
     >
@@ -59,24 +65,14 @@ export default function AdminLoginPage() {
           top: "24px",
           left: "24px",
           padding: "10px 16px",
-          background: "#F8FAFC",
-          border: "1px solid #E2E8F0",
+          background: "white",
+          border: "1px solid var(--admin-border)",
           borderRadius: "8px",
-          color: "#64748B",
+          color: "var(--admin-text-secondary)",
           fontSize: "0.9rem",
           fontWeight: 500,
           cursor: "pointer",
-          transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "#F0F4FF";
-          e.currentTarget.style.borderColor = "#2563EB";
-          e.currentTarget.style.color = "#2563EB";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "#F8FAFC";
-          e.currentTarget.style.borderColor = "#E2E8F0";
-          e.currentTarget.style.color = "#64748B";
+          transition: "var(--admin-transition)",
         }}
       >
         ← Буцах
@@ -87,12 +83,11 @@ export default function AdminLoginPage() {
         style={{
           background: "white",
           borderRadius: "16px",
-          border: "1px solid #E2E8F0",
+          border: "1px solid var(--admin-border)",
           padding: "48px 40px",
           width: "100%",
           maxWidth: "420px",
-          boxShadow:
-            "0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 15px rgba(0, 0, 0, 0.05)",
+          boxShadow: "var(--admin-shadow-lg)",
         }}
       >
         {/* Logo */}
@@ -100,40 +95,40 @@ export default function AdminLoginPage() {
           style={{
             width: "64px",
             height: "64px",
-            background: "#F0F4FF",
-            border: "2px solid #E0E7FF",
-            borderRadius: "12px",
+            background: "transparent",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             margin: "0 auto 24px",
-            fontSize: "28px",
           }}
         >
-          🦌
+          <Image src="/brand/logo.svg" alt="Deer Drone" width={56} height={56} priority />
         </div>
 
         {/* Title */}
         <h1
           style={{
             fontSize: "24px",
-            fontWeight: 700,
-            color: "#0F172A",
+            fontWeight: 800,
+            color: "var(--admin-text)",
             margin: "0 0 8px",
-            letterSpacing: "-0.01em",
+            letterSpacing: "-0.02em",
+            fontFamily: "var(--font-display)",
+            textAlign: "center"
           }}
         >
-          DEER Admin
+          DEER DRONE
         </h1>
 
         <p
           style={{
             fontSize: "14px",
-            color: "#64748B",
+            color: "var(--admin-muted)",
             margin: "0 0 32px",
+            textAlign: "center"
           }}
         >
-          Админ панель руу нэвтрэх
+          Удирдлагын системд нэвтрэх
         </p>
 
         {/* Form */}
@@ -145,7 +140,7 @@ export default function AdminLoginPage() {
                 display: "block",
                 fontSize: "12px",
                 fontWeight: 600,
-                color: "#0F172A",
+                color: "var(--admin-text)",
                 marginBottom: "8px",
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
@@ -163,24 +158,13 @@ export default function AdminLoginPage() {
                 width: "100%",
                 padding: "12px 16px",
                 borderRadius: "8px",
-                border: "1px solid #E2E8F0",
-                background: "#F8FAFC",
+                border: "1px solid var(--admin-border)",
+                background: "var(--admin-surface)",
                 fontSize: "14px",
-                color: "#0F172A",
+                color: "var(--admin-text)",
                 outline: "none",
-                transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+                transition: "var(--admin-transition)",
                 boxSizing: "border-box",
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = "#2563EB";
-                e.currentTarget.style.background = "#FFFFFF";
-                e.currentTarget.style.boxShadow =
-                  "0 0 0 3px rgba(37, 99, 235, 0.1)";
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = "#E2E8F0";
-                e.currentTarget.style.background = "#F8FAFC";
-                e.currentTarget.style.boxShadow = "none";
               }}
             />
           </div>
@@ -192,7 +176,7 @@ export default function AdminLoginPage() {
                 display: "block",
                 fontSize: "12px",
                 fontWeight: 600,
-                color: "#0F172A",
+                color: "var(--admin-text)",
                 marginBottom: "8px",
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
@@ -218,24 +202,13 @@ export default function AdminLoginPage() {
                   padding: "12px 16px 12px 16px",
                   paddingRight: "44px",
                   borderRadius: "8px",
-                  border: "1px solid #E2E8F0",
-                  background: "#F8FAFC",
+                  border: "1px solid var(--admin-border)",
+                  background: "var(--admin-surface)",
                   fontSize: "14px",
-                  color: "#0F172A",
+                  color: "var(--admin-text)",
                   outline: "none",
-                  transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+                  transition: "var(--admin-transition)",
                   boxSizing: "border-box",
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "#2563EB";
-                  e.currentTarget.style.background = "#FFFFFF";
-                  e.currentTarget.style.boxShadow =
-                    "0 0 0 3px rgba(37, 99, 235, 0.1)";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "#E2E8F0";
-                  e.currentTarget.style.background = "#F8FAFC";
-                  e.currentTarget.style.boxShadow = "none";
                 }}
               />
               <button
@@ -246,19 +219,13 @@ export default function AdminLoginPage() {
                   right: "12px",
                   background: "none",
                   border: "none",
-                  color: "#64748B",
+                  color: "var(--admin-muted)",
                   cursor: "pointer",
                   padding: "4px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  transition: "color 250ms cubic-bezier(0.4, 0, 0.2, 1)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#2563EB";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#64748B";
+                  transition: "var(--admin-transition)",
                 }}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -276,7 +243,7 @@ export default function AdminLoginPage() {
                 padding: "12px 16px",
                 marginBottom: "20px",
                 fontSize: "13px",
-                color: "#EF4444",
+                color: "var(--admin-danger)",
               }}
             >
               {error}
@@ -291,30 +258,19 @@ export default function AdminLoginPage() {
               width: "100%",
               padding: "12px 20px",
               background: loading
-                ? "#CBD5E1"
-                : "linear-gradient(135deg, #2563EB, #1D4ED8)",
+                ? "var(--admin-muted)"
+                : "var(--admin-primary)",
               color: "white",
               border: "none",
               borderRadius: "8px",
               fontSize: "14px",
               fontWeight: 600,
               cursor: loading ? "not-allowed" : "pointer",
-              transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+              transition: "var(--admin-transition)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: "8px",
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow =
-                  "0 10px 15px rgba(37, 99, 235, 0.3)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "none";
             }}
           >
             <LogIn size={16} />
@@ -326,7 +282,7 @@ export default function AdminLoginPage() {
         <div
           style={{
             height: "1px",
-            background: "#E2E8F0",
+            background: "var(--admin-border-subtle)",
             margin: "28px 0",
           }}
         />
@@ -338,27 +294,27 @@ export default function AdminLoginPage() {
           >
             <Shield
               size={18}
-              style={{ color: "#2563EB", flexShrink: 0, marginTop: "2px" }}
+              style={{ color: "var(--admin-primary)", flexShrink: 0, marginTop: "2px" }}
             />
             <div>
               <p
                 style={{
                   fontSize: "12px",
                   fontWeight: 600,
-                  color: "#0F172A",
+                  color: "var(--admin-text)",
                   margin: "0 0 2px",
                 }}
               >
-                Байлалтай аюулгүй
+                Аюулгүй хандалт
               </p>
               <p
                 style={{
                   fontSize: "12px",
-                  color: "#64748B",
+                  color: "var(--admin-muted)",
                   margin: 0,
                 }}
               >
-                Өндөр түвшний нэмэлт хэмжээ
+                Төгсгөлөөс төгсгөл хүртэлх хамгаалалт
               </p>
             </div>
           </div>
@@ -368,27 +324,27 @@ export default function AdminLoginPage() {
           >
             <Zap
               size={18}
-              style={{ color: "#F59E0B", flexShrink: 0, marginTop: "2px" }}
+              style={{ color: "var(--admin-warning)", flexShrink: 0, marginTop: "2px" }}
             />
             <div>
               <p
                 style={{
                   fontSize: "12px",
                   fontWeight: 600,
-                  color: "#0F172A",
+                  color: "var(--admin-text)",
                   margin: "0 0 2px",
                 }}
               >
-                Хэдэв нэвтэрэх
+                Хурдан нэвтрэлт
               </p>
               <p
                 style={{
                   fontSize: "12px",
-                  color: "#64748B",
+                  color: "var(--admin-muted)",
                   margin: 0,
                 }}
               >
-                Агшин зуур хандалт
+                Хүлээгдэлгүй гүйцэтгэл
               </p>
             </div>
           </div>
@@ -400,7 +356,7 @@ export default function AdminLoginPage() {
         style={{
           marginTop: "32px",
           fontSize: "12px",
-          color: "#94A3B8",
+          color: "var(--admin-muted)",
           textAlign: "center",
         }}
       >
@@ -412,16 +368,16 @@ export default function AdminLoginPage() {
         style={{
           marginTop: "24px",
           padding: "12px 16px",
-          background: "#F0F4FF",
-          border: "1px solid #E0E7FF",
+          background: "var(--admin-surface)",
+          border: "1px solid var(--admin-border)",
           borderRadius: "8px",
           fontSize: "11px",
-          color: "#64748B",
+          color: "var(--admin-muted)",
           textAlign: "center",
           maxWidth: "400px",
         }}
       >
-        <p style={{ margin: "0 0 6px", fontWeight: 600, color: "#2563EB" }}>
+        <p style={{ margin: "0 0 6px", fontWeight: 600, color: "var(--admin-primary)" }}>
           Туршилтын хандалт:
         </p>
         <p style={{ margin: "0 0 4px" }}>

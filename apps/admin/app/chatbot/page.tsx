@@ -1,4 +1,5 @@
 import { createAdminClient } from "../../lib/supabase";
+import { AdminPageHeader } from "@/components/admin-page-header";
 
 async function getLeads() {
   const supabase = createAdminClient();
@@ -22,13 +23,11 @@ export default async function ChatbotPage() {
 
   return (
     <section>
-      <div className="admin-title">
-        <p className="admin-kicker">Chatbot</p>
-        <h1>Chatbot & Lead мониторинг</h1>
-        <p className="admin-muted">
-          AI зөвлөхийн тохиргоо болон chatbot-оос ирсэн lead-үүд.
-        </p>
-      </div>
+      <AdminPageHeader
+        kicker="Chatbot"
+        title="Chatbot & Lead мониторинг"
+        description="AI зөвлөхийн тохиргоо болон chatbot-оос ирсэн lead-үүд."
+      />
 
       <div className="admin-grid">
         <article className="admin-panel">

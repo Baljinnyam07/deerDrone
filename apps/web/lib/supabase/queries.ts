@@ -134,3 +134,19 @@ export async function getSimilarProducts(categoryId: string, currentProductId: s
 
   return data.map((item: any) => mapProductRecord(item));
 }
+
+export async function getSiteSettings(): Promise<Record<string, string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("key, value");
+
+  if (error || !data) {
+    return {};
+  }
+
+  return data.reduce((acc, curr) => {
+    if (curr.value) acc[curr.key] = curr.value;
+    return acc;
+  }, {} as Record<string, string>);
+}
