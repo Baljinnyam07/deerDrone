@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
         name: product.name,
         slug: product.slug,
         brand: product.brand,
-        category_id: product.category_id,
+        category_id: product.category_id || null,
         price: product.price,
         compare_price: product.compare_price,
         stock_qty: product.stock_qty,

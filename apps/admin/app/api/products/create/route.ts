@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
         name: product.name,
         slug: product.slug,
         brand: product.brand,
-        category_id: product.category_id,
+        category_id: product.category_id || null,
         price: product.price,
         compare_price: product.compare_price,
         stock_qty: product.stock_qty,
@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
         description: product.description,
         hero_note: product.hero_note,
         is_leasable: product.is_leasable,
-        status: 'active'
       })
       .select()
       .single();

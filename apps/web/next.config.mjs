@@ -21,6 +21,12 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'kwriuxevzrvxuwujsgmh.supabase.co',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   outputFileTracingRoot: path.join(__dirname, '../../'),
