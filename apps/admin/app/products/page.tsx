@@ -2,6 +2,9 @@ import { createAdminClient } from "../../lib/supabase";
 import { ProductsClient } from "./products-client";
 import { AdminPageHeader } from "@/components/admin-page-header";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 async function getProducts() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
