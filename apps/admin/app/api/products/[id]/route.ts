@@ -12,7 +12,15 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
 
     const params = await props.params;
     const body = await request.json();
-    const { product, images, specs } = body;
+    const { images, specs } = body;
+    const product = body.product ?? body;
+
+    if (!product?.name || !product?.slug || !product?.price) {
+      return NextResponse.json(
+        { error: "Нэр, Slug болон үнэ заавал оруулах шаардлагатай" },
+        { status: 400 },
+      );
+    }
     const supabase = createAdminClient();
 
     // 1. Update core product info

@@ -33,6 +33,10 @@ export default function ProductDetailView({
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("info");
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const descriptionLines = (product.description || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 
   const images =
     product.images?.length > 0
@@ -693,28 +697,10 @@ export default function ProductDetailView({
               </div>
             ))
           ) : (
-            <>
-              <div className="spec-row">
-                <span>Разрешение камеры</span>
-                <span>4K UHD</span>
-              </div>
-              <div className="spec-row">
-                <span>Время полета</span>
-                <span>46 минут</span>
-              </div>
-              <div className="spec-row">
-                <span>Батарея</span>
-                <span>5935 мАч</span>
-              </div>
-              <div className="spec-row">
-                <span>Вес</span>
-                <span>907 г</span>
-              </div>
-              <div className="spec-row">
-                <span>Дальность связи</span>
-                <span>15 км</span>
-              </div>
-            </>
+            <div className="spec-row">
+              <span>Үзүүлэлт оруулаагүй байна</span>
+              <span>-</span>
+            </div>
           )}
         </div>
       </div>
@@ -746,18 +732,30 @@ export default function ProductDetailView({
 
         <div style={{ paddingBottom: "60px" }}>
           {activeTab === "info" && (
-            <p
+            <div
               style={{
                 fontSize: "0.95rem",
                 lineHeight: 1.7,
                 color: "#475569",
                 maxWidth: "100%",
                 margin: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.75rem",
               }}
             >
-              {product.description ||
-                "Бүтээгдэхүүний дэлгэрэнгүй мэдээлэл одоогоор алга байна."}
-            </p>
+              {descriptionLines.length > 0 ? (
+                descriptionLines.map((line, index) => (
+                  <p key={`${line}-${index}`} style={{ margin: 0 }}>
+                    {line}
+                  </p>
+                ))
+              ) : (
+                <p style={{ margin: 0 }}>
+                  Бүтээгдэхүүний дэлгэрэнгүй мэдээлэл одоогоор алга байна.
+                </p>
+              )}
+            </div>
           )}
           {activeTab === "stores" && (
             <p

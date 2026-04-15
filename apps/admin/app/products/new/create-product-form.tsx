@@ -352,6 +352,30 @@ export function CreateProductForm({ categories }: { categories: any[] }) {
                 }}
                 placeholder="Утга"
               />
+              <button
+                type="button"
+                onClick={() => {
+                  if (specs.length === 1) {
+                    setSpecs([{ label: "", value: "" }]);
+                    return;
+                  }
+                  setSpecs(specs.filter((_, specIndex) => specIndex !== index));
+                }}
+                style={{
+                  width: "42px",
+                  border: "1px solid #fecaca",
+                  color: "#dc2626",
+                  background: "#fff",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                aria-label="Үзүүлэлт устгах"
+              >
+                <X size={16} />
+              </button>
             </div>
           ))}
 

@@ -10,7 +10,11 @@ export default async function EditProductPage(props: { params: Promise<{ id: str
   
   const [catRes, prodRes] = await Promise.all([
     supabase.from("categories").select("*").order("name"),
-    supabase.from("products").select("*, images:product_images(url, display_order)").eq("id", id).single()
+    supabase
+      .from("products")
+      .select("*, images:product_images(url, display_order), specs:product_specs(label, value, display_order)")
+      .eq("id", id)
+      .single()
   ]);
 
   if (prodRes.error || !prodRes.data) {

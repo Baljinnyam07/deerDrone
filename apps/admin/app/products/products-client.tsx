@@ -15,9 +15,10 @@ import Image from "next/image";
 
 interface ProductsClientProps {
   initialProducts: any[];
+  categories: Array<{ id: string; name: string }>;
 }
 
-export function ProductsClient({ initialProducts }: ProductsClientProps) {
+export function ProductsClient({ initialProducts, categories }: ProductsClientProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -100,6 +101,12 @@ export function ProductsClient({ initialProducts }: ProductsClientProps) {
           display_order: img.display_order ?? idx
         })),
         specs: specs
+          .map((spec, idx) => ({
+            label: (spec.label || "").trim(),
+            value: (spec.value || "").trim(),
+            display_order: spec.display_order ?? idx,
+          }))
+          .filter((spec) => spec.label && spec.value),
       };
 
       const res = await fetch(url, {
@@ -297,6 +304,22 @@ export function ProductsClient({ initialProducts }: ProductsClientProps) {
                 placeholder="Бүтээгдэхүүний код..."
               />
             </div>
+
+            <div className="form-group">
+              <label>Ангилал</label>
+              <select
+                value={formData.category_id}
+                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                className="admin-input"
+              >
+                <option value="">Ангилал сонгох</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="form-divider" />
@@ -325,6 +348,66 @@ export function ProductsClient({ initialProducts }: ProductsClientProps) {
               />
             </div>
           </div>
+
+          <div className="form-divider" />
+
+          {/* Specifications */}
+          <div className="form-section">
+            <h3 className="form-section-title">
+              <Info size={14} />
+              Бүтээгдэхүүний үзүүлэлтүүд
+            </h3>
+
+            <div className="spec-list">
+              {specs.length === 0 ? (
+                <p className="spec-empty">Одоогоор үзүүлэлт оруулаагүй байна.</p>
+              ) : null}
+
+              {specs.map((spec, index) => (
+                <div key={`spec-${index}`} className="spec-row">
+                  <input
+                    type="text"
+                    value={spec.label || ""}
+                    onChange={(e) => {
+                      const next = [...specs];
+                      next[index] = { ...next[index], label: e.target.value };
+                      setSpecs(next);
+                    }}
+                    className="admin-input"
+                    placeholder="Үзүүлэлтийн нэр (ж: Нислэгийн хугацаа)"
+                  />
+                  <input
+                    type="text"
+                    value={spec.value || ""}
+                    onChange={(e) => {
+                      const next = [...specs];
+                      next[index] = { ...next[index], value: e.target.value };
+                      setSpecs(next);
+                    }}
+                    className="admin-input"
+                    placeholder="Утга (ж: 45 минут)"
+                  />
+                  <button
+                    type="button"
+                    className="spec-remove-btn"
+                    onClick={() => setSpecs(specs.filter((_, i) => i !== index))}
+                    aria-label="Үзүүлэлт устгах"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="spec-add-btn"
+              onClick={() => setSpecs([...specs, { label: "", value: "" }])}
+            >
+              <Plus size={14} />
+              Үзүүлэлт нэмэх
+            </button>
+          </div>
         </form>
 
         <style jsx>{`
@@ -348,6 +431,47 @@ export function ProductsClient({ initialProducts }: ProductsClientProps) {
             height: 1px;
             background: var(--admin-border-subtle);
             margin: 8px 0;
+          }
+          .spec-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          .spec-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 10px;
+            align-items: center;
+          }
+          .spec-empty {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--admin-muted);
+          }
+          .spec-add-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid var(--admin-border);
+            background: transparent;
+            color: var(--admin-fg);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-weight: 600;
+            cursor: pointer;
+            width: fit-content;
+          }
+          .spec-remove-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            background: #fff;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
           }
         `}</style>
       </AdminDrawer>

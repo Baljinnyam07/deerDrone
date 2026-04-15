@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus, X } from "lucide-react";
 
 export function EditProductForm({ categories, initialProduct }: { categories: any[]; initialProduct: any }) {
   const router = useRouter();
@@ -21,6 +22,14 @@ export function EditProductForm({ categories, initialProduct }: { categories: an
     hero_note: initialProduct.hero_note || "",
     is_leasable: initialProduct.is_leasable,
   });
+  const [specs, setSpecs] = useState<{ label: string; value: string }[]>(
+    initialProduct.specs?.length > 0
+      ? initialProduct.specs.map((spec: any) => ({
+          label: spec.label || "",
+          value: spec.value || "",
+        }))
+      : [{ label: "", value: "" }],
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,10 +41,19 @@ export function EditProductForm({ categories, initialProduct }: { categories: an
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
-          price: Number(form.price),
-          compare_price: form.compare_price ? Number(form.compare_price) : null,
-          stock_qty: Number(form.stock_qty),
+          product: {
+            ...form,
+            price: Number(form.price),
+            compare_price: form.compare_price ? Number(form.compare_price) : null,
+            stock_qty: Number(form.stock_qty),
+          },
+          specs: specs
+            .map((spec) => ({
+              label: spec.label.trim(),
+              value: spec.value.trim(),
+            }))
+            .filter((spec) => spec.label && spec.value)
+            .map((spec, index) => ({ ...spec, display_order: index })),
         }),
       });
 
@@ -106,6 +124,90 @@ export function EditProductForm({ categories, initialProduct }: { categories: an
             <label style={labelStyle}>БОГИНО ТАЙЛБАР</label>
             <textarea required style={{ ...inputStyle, minHeight: "80px" }} value={form.short_description} onChange={e => setForm({...form, short_description: e.target.value})} />
           </div>
+          <div>
+            <label style={labelStyle}>ДЭЛГЭРЭНГҮЙ ТАЙЛБАР</label>
+            <textarea
+              style={{ ...inputStyle, minHeight: "150px" }}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Мөр тус бүрээр мэдээллээ оруулбал web дээр зөв форматтай харагдана."
+            />
+          </div>
+      </div>
+
+      <div>
+        <h3 style={{ fontSize: "1.1rem", marginBottom: "1rem", borderBottom: "1px solid #eee", paddingBottom: "0.5rem" }}>
+          Бүтээгдэхүүний үзүүлэлт
+        </h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          {specs.map((spec, index) => (
+            <div key={`spec-${index}`} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "0.75rem" }}>
+              <input
+                style={inputStyle}
+                value={spec.label}
+                placeholder="Үзүүлэлтийн нэр"
+                onChange={(e) => {
+                  const next = [...specs];
+                  next[index].label = e.target.value;
+                  setSpecs(next);
+                }}
+              />
+              <input
+                style={inputStyle}
+                value={spec.value}
+                placeholder="Утга"
+                onChange={(e) => {
+                  const next = [...specs];
+                  next[index].value = e.target.value;
+                  setSpecs(next);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (specs.length === 1) {
+                    setSpecs([{ label: "", value: "" }]);
+                    return;
+                  }
+                  setSpecs(specs.filter((_, i) => i !== index));
+                }}
+                style={{
+                  width: "42px",
+                  border: "1px solid #fecaca",
+                  color: "#dc2626",
+                  background: "#fff",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                aria-label="Үзүүлэлт устгах"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setSpecs([...specs, { label: "", value: "" }])}
+            style={{
+              alignSelf: "flex-start",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              background: "none",
+              border: "1px solid #cbd5e1",
+              padding: "8px 16px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontSize: "0.85rem",
+              color: "#475569",
+            }}
+          >
+            <Plus size={16} /> Мөр нэмэх
+          </button>
+        </div>
       </div>
 
       {error && <div style={{ color: "red" }}>{error}</div>}

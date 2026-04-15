@@ -20,8 +20,23 @@ async function getProducts() {
   return data || [];
 }
 
+async function getCategories() {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name")
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Categories fetch error:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
 export default async function ProductsPage() {
-  const products = await getProducts();
+  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
 
   return (
     <section>
@@ -31,7 +46,7 @@ export default async function ProductsPage() {
         description="Бүтээгдэхүүний каталог удирдах, үнэ болон үлдэгдэл шинэчлэх."
       />
 
-      <ProductsClient initialProducts={products} />
+      <ProductsClient initialProducts={products} categories={categories} />
     </section>
   );
 }
