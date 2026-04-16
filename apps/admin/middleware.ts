@@ -15,12 +15,11 @@ export async function middleware(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        // Шинэчлэгдсэн cookie-г response дээр тавина
-        // (request.cookies.set нь options дэмждэггүй тул response дээр л тавих)
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value),
+        );
         response = NextResponse.next({
-          request: {
-            headers: request.headers,
-          },
+          request,
         });
         cookiesToSet.forEach(({ name, value, options }) =>
           response.cookies.set(name, value, options),

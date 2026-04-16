@@ -36,7 +36,10 @@ export function ImageUploader({ images, onChange, maxImages = 10 }: ImageUploade
           body: formData,
         });
 
-        if (!res.ok) throw new Error("Upload failed");
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || "Upload failed");
+        }
         return await res.json();
       });
 
@@ -49,9 +52,9 @@ export function ImageUploader({ images, onChange, maxImages = 10 }: ImageUploade
       }))];
 
       onChange(newImages.slice(0, maxImages));
-    } catch (err) {
+    } catch (err: any) {
       console.error("Upload error:", err);
-      alert("Зураг хуулахад алдаа гарлаа.");
+      alert(err.message || "Зураг хуулахад алдаа гарлаа.");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

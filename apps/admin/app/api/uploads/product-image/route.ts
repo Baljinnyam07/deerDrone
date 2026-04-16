@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const supabase = createAdminClient();
     const { error } = await supabase.storage
       .from("product-images")
-      .upload(filePath, Buffer.from(await file.arrayBuffer()), {
+      .upload(filePath, await file.arrayBuffer(), {
         cacheControl: "3600",
         contentType: file.type,
         upsert: false,
