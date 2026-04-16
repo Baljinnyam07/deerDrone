@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { requireAdminApi, withAuthCookies } from "../../../../lib/auth";
 import { createAdminClient } from "../../../../lib/supabase";
-import { requireAdminApi } from "../../../../lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,7 +68,10 @@ export async function POST(request: NextRequest) {
       if (specsError) console.error("Specs insert error:", specsError);
     }
 
-    return NextResponse.json({ success: true, product: newProduct }, { status: 201 });
+    return withAuthCookies(
+      auth.response,
+      NextResponse.json({ success: true, product: newProduct }, { status: 201 }),
+    );
   } catch (err) {
     console.error("Create product failed:", err);
     return NextResponse.json({ error: "Серверийн алдаа гарлаа" }, { status: 500 });

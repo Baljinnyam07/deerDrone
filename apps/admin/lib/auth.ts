@@ -49,3 +49,21 @@ export async function requireAdminApi(request: NextRequest) {
     response,
   };
 }
+
+/**
+ * Шинэчлэгдсэн session cookie-г API response дээр буцааж тавина.
+ * Auth шалгасны дараа энэ функцийг ашиглан response буцааж байж токен
+ * browser-т зөв хадгалагдана.
+ *
+ * Жишээ:
+ *   return withAuthCookies(auth.response, NextResponse.json({ ok: true }));
+ */
+export function withAuthCookies(
+  authResponse: NextResponse,
+  apiResponse: NextResponse,
+): NextResponse {
+  authResponse.cookies.getAll().forEach(({ name, value, ...rest }) => {
+    apiResponse.cookies.set({ name, value, ...rest });
+  });
+  return apiResponse;
+}

@@ -203,7 +203,7 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
                 {(selectedOrder.items || []).map((item: any, idx: number) => (
                   <div key={idx} className="drawer-list-item">
                     <div className="drawer-list-item-meta">
-                      <div className="drawer-list-item-label">Бараа #{idx + 1}</div>
+                      <div className="drawer-list-item-label">{item.product?.name || `Бараа #${idx + 1}`}</div>
                       <div className="drawer-list-item-hint">Тоо ширхэг: {item.quantity}</div>
                     </div>
                     <div className="drawer-list-item-value">{safeMoney(item.price)}</div>

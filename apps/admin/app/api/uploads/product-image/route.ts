@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { requireAdminApi } from "../../../../lib/auth";
+import { requireAdminApi, withAuthCookies } from "../../../../lib/auth";
 import { createAdminClient } from "../../../../lib/supabase";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -62,12 +62,9 @@ export async function POST(request: NextRequest) {
       data: { publicUrl },
     } = supabase.storage.from("product-images").getPublicUrl(filePath);
 
-    return NextResponse.json(
-      {
-        path: filePath,
-        url: publicUrl,
-      },
-      { status: 201 },
+    return withAuthCookies(
+      auth.response,
+      NextResponse.json({ path: filePath, url: publicUrl }, { status: 201 }),
     );
   } catch (error) {
     console.error("Product image upload error:", error);

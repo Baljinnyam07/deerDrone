@@ -76,6 +76,7 @@ export function ImageUploader({ images, onChange, maxImages = 10 }: ImageUploade
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
+              style={{position:"relative"}}
               className="image-preview-card"
             >
               <img src={img.url} alt={`Preview ${index}`} className="image-preview-img" />
