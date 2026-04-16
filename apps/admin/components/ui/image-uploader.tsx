@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Plus, X, Upload, Image as ImageIcon, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { createBrowserClient } from "../../lib/supabase-client";
 
 interface ImageObject {
   url: string;
@@ -28,19 +29,36 @@ export function ImageUploader({ images, onChange, maxImages = 10 }: ImageUploade
 
     try {
       const uploadPromises = files.map(async (file) => {
-        const formData = new FormData();
-        formData.append("file", file);
-
+        // 1. Get signed upload URL from our API
         const res = await fetch("/api/uploads/product-image", {
           method: "POST",
-          body: formData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+          }),
         });
 
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.error || "Upload failed");
+          throw new Error(errorData.error || "Зураг хуулах холбоос авахад алдаа гарлаа.");
         }
-        return await res.json();
+
+        const { url, signedUrl, path } = await res.json();
+
+        // 2. Upload directly to Supabase via Signed URL
+        const uploadRes = await fetch(signedUrl, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type },
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Зураг хуулах явцад алдаа гарлаа (Direct upload failed).");
+        }
+
+        return { url, path };
       });
 
       const uploadedImages = await Promise.all(uploadPromises);

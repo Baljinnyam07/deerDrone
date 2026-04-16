@@ -4,7 +4,7 @@ import {
   getSupabaseUrl,
 } from "./server-env";
 
-// Admin uses service role to have full DB access
+// Admin uses service role to have full DB access (Server Side Only)
 export function createAdminClient() {
   return createClient(
     getSupabaseUrl(),

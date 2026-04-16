@@ -45,21 +45,36 @@ export function CreateProductForm({ categories }: { categories: any[] }) {
   }
 
   async function uploadImage(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await fetch("/api/uploads/product-image", {
+    // 1. Get signed upload URL from our API
+    const res = await fetch("/api/uploads/product-image", {
       method: "POST",
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      }),
     });
 
-    const payload = await response.json();
-
-    if (!response.ok || !payload.url) {
-      throw new Error(payload.error || "Зураг upload хийх үед алдаа гарлаа.");
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "Зураг хуулах холбоос авахад алдаа гарлаа.");
     }
 
-    return payload.url as string;
+    const { url, signedUrl } = await res.json();
+
+    // 2. Upload directly to Supabase via Signed URL
+    const uploadRes = await fetch(signedUrl, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type },
+    });
+
+    if (!uploadRes.ok) {
+      throw new Error("Зураг хуулах явцад алдаа гарлаа (Direct upload failed).");
+    }
+
+    return url as string;
   }
 
   async function handleSubmit(event: React.FormEvent) {
