@@ -296,12 +296,12 @@ export default function ProductDetailView({
                 overflow: "hidden",
               }}
             >
-              <Image
+              <img
                 src={imageUrl}
                 alt={images[currentImageIndex]?.alt || product.name}
-                fill
-                priority
                 style={{
+                  width: "100%",
+                  height: "100%",
                   objectFit: "contain",
                   transition: "transform 250ms cubic-bezier(0.4, 0, 0.2, 1)",
                 }}

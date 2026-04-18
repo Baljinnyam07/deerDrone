@@ -105,65 +105,65 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Feature Summary Section */}
-      <section className="bg-white" style={{ padding: "100px 0" }}>
+      {/* Why Drones Section */}
+      <section className="bg-white" style={{ padding: "120px 0", overflow: "hidden" }}>
         <div className="container">
-          <div className="text-center pb-5">
-            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(2rem, 4vw, 3rem)", letterSpacing: "-0.04em", color: "#111827" }}>
-              Бид юу хийдэг вэ ?
-            </h2>
-          </div>
-
-          <div className="row g-4 justify-content-center">
-            {[
-              { 
-                icon: Search, 
-                title: "Мэргэжлийн зөвлөгөө", 
-                desc: "Сонголтоос эхлээд систем нэгтгэл хүртэл танд яг хэрэгтэй тэргүүн зэргийн консалтинг."
-              },
-              { 
-                icon: Users, 
-                title: "Ашиглалтын сургалт", 
-                desc: "Дроныг аюулгүй бөгөөд бүрэн дүүрэн ашиглах онол болон практикт суурилсан зааварчилгаа."
-              },
-              { 
-                icon: Wrench, 
-                title: "Засвар & Дэмжлэг", 
-                desc: "Технологийн хэвийн ажиллагааг хангах баталгаат засвар, өндөр түвшний гарын авлага, тасралтгүй дэмжлэг."
-              },
-              { 
-                icon: FileVideo, 
-                title: "Контент бүтээл", 
-                desc: "Агаарын өндөр чанартай зураг, видео контент бүтээх мэргэжлийн түвшний зураг авалт."
-              }
-            ].map((f, i) => (
-              <div key={i} className="col-12 col-md-6 col-lg-3">
-                <div 
-                  className="feature-card h-100 p-4 transition-all" 
-                  style={{ 
-                    background: "transparent",
-                    textAlign: "center"
-                  }}
-                >
-                  <div 
-                    className="mb-4 d-inline-flex align-items-center justify-content-center" 
-                    style={{ 
-                      width: "60px", 
-                      height: "60px", 
-                      color: "#111827"
-                    }}
-                  >
-                    <f.icon size={32} strokeWidth={1.5} />
+          <div className="row g-5 align-items-center">
+            <div className="col-lg-6">
+              <div style={{ position: "relative" }}>
+                <span className="text-primary fw-bold text-uppercase mb-3 d-block" style={{ letterSpacing: "0.1em", fontSize: "0.9rem" }}>
+                  Perspective
+                </span>
+                <h2 className="fw-bold mb-4" style={{ fontSize: "clamp(2.5rem, 5vw, 4rem)", letterSpacing: "-0.04em", lineHeight: 1.1, color: "#111827" }}>
+                  Яагаад дрон <br /> авах гэж ?
+                </h2>
+                <div style={{ width: "60px", height: "4px", backgroundColor: "var(--bs-primary)", marginBottom: "40px" }} />
+                
+                <p className="lead mb-4" style={{ fontSize: "1.4rem", fontWeight: 500, color: "#111827", lineHeight: 1.5 }}>
+                  Дэлхийг зүгээр нэг харахаас илүү, өөр өнцгөөс мэдрэхийг хүсдэг хүмүүст дрон хэрэгтэй.
+                </p>
+                
+                <p className="text-secondary mb-5" style={{ fontSize: "1.1rem", lineHeight: 1.8 }}>
+                  Өнөөдөр дрон бол тоглоом биш. Энэ бол таны харж, мэдэрч, бүтээж чадах боломжийг шинэ түвшинд гаргах хэрэгсэл юм.
+                </p>
+              </div>
+            </div>
+            
+            <div className="col-lg-6">
+              <div className="row g-4">
+                <div className="col-12">
+                  <div className="p-4 rounded-4" style={{ backgroundColor: "#F8FAFC", border: "1px solid #F1F5F9" }}>
+                    <p className="mb-0" style={{ fontSize: "1.1rem", color: "#334155", lineHeight: 1.7 }}>
+                      Та аялал, гэр бүл, найз нөхдийнхөө мөчүүдийг энгийн зураг биш, тэнгэрээс авсан чанартай бичлэг болгон үлдээж чадна. Нэг л бичлэг таны дурсамжийг илүү үнэ цэнтэй болгоно.
+                    </p>
                   </div>
-                  <h3 className="fw-bold mb-2" style={{ fontSize: "1.1rem", color: "#111827" }}>
-                    {f.title}
-                  </h3>
-                  <p className="text-secondary mb-0" style={{ fontSize: "0.88rem", lineHeight: 1.6 }}>
-                    {f.desc}
-                  </p>
+                </div>
+                <div className="col-md-6">
+                  <div className="p-4 h-100 rounded-4" style={{ backgroundColor: "#EFF6FF", border: "1px solid #DBEAFE" }}>
+                    <h4 className="fw-bold mb-3" style={{ fontSize: "1.1rem", color: "#1E40AF" }}>Ялгарал</h4>
+                    <p className="mb-0" style={{ fontSize: "0.95rem", color: "#1E3A8A", opacity: 0.8 }}>
+                      Сошиал орчинд энгийн контент биш, агаараас авсан зураг, бичлэг хүмүүсийн анхаарлыг шууд татдаг.
+                    </p>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="p-4 h-100 rounded-4" style={{ backgroundColor: "#F0FDF4", border: "1px solid #DCFCE7" }}>
+                    <h4 className="fw-bold mb-3" style={{ fontSize: "1.1rem", color: "#166534" }}>Орлого</h4>
+                    <p className="mb-0" style={{ fontSize: "0.95rem", color: "#14532D", opacity: 0.8 }}>
+                      Үл хөдлөх хөрөнгө, арга хэмжээ, аяллын контент зэрэг олон төрлийн ажил хийж орлого олох боломжтой.
+                    </p>
+                  </div>
                 </div>
               </div>
-            ))}
+            </div>
+          </div>
+          
+          <div className="mt-5 pt-4 text-center">
+            <div className="p-5 rounded-5 shadow-sm" style={{ backgroundColor: "#0F172A", color: "white" }}>
+              <p className="mb-0 mx-auto" style={{ maxWidth: "800px", fontSize: "1.25rem", fontWeight: 300, lineHeight: 1.7, opacity: 0.9 }}>
+                Эцэст нь, дрон авна гэдэг төхөөрөмж авах тухай биш. Энэ бол өөр өнцгөөс харах, өөр боломж нээх, өөр түвшинд хүрэх шийдвэр юм.
+              </p>
+            </div>
           </div>
         </div>
       </section>
