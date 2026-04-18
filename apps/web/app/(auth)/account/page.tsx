@@ -18,7 +18,14 @@ export default async function AccountPage() {
   // Fetch real order history
   const { data: rawOrders } = await supabase
     .from("orders")
-    .select("*")
+    .select(`
+      *,
+      items:order_items(
+        product_name,
+        quantity,
+        line_total
+      )
+    `)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -45,9 +52,6 @@ export default async function AccountPage() {
           <h1 className="fw-bold mb-2" style={{ fontSize: "2.5rem", letterSpacing: "-0.02em" }}>
             Миний бүртгэл
           </h1>
-          <p className="text-secondary fs-5 mb-0">
-            Захиалга, мэдээлэл, тохиргоогоо удирдана уу
-          </p>
         </div>
 
         <div className="row g-5">
@@ -70,30 +74,6 @@ export default async function AccountPage() {
               </div>
             </div>
 
-            {/* Navigation Menu */}
-            <div className="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-              <ul className="list-group list-group-flush">
-                <li className="list-group-item p-0 border-0">
-                  <Link href="/account" className="d-flex align-items-center gap-3 px-4 py-3 text-decoration-none bg-primary bg-opacity-10 fw-medium" style={{ color: "#7c3aed" }}>
-                    <User size={18} /> Хувийн мэдээлэл
-                    <ChevronRight size={16} className="ms-auto" />
-                  </Link>
-                </li>
-                <li className="list-group-item p-0 border-0">
-                  <Link href="/account/orders" className="d-flex align-items-center gap-3 px-4 py-3 text-secondary text-decoration-none hover-bg-light">
-                    <Package size={18} /> Захиалгын түүх
-                    <ChevronRight size={16} className="ms-auto" />
-                  </Link>
-                </li>
-                <li className="list-group-item p-0 border-0">
-                  <Link href="/account/settings" className="d-flex align-items-center gap-3 px-4 py-3 text-secondary text-decoration-none hover-bg-light">
-                    <Settings size={18} /> Тохиргоо
-                    <ChevronRight size={16} className="ms-auto" />
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
             {/* Logout */}
             <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
               <form action={logout}>
@@ -106,58 +86,11 @@ export default async function AccountPage() {
 
           {/* Main Content */}
           <div className="col-12 col-md-8 col-lg-9">
-            {/* Stats Cards */}
-            <div className="row g-4 mb-4">
-              <div className="col-12 col-sm-4">
-                <div className="card border-0 shadow-sm rounded-4 h-100">
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-center gap-3 mb-3">
-                      <div className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: "48px", height: "48px", backgroundColor: "#ede9fe" }}>
-                        <ShoppingBag size={24} style={{ color: "#7c3aed" }} />
-                      </div>
-                    </div>
-                    <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>{totalOrders}</h3>
-                    <p className="text-secondary small mb-0">Нийт захиалга</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-12 col-sm-4">
-                <div className="card border-0 shadow-sm rounded-4 h-100">
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-center gap-3 mb-3">
-                      <div className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: "48px", height: "48px", backgroundColor: "#d1fae5" }}>
-                        <TrendingUp size={24} style={{ color: "#10b981" }} />
-                      </div>
-                    </div>
-                    <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>{formatCurrency(totalSpent)}</h3>
-                    <p className="text-secondary small mb-0">Нийт зарцуулалт</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-12 col-sm-4">
-                <div className="card border-0 shadow-sm rounded-4 h-100">
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-center gap-3 mb-3">
-                      <div className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: "48px", height: "48px", backgroundColor: "#fef3c7" }}>
-                        <Clock size={24} style={{ color: "#f59e0b" }} />
-                      </div>
-                    </div>
-                    <h3 className="fw-bold mb-1" style={{ fontSize: "2rem" }}>{pendingOrders}</h3>
-                    <p className="text-secondary small mb-0">Хүлээгдэж буй</p>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* Recent Orders */}
             <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
               <div className="card-header bg-white border-bottom-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
                 <h4 className="fw-bold mb-0">Сүүлийн захиалгууд</h4>
-                <Link href="/account/orders" className="btn btn-link text-decoration-none small d-flex align-items-center gap-1" style={{ color: "#7c3aed" }}>
-                  Бүгдийг харах <ArrowRight size={14} />
-                </Link>
               </div>
               <div className="card-body p-4">
                 {orders.length === 0 ? (
@@ -210,11 +143,28 @@ export default async function AccountPage() {
                             <div className="fw-bold fs-5 mb-1" style={{ color: "#7c3aed" }}>
                               {formatCurrency(order.total)}
                             </div>
-                            <Link href={`/account/orders/${order.id}`} className="btn btn-link text-decoration-none small p-0" style={{ color: "#7c3aed" }}>
-                              Дэлгэрэнгүй харах →
-                            </Link>
                           </div>
                         </div>
+
+                        {/* Product list for each order */}
+                        {order.items?.length ? (
+                          <div className="border-top pt-3 mt-3 d-flex flex-column gap-2">
+                            {order.items.map((item: any, index: number) => (
+                              <div
+                                key={`${order.id}-${index}`}
+                                className="d-flex justify-content-between align-items-center gap-3"
+                              >
+                                <div>
+                                  <strong className="text-dark d-block" style={{ fontSize: "0.95rem" }}>{item.product_name}</strong>
+                                  <span className="text-secondary small">{item.quantity} ширхэг</span>
+                                </div>
+                                <div className="fw-medium text-dark text-nowrap">
+                                  {formatCurrency(item.line_total)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
                     ))}
                   </div>

@@ -29,14 +29,6 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Badges */}
         <div className="position-absolute top-0 start-0 w-100 p-3" style={{ zIndex: 10 }}>
           <div className="d-flex gap-2">
-            {isNew && (
-              <span
-                className="badge rounded-pill text-white fw-semibold small"
-                style={{ backgroundColor: "#7c3aed", padding: "6px 12px" }}
-              >
-                <Sparkles size={12} className="me-1" /> NEW
-              </span>
-            )}
             {hasDiscount && (
               <span
                 className="badge rounded-pill text-white fw-semibold small"

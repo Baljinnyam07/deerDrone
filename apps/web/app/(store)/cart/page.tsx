@@ -1,11 +1,393 @@
 "use client";
 
 import Link from "next/link";
-import { Trash2, Plus, Minus, ArrowRight, ShoppingCart, CreditCard, Truck, Shield, Gift, Sparkles, CheckCircle2 } from "lucide-react";
+import {
+  Trash2, Plus, Minus, ArrowRight, ShoppingCart,
+  CreditCard, Truck, Shield, Gift, Sparkles, CheckCircle2,
+} from "lucide-react";
 import { useStore } from "../../../store/useStore";
 import { formatMoney } from "@deer-drone/utils";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+
+const CSS = `
+  *, *::before, *::after { box-sizing: border-box; }
+
+  .cart-page {
+    background: #fff;
+    min-height: 100vh;
+    padding-bottom: 80px;
+    overflow-x: hidden;
+    margin-top: 40px;
+  }
+
+  /* ── Free shipping banner ── */
+  .cart-banner {
+    padding: 14px 16px;
+    color: #fff;
+  }
+  .cart-banner-inner {
+    max-width: 1200px; margin: 0 auto;
+  }
+  .cart-banner-text {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600; font-size: 0.9rem; margin-bottom: 10px;
+  }
+  .cart-banner-bar {
+    height: 5px; background: rgba(255,255,255,0.3);
+    border-radius: 99px; overflow: hidden;
+  }
+  .cart-banner-fill {
+    height: 100%; background: #fff;
+    border-radius: 99px; transition: width 500ms ease;
+  }
+  .cart-free-badge {
+    background: #DCFCE7; color: #16A34A;
+    padding: 12px 16px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; font-weight: 600; font-size: 0.9rem;
+  }
+
+  /* ── Page wrap ── */
+  .cart-wrap {
+    max-width: 1200px; margin: 0 auto;
+    padding: 32px 16px 0;
+  }
+
+  /* ── Page header ── */
+  .cart-header {
+    display: flex; align-items: center;
+    gap: 12px; margin-bottom: 6px; flex-wrap: wrap;
+  }
+  .cart-title {
+    font-size: 1.8rem; font-weight: 800;
+    letter-spacing: -0.02em; color: #0F172A; margin: 0;
+  }
+  .cart-badge {
+    background: #EEF2FF; color: #2563EB;
+    font-size: 0.82rem; font-weight: 600;
+    padding: 4px 14px; border-radius: 99px;
+    white-space: nowrap;
+  }
+  .cart-subtitle {
+    font-size: 0.9rem; color: #64748B;
+    margin: 0 0 28px 0;
+  }
+
+  /* ── Grid ── */
+  .cart-grid {
+    display: block;
+    width: 100%;
+  }
+
+  .checkout-btn-small {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 20px;
+    background: #2563EB; color: #fff;
+    border-radius: 8px; font-weight: 600; font-size: 0.95rem;
+    text-decoration: none;
+    transition: all 200ms;
+  }
+  .checkout-btn-small:hover { background: #1D4ED8; }
+
+  /* ── Item list ── */
+  .cart-item {
+    display: grid;
+    grid-template-columns: 100px 1fr auto;
+    gap: 16px;
+    align-items: start;
+    padding: 20px 0;
+    border-bottom: 1px solid #F1F5F9;
+  }
+  .cart-item:last-of-type { border-bottom: none; }
+
+  .cart-item-img {
+    width: 100px; height: 100px;
+    background: #F8FAFC; border-radius: 10px;
+    border: 1px solid #E2E8F0;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; text-decoration: none;
+    transition: transform 200ms, box-shadow 200ms;
+    flex-shrink: 0;
+  }
+  .cart-item-img:hover {
+    transform: scale(1.04);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+  .cart-item-img img {
+    width: 100%; height: 100%; object-fit: contain; padding: 8px;
+  }
+
+  .cart-item-name {
+    font-size: 1rem; font-weight: 600; color: #0F172A;
+    margin: 0 0 6px 0; transition: color 200ms;
+    text-decoration: none; display: block;
+  }
+  .cart-item-name:hover { color: #2563EB; }
+  .cart-item-unit {
+    font-size: 0.82rem; color: #64748B; margin-bottom: 10px;
+  }
+  .cart-remove {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.8rem; color: #94A3B8;
+    background: none; border: none; cursor: pointer;
+    padding: 4px 0; transition: color 200ms;
+  }
+  .cart-remove:hover { color: #EF4444; }
+
+  /* Qty control */
+  .cart-qty {
+    display: inline-flex; align-items: center;
+    border: 1.5px solid #E2E8F0; border-radius: 8px;
+    background: #F8FAFC; overflow: hidden;
+    transition: border-color 200ms;
+  }
+  .cart-qty:hover { border-color: #2563EB; }
+  .cart-qty-btn {
+    border: none; background: transparent;
+    padding: 8px 11px; cursor: pointer;
+    color: #64748B; transition: color 200ms;
+    display: flex; align-items: center;
+  }
+  .cart-qty-btn:hover { color: #2563EB; }
+  .cart-qty-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .cart-qty-val {
+    min-width: 36px; text-align: center;
+    font-weight: 700; font-size: 0.95rem; color: #0F172A;
+    padding: 8px 0;
+  }
+  .cart-item-total {
+    font-size: 1.1rem; font-weight: 700; color: #2563EB;
+    text-align: right; white-space: nowrap;
+    margin-top: 8px;
+  }
+
+  /* right col of item */
+  .cart-item-right {
+    display: flex; flex-direction: column;
+    align-items: flex-end; gap: 8px;
+  }
+
+  .cart-header-actions {
+    display: flex; align-items: center; gap: 16px;
+  }
+
+  /* ── Bottom nav ── */
+  .cart-nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 20px; flex-wrap: wrap; gap: 12px;
+  }
+  .cart-continue {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: #2563EB; text-decoration: none;
+    font-weight: 600; font-size: 0.9rem;
+    transition: opacity 200ms;
+  }
+  .cart-continue:hover { opacity: 0.7; }
+  .cart-clear {
+    background: none; border: none;
+    color: #EF4444; font-weight: 600; font-size: 0.9rem;
+    cursor: pointer; transition: opacity 200ms;
+  }
+  .cart-clear:hover { opacity: 0.7; }
+
+  /* ── Sidebar ── */
+  .cart-summary {
+    position: sticky; top: 90px;
+    padding: 12px 0 0 0;
+  }
+  .cart-summary-title {
+    display: none;
+  }
+
+  /* Discount */
+  .discount-label {
+    font-size: 0.75rem; font-weight: 700; color: #0F172A;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    display: block; margin-bottom: 8px;
+  }
+  .discount-row {
+    display: flex; gap: 8px; margin-bottom: 8px;
+  }
+  .discount-input {
+    flex: 1; padding: 10px 14px;
+    border: 1.5px solid #E2E8F0; border-radius: 8px;
+    font-size: 0.9rem; color: #0F172A;
+    background: #fff; outline: none; min-width: 0;
+    transition: border-color 200ms;
+  }
+  .discount-input:focus { border-color: #2563EB; }
+  .discount-btn {
+    padding: 10px 16px; border-radius: 8px; border: none;
+    font-weight: 600; font-size: 0.88rem;
+    cursor: pointer; transition: all 200ms;
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* Totals */
+  .summary-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.9rem; color: #64748B; margin-bottom: 10px;
+  }
+  .summary-row span:last-child { font-weight: 600; color: #0F172A; }
+  .summary-divider {
+    display: none;
+  }
+  .summary-total {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 24px;
+  }
+  .summary-total-label { font-size: 1.1rem; font-weight: 500; color: #64748B; }
+  .summary-total-amount {
+    font-size: 2rem; font-weight: 700; color: #0F172A;
+    letter-spacing: -0.03em;
+  }
+  .checkout-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; padding: 18px 24px;
+    background: #2563EB;
+    color: #fff;
+    border-radius: 99px;
+    font-weight: 700; font-size: 1.05rem; letter-spacing: 0.02em;
+    text-decoration: none; margin-bottom: 20px;
+    position: relative; overflow: hidden;
+    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.25);
+    transition: all 300ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .checkout-btn::after {
+    content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transform: skewX(-20deg); transition: all 500ms;
+  }
+  .checkout-btn:hover { 
+    background: #1D4ED8;
+    transform: translateY(-3px); 
+    box-shadow: 0 15px 35px rgba(37, 99, 235, 0.35);
+  }
+  .checkout-btn:hover::after { left: 150%; }
+  .checkout-btn .btn-arrow { transition: transform 300ms; }
+  .checkout-btn:hover .btn-arrow { transform: translateX(5px); }
+
+  /* Trust badges */
+  .trust-list {
+    display: flex; flex-direction: column;
+    gap: 14px; border-top: 1px solid #E2E8F0; padding-top: 20px;
+  }
+  .trust-item {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .trust-icon {
+    width: 38px; height: 38px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .trust-name { font-size: 0.85rem; font-weight: 600; color: #0F172A; }
+  .trust-desc { font-size: 0.75rem; color: #64748B; }
+  .security-note {
+    margin-top: 16px; padding: 10px 14px;
+    background: #EEF2FF; border-radius: 8px;
+    font-size: 0.75rem; color: #3730A3;
+    text-align: center; line-height: 1.6;
+  }
+
+  /* ── Empty state ── */
+  .cart-empty {
+    min-height: 70vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 40px 16px;
+  }
+  .cart-empty-icon {
+    width: 100px; height: 100px; border-radius: 50%;
+    background: #F1F5F9; display: flex;
+    align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+  }
+  .cart-empty h2 {
+    font-size: 2rem; font-weight: 800; color: #0F172A;
+    letter-spacing: -0.02em; margin: 0 0 12px 0;
+  }
+  .cart-empty p { font-size: 1rem; color: #64748B; margin: 0 0 32px 0; }
+  .cart-empty-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 28px; background: #2563EB; color: #fff;
+    border-radius: 10px; font-weight: 700; font-size: 1rem;
+    text-decoration: none; transition: all 200ms;
+  }
+    .cart-empty-btn:hover { background: #1D4ED8; transform: translateY(-2px); }
+
+  .mobile-bottom-checkout {
+    display: none;
+    margin-top: 24px;
+  }
+
+  /* ─── TABLET ≤ 1024px ─── */
+  @media (max-width: 1024px) {
+    .cart-grid {
+      display: block;
+    }
+    .cart-summary {
+      position: static;
+      order: -1;
+      padding-top: 0;
+    }
+    .mobile-bottom-checkout {
+      display: block;
+    }
+  }
+
+  /* ─── MOBILE ≤ 640px ─── */
+  @media (max-width: 640px) {
+    .cart-wrap { padding: 20px 14px 100px; }
+    .cart-title { font-size: 1.4rem; }
+
+    .cart-item {
+      grid-template-columns: 80px 1fr;
+      grid-template-rows: auto auto;
+      gap: 12px;
+      padding: 24px 0;
+    }
+    .cart-item-right {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      background: #F8FAFC;
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-top: 4px;
+    }
+    .cart-item-img { width: 80px; height: 80px; }
+    .cart-item-name { font-size: 0.95rem; }
+
+    .cart-nav { flex-direction: column; align-items: flex-start; }
+
+    .cart-header-actions {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 16px;
+      justify-content: space-between;
+      border-top: 1px solid #E2E8F0;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.08);
+      z-index: 1000;
+    }
+    .cart-header-actions > div { text-align: left !important; }
+    .cart-header-actions .checkout-btn-small { 
+      padding: 14px 24px; font-size: 1rem; width: auto; 
+    }
+    
+    .mobile-bottom-checkout { display: none !important; } /* Hide the redundant button since we now have a sticky bar */
+
+    .cart-summary { padding: 0 0 16px 0; }
+    .summary-total-amount { font-size: 1.75rem; }
+
+    .discount-row { flex-wrap: wrap; }
+    .discount-btn { flex: 1; justify-content: center; }
+  }
+`;
 
 export default function CartPage() {
   const { cartItems, removeFromCart, updateQuantity, clearCart } = useStore();
@@ -13,918 +395,166 @@ export default function CartPage() {
   const [discountCode, setDiscountCode] = useState("");
   const [discountApplied, setDiscountApplied] = useState(false);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
   const discount = discountApplied ? Math.floor(subtotal * 0.05) : 0;
   const shippingCost = subtotal >= 500000 ? 0 : 5000;
-  const total = subtotal - discount + shippingCost;
-
+  const total = subtotal; // Shipping is calculated properly in the checkout stage
   const freeShippingProgress = Math.min((subtotal / 500000) * 100, 100);
-  const remainingForFreeShipping = Math.max(500000 - subtotal, 0);
+  const remaining = Math.max(500000 - subtotal, 0);
 
-  const handleRemove = async (itemId: string) => {
-    setRemovingItems(prev => new Set(prev).add(itemId));
-    await new Promise(resolve => setTimeout(resolve, 300));
-    removeFromCart(itemId);
-    setRemovingItems(prev => {
-      const next = new Set(prev);
-      next.delete(itemId);
-      return next;
-    });
+  const handleRemove = async (id: string) => {
+    setRemovingItems(p => new Set(p).add(id));
+    await new Promise(r => setTimeout(r, 300));
+    removeFromCart(id);
+    setRemovingItems(p => { const n = new Set(p); n.delete(id); return n; });
   };
 
+  /* ── Empty state ── */
   if (cartItems.length === 0) {
     return (
-      <div
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
-          padding: "80px 32px",
-          textAlign: "center",
-          backgroundColor: "#FFFFFF",
-          minHeight: "100vh",
-        }}
-      >
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          style={{
-            width: "120px",
-            height: "120px",
-            borderRadius: "50%",
-            backgroundColor: "#F8FAFC",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto 24px",
-          }}
-        >
-          <ShoppingCart size={48} style={{ color: "#94A3B8" }} />
-        </motion.div>
-        <motion.h2
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          style={{
-            fontSize: "2.5rem",
-            fontWeight: 700,
-            letterSpacing: "-0.02em",
-            color: "#0F172A",
-            margin: 0,
-            marginBottom: "16px",
-          }}
-        >
-          Сагс хоосон байна
-        </motion.h2>
-        <motion.p
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          style={{
-            fontSize: "1.1rem",
-            color: "#64748B",
-            marginBottom: "40px",
-          }}
-        >
-          Та хүссэн бараагаа сонгон сагсандаа нэмэх боломжтой.
-        </motion.p>
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Link
-            href="/products"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "12px 28px",
-              backgroundColor: "#2563EB",
-              color: "#FFFFFF",
-              textDecoration: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              fontSize: "1.1rem",
-              transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#1D4ED8";
-              e.currentTarget.style.transform = "translateY(-2px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "#2563EB";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            <Sparkles size={20} />
-            Дэлгүүр хэсэх
-          </Link>
-        </motion.div>
+      <div className="cart-page">
+        <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        <div className="cart-empty">
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.4 }} className="cart-empty-icon">
+            <ShoppingCart size={44} style={{ color: "#94A3B8" }} />
+          </motion.div>
+          <motion.h2 initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
+            Сагс хоосон байна
+          </motion.h2>
+          <motion.p initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }}>
+            Та хүссэн бараагаа сонгон сагсандаа нэмэх боломжтой.
+          </motion.p>
+          <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}>
+            <Link href="/products" className="cart-empty-btn">
+              <Sparkles size={18} /> Дэлгүүр хэсэх
+            </Link>
+          </motion.div>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div
-      style={{
-        backgroundColor: "#FFFFFF",
-        minHeight: "100vh",
-        paddingBottom: "60px",
-      }}
-    >
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        .cart-item-remove {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.85rem;
-          color: #64748B;
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 8px 0;
-          transition: color 250ms cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .cart-item-remove:hover {
-          color: #EF4444;
-        }
-      `,
-        }}
-      />
+  /* ── Trust badges data ── */
+  const badges = [
+    { icon: <Truck size={18} style={{ color: "#0284C7" }} />, bg: "#DBEAFE",
+      name: shippingCost === 0 ? "Үнэгүй хүргэлт" : "Хурдан хүргэлт",
+      desc: shippingCost === 0 ? "500К+ захиалгад" : "1–3 хоног" },
+    { icon: <Shield size={18} style={{ color: "#16A34A" }} />, bg: "#DCFCE7",
+      name: "1 жилийн баталгаа", desc: "Үйлдвэрийн албан ёсны" },
+    { icon: <CreditCard size={18} style={{ color: "#F59E0B" }} />, bg: "#FEF3C7",
+      name: "Лизинг боломжтой", desc: `Сард ~${formatMoney(Math.floor(total / 12))}` },
+  ];
 
-      {/* Free Shipping Progress Bar */}
-      {subtotal < 500000 && (
-        <div
-          style={{
-            background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
-            color: "#FFFFFF",
-            padding: "16px 0",
-          }}
-        >
-          <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 32px" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                marginBottom: "12px",
-              }}
-            >
-              <Truck size={18} />
-              <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>
-                Үнэгүй хүргэлт авахын тулд {formatMoney(remainingForFreeShipping)} үлдлээ
-              </span>
-            </div>
-            <div
-              style={{
-                height: "6px",
-                backgroundColor: "rgba(255, 255, 255, 0.3)",
-                borderRadius: "3px",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  height: "100%",
-                  backgroundColor: "#FFFFFF",
-                  width: `${freeShippingProgress}%`,
-                  transition: "width 500ms cubic-bezier(0.4, 0, 0.2, 1)",
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Free Shipping Achieved */}
-      {subtotal >= 500000 && (
-        <div
-          style={{
-            backgroundColor: "#DCFCE7",
-            padding: "16px",
-            color: "#16A34A",
-            textAlign: "center",
-            fontWeight: 600,
-            fontSize: "0.95rem",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              maxWidth: "1280px",
-              margin: "0 auto",
-            }}
-          >
-            <CheckCircle2 size={20} />
-            Та үнэгүй хүргэлтийн эрхтэй боллоо! 🎉
-          </div>
-        </div>
-      )}
-
-      {/* Header */}
-      <div
-        style={{ maxWidth: "1280px", margin: "0 auto", padding: "40px 32px" }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
-            marginBottom: "8px",
-          }}
-        >
-          <h1
-            style={{
-              fontSize: "2rem",
-              fontWeight: 700,
-              letterSpacing: "-0.02em",
-              margin: 0,
-              color: "#0F172A",
-            }}
-          >
-            Миний сагс
-          </h1>
-          <span
-            style={{
-              fontSize: "0.9rem",
-              backgroundColor: "#F0F4FF",
-              color: "#0F172A",
-              padding: "8px 16px",
-              borderRadius: "20px",
-              fontWeight: 500,
-            }}
-          >
-            {cartItems.reduce((acc, curr) => acc + curr.quantity, 0)} бүтээгдэхүүн
-          </span>
-        </div>
-        <p
-          style={{
-            fontSize: "1rem",
-            color: "#64748B",
-            margin: 0,
-          }}
-        >
-          Бүх бүтээгдэхүүн баталгаатай, үнэгүй хүргэлт
-        </p>
+  // Order summary sidebar (reused both positions)
+  const Summary = (
+    <div className="cart-summary">
+      <div className="summary-total">
+        <span className="summary-total-label">Нийт дүн</span>
+        <span className="summary-total-amount">{formatMoney(total)}</span>
       </div>
 
-      {/* Main Content Grid */}
-      <div
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
-          padding: "0 32px",
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "48px",
-          alignItems: "start",
-        }}
-      >
-        {/* Cart Items List */}
-        <div>
-          <AnimatePresence>
-            {cartItems.map((item, index) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{
-                  opacity: removingItems.has(item.id) ? 0 : 1,
-                  x: removingItems.has(item.id) ? 100 : 0,
-                }}
-                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                transition={{ duration: 0.3 }}
-                style={{
-                  padding: "24px 0",
-                  borderBottom: index !== cartItems.length - 1 ? "1px solid #E2E8F0" : "none",
-                  display: "grid",
-                  gridTemplateColumns: "140px 1fr auto",
-                  gap: "24px",
-                  alignItems: "start",
-                }}
-              >
-                {/* Product Image */}
-                <Link
-                  href={item.slug ? `/products/${item.slug}` : "/products"}
-                  style={{
-                    textDecoration: "none",
-                    display: "block",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "140px",
-                      height: "140px",
-                      backgroundColor: "#F8FAFC",
-                      borderRadius: "12px",
-                      padding: "12px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
-                      cursor: "pointer",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "scale(1.05)";
-                      e.currentTarget.style.boxShadow =
-                        "0 12px 24px rgba(0, 0, 0, 0.08)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "scale(1)";
-                      e.currentTarget.style.boxShadow = "none";
-                    }}
-                  >
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                      }}
-                    />
-                  </div>
-                </Link>
+      <Link href="/checkout" className="checkout-btn">
+        <span style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", gap: "8px" }}>
+          Тооцоо хийх
+          <svg className="btn-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </Link>
+    </div>
+  );
 
-                {/* Product Details */}
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  <Link
-                    href={item.slug ? `/products/${item.slug}` : "/products"}
-                    style={{ textDecoration: "none" }}
-                  >
-                    <h5
-                      style={{
-                        fontSize: "1.1rem",
-                        fontWeight: 600,
-                        color: "#0F172A",
-                        margin: "0 0 12px 0",
-                        transition: "color 250ms",
-                        cursor: "pointer",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.color = "#2563EB")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.color = "#0F172A")
-                      }
-                    >
-                      {item.name}
-                    </h5>
-                  </Link>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      marginBottom: "12px",
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    <span style={{ color: "#64748B" }}>Нэгж үнэ:</span>
-                    <span style={{ fontWeight: 600, color: "#0F172A" }}>
-                      {formatMoney(item.price)}
-                    </span>
-                  </div>
-                  <button
-                    className="cart-item-remove"
-                    onClick={() => handleRemove(item.id)}
-                    style={{ width: "fit-content" }}
-                  >
-                    <Trash2 size={16} /> Устгах
-                  </button>
-                </div>
+  return (
+    <div className="cart-page">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
-                {/* Quantity + Total */}
-                <div>
-                  {/* Quantity Control */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      backgroundColor: "#F8FAFC",
-                      borderRadius: "8px",
-                      border: "1px solid #E2E8F0",
-                      marginBottom: "16px",
-                      transition: "border-color 250ms",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#2563EB";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#E2E8F0";
-                    }}
-                  >
-                    <button
-                      onClick={() =>
-                        updateQuantity(item.id, item.quantity - 1)
-                      }
-                      disabled={item.quantity <= 1}
-                      style={{
-                        border: "none",
-                        backgroundColor: "transparent",
-                        padding: "10px 12px",
-                        cursor: item.quantity <= 1 ? "not-allowed" : "pointer",
-                        color: "#64748B",
-                        transition: "color 250ms",
-                        opacity: item.quantity <= 1 ? 0.5 : 1,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (item.quantity > 1) {
-                          (e.target as HTMLElement).style.color = "#2563EB";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.target as HTMLElement).style.color = "#64748B";
-                      }}
-                    >
-                      <Minus size={16} />
-                    </button>
-                    <motion.div
-                      key={item.quantity}
-                      initial={{ scale: 1.2, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      style={{
-                        padding: "8px 16px",
-                        backgroundColor: "#F9FAFB",
-                        fontWeight: 600,
-                        color: "#0F172A",
-                        minWidth: "50px",
-                        textAlign: "center",
-                        fontSize: "0.95rem",
-                      }}
-                    >
-                      {item.quantity}
-                    </motion.div>
-                    <button
-                      onClick={() =>
-                        updateQuantity(item.id, item.quantity + 1)
-                      }
-                      style={{
-                        border: "none",
-                        backgroundColor: "transparent",
-                        padding: "10px 12px",
-                        cursor: "pointer",
-                        color: "#64748B",
-                        transition: "color 250ms",
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.target as HTMLElement).style.color = "#2563EB";
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.target as HTMLElement).style.color = "#64748B";
-                      }}
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
+      <div className="cart-wrap">
+        {/* Header */}
+        <div className="cart-header" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            <h1 className="cart-title">Миний сагс</h1>
+          </div>
 
-                  {/* Item Total */}
-                  <motion.div
-                    key={item.quantity * item.price}
-                    initial={{ scale: 1.1 }}
-                    animate={{ scale: 1 }}
-                    style={{
-                      fontSize: "1.2rem",
-                      fontWeight: 700,
-                      color: "#2563EB",
-                      letterSpacing: "-0.01em",
-                      textAlign: "right",
-                    }}
-                  >
-                    {formatMoney(item.price * item.quantity)}
-                  </motion.div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {/* Cart Navigation */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              paddingTop: "24px",
-              borderTop: "1px solid #E2E8F0",
-            }}
-          >
-            <Link
-              href="/products"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                color: "#2563EB",
-                textDecoration: "none",
-                fontWeight: 500,
-                fontSize: "0.95rem",
-                transition: "opacity 250ms",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-            >
-              <ArrowRight size={16} style={{ transform: "rotate(180deg)" }} />
-              Худалдан авалтаа үргэлжлүүлэх
+          <div className="cart-header-actions">
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "0.8rem", color: "#64748B", fontWeight: 500, marginBottom: "2px" }}>Нийт төлөх:</div>
+              <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#0F172A", lineHeight: 1 }}>{formatMoney(total)}</div>
+            </div>
+            <Link href="/checkout" className="checkout-btn-small">
+              Тооцоо хийх
             </Link>
-            <button
-              onClick={clearCart}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#EF4444",
-                textDecoration: "none",
-                fontWeight: 500,
-                fontSize: "0.95rem",
-                cursor: "pointer",
-                transition: "opacity 250ms",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-            >
-              Сагсыг хоослох
-            </button>
           </div>
         </div>
 
-        {/* Checkout Summary Card */}
-        <div
-          style={{
-            backgroundColor: "#F8FAFC",
-            border: "1px solid #E2E8F0",
-            borderRadius: "12px",
-            padding: "32px",
-            position: "sticky",
-            top: "24px",
-            transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "#2563EB";
-            e.currentTarget.style.boxShadow = "0 12px 40px rgba(37, 99, 235, 0.1)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "#E2E8F0";
-            e.currentTarget.style.boxShadow = "none";
-          }}
-        >
-          <h3
-            style={{
-              fontSize: "1.3rem",
-              fontWeight: 700,
-              marginBottom: "24px",
-              color: "#0F172A",
-              margin: 0,
-            }}
-          >
-            Захиалгын тойм
-          </h3>
+        <div className="cart-grid">
+          {/* ── Left: items ── */}
+          <div>
+            <AnimatePresence>
+              {cartItems.map((item) => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: removingItems.has(item.id) ? 0 : 1, x: removingItems.has(item.id) ? 60 : 0 }}
+                  exit={{ opacity: 0, height: 0, overflow: "hidden" }}
+                  transition={{ duration: 0.28 }}
+                  className="cart-item"
+                >
+                  {/* Image */}
+                  <Link href={item.slug ? `/products/${item.slug}` : "/products"} className="cart-item-img">
+                    <img src={item.image} alt={item.name} />
+                  </Link>
 
-          {/* Discount Code */}
-          <div style={{ marginBottom: "24px" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "0.85rem",
-                fontWeight: 600,
-                color: "#0F172A",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                marginBottom: "12px",
-              }}
-            >
-              Хөнгөлөлтийн код
-            </label>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <input
-                type="text"
-                placeholder="Кодоо оруулна уу"
-                value={discountCode}
-                onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-                disabled={discountApplied}
-                style={{
-                  flex: 1,
-                  padding: "10px 16px",
-                  border: "1px solid #E2E8F0",
-                  borderRadius: "8px",
-                  fontSize: "0.9rem",
-                  color: "#0F172A",
-                  backgroundColor: "#FFFFFF",
-                  transition: "border-color 250ms",
-                  outline: "none",
-                }}
-              />
-              <button
-                onClick={() => {
-                  if (discountCode === "DEER5") {
-                    setDiscountApplied(true);
-                  }
-                }}
-                disabled={!discountCode || discountApplied}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: discountApplied ? "#10B981" : "#2563EB",
-                  color: "#FFFFFF",
-                  border: "none",
-                  borderRadius: "8px",
-                  fontWeight: 600,
-                  cursor: !discountCode || discountApplied ? "not-allowed" : "pointer",
-                  fontSize: "0.9rem",
-                  opacity: !discountCode || discountApplied ? 0.6 : 1,
-                  transition: "all 250ms",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                {discountApplied ? (
-                  <>
-                    <CheckCircle2 size={16} /> Идэвхтэй
-                  </>
-                ) : (
-                  "Нэмэх"
-                )}
+                  {/* Details */}
+                  <div>
+                    <Link href={item.slug ? `/products/${item.slug}` : "/products"} className="cart-item-name">
+                      {item.name}
+                    </Link>
+                    <div className="cart-item-unit">Нэгж үнэ: {formatMoney(item.price)}</div>
+                    <button className="cart-remove" onClick={() => handleRemove(item.id)}>
+                      <Trash2 size={14} /> Устгах
+                    </button>
+                  </div>
+
+                  {/* Qty + total */}
+                  <div className="cart-item-right">
+                    <div className="cart-qty">
+                      <button className="cart-qty-btn"
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        disabled={item.quantity <= 1}>
+                        <Minus size={14} />
+                      </button>
+                      <motion.div key={item.quantity}
+                        initial={{ scale: 1.3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                        className="cart-qty-val">
+                        {item.quantity}
+                      </motion.div>
+                      <button className="cart-qty-btn"
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                    <motion.div key={item.quantity * item.price}
+                      initial={{ scale: 1.1 }} animate={{ scale: 1 }}
+                      className="cart-item-total">
+                      {formatMoney(item.price * item.quantity)}
+                    </motion.div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
+            {/* Bottom nav */}
+            <div className="cart-nav" style={{ justifyContent: "space-between", paddingTop: "20px", marginTop: "20px", borderTop: "1px solid #F1F5F9" }}>
+              <Link href="/products" className="cart-continue">
+                <ArrowRight size={15} style={{ transform: "rotate(180deg)" }} />
+                Худалдан авалтаа үргэлжлүүлэх
+              </Link>
+              <button className="cart-clear" onClick={clearCart}>
+                Сагсыг хоослох
               </button>
             </div>
-            {discountApplied && (
-              <div
-                style={{
-                  marginTop: "8px",
-                  fontSize: "0.85rem",
-                  color: "#10B981",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                <CheckCircle2 size={14} /> 5% хөнгөлөлт идэвхжлээ!
-              </div>
-            )}
           </div>
 
-          {/* Order Summary */}
-          <div style={{ marginBottom: "24px" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "12px",
-                fontSize: "0.95rem",
-                color: "#64748B",
-              }}
-            >
-              <span>Нийт дүн</span>
-              <span style={{ fontWeight: 600, color: "#0F172A" }}>
-                {formatMoney(subtotal)}
-              </span>
-            </div>
-
-            {discount > 0 && (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "12px",
-                  fontSize: "0.95rem",
-                  color: "#10B981",
-                }}
-              >
-                <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <Gift size={16} /> Хөнгөлөлт (5%)
-                </span>
-                <span style={{ fontWeight: 600 }}>
-                  -{formatMoney(discount)}
-                </span>
-              </div>
-            )}
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "12px",
-                fontSize: "0.95rem",
-                color: "#64748B",
-              }}
-            >
-              <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <Truck size={16} /> Хүргэлт
-              </span>
-              <span
-                style={{
-                  fontWeight: 600,
-                  color: shippingCost === 0 ? "#10B981" : "#0F172A",
-                }}
-              >
-                {shippingCost === 0 ? "Үнэгүй" : formatMoney(shippingCost)}
-              </span>
-            </div>
-
-            <div
-              style={{
-                borderTop: "1px solid #E2E8F0",
-                paddingTop: "12px",
-                marginTop: "12px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "0.95rem",
-                  fontWeight: 600,
-                  color: "#0F172A",
-                }}
-              >
-                Төлөх дүн
-              </span>
-              <span
-                style={{
-                  fontSize: "1.8rem",
-                  fontWeight: 700,
-                  color: "#2563EB",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {formatMoney(total)}
-              </span>
-            </div>
-          </div>
-
-          {/* Checkout Button */}
-          <Link
-            href="/checkout"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              width: "100%",
-              padding: "12px 24px",
-              backgroundColor: "#2563EB",
-              color: "#FFFFFF",
-              textDecoration: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              fontSize: "1rem",
-              marginBottom: "24px",
-              transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
-              border: "none",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#1D4ED8";
-              e.currentTarget.style.transform = "translateY(-2px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "#2563EB";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            Тооцоо хийх <ArrowRight size={18} />
-          </Link>
-
-          {/* Trust Badges */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "16px",
-              paddingTop: "24px",
-              borderTop: "1px solid #E2E8F0",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "8px",
-                  backgroundColor: "#DBEAFE",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Truck size={20} style={{ color: "#0284C7" }} />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: "0.85rem",
-                    fontWeight: 600,
-                    color: "#0F172A",
-                    marginBottom: "2px",
-                  }}
-                >
-                  {shippingCost === 0 ? "Үнэгүй хүргэлт" : "Хурдан хүргэлт"}
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.75rem",
-                    color: "#64748B",
-                  }}
-                >
-                  {shippingCost === 0 ? "500K+ захиалгад" : "1-3 хоног"}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "8px",
-                  backgroundColor: "#DCFCE7",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Shield size={20} style={{ color: "#16A34A" }} />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: "0.85rem",
-                    fontWeight: 600,
-                    color: "#0F172A",
-                    marginBottom: "2px",
-                  }}
-                >
-                  1 жилийн баталгаа
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.75rem",
-                    color: "#64748B",
-                  }}
-                >
-                  Үйлдвэрийн албан ёсны
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "8px",
-                  backgroundColor: "#FEF3C7",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <CreditCard size={20} style={{ color: "#F59E0B" }} />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: "0.85rem",
-                    fontWeight: 600,
-                    color: "#0F172A",
-                    marginBottom: "2px",
-                  }}
-                >
-                  Лизинг боломжтой
-                </div>
-                <div
-                  style={{
-                    fontSize: "0.75rem",
-                    color: "#64748B",
-                  }}
-                >
-                  Сард ~{formatMoney(Math.floor(total / 12))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Security Message */}
-          <div
-            style={{
-              marginTop: "24px",
-              padding: "12px",
-              backgroundColor: "#F0F4FF",
-              borderRadius: "8px",
-              fontSize: "0.75rem",
-              color: "#2563EB",
-              textAlign: "center",
-              lineHeight: 1.6,
-            }}
-          >
-            🔒 Төлбөр төлөгдсөний дараа таны захиалга баталгаажуулж, хүргэлтийн
-            ажилтан тантай холбогдох болно.
-          </div>
         </div>
       </div>
     </div>

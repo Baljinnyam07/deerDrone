@@ -19,6 +19,7 @@ import { useStore } from "../../../../store/useStore";
 import { useState } from "react";
 import { MinimalProductCarousel } from "../../../../components/product/minimal-product-carousel";
 import { RatingStars } from "../../../../components";
+import { createClient } from "../../../../lib/supabase/client";
 
 export default function ProductDetailView({
   product,
@@ -45,7 +46,16 @@ export default function ProductDetailView({
   const imageUrl =
     images[currentImageIndex]?.url || "/assets/drone-product.png";
 
-  function addCurrentProductToCart() {
+  async function addCurrentProductToCart() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      // Not logged in — send to facebook directly, come back to cart after
+      window.location.href = "/api/auth/facebook?redirect=/cart";
+      return;
+    }
+
     for (let i = 0; i < quantity; i++) {
       addToCart({
         id: product.id,
@@ -55,10 +65,28 @@ export default function ProductDetailView({
         image: imageUrl,
       });
     }
+    // Navigate to cart after adding
+    router.push("/cart");
   }
 
-  function handleBuyNow() {
-    addCurrentProductToCart();
+  async function handleBuyNow() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      window.location.href = "/api/auth/facebook?redirect=/cart";
+      return;
+    }
+
+    for (let i = 0; i < quantity; i++) {
+      addToCart({
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        price: product.price,
+        image: imageUrl,
+      });
+    }
     router.push("/checkout");
   }
 
@@ -81,6 +109,66 @@ export default function ProductDetailView({
       <style
         dangerouslySetInnerHTML={{
           __html: `
+        .product-detail-container {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 0 32px 40px;
+        }
+        .product-detail-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 48px;
+          align-items: start;
+        }
+        .breadcrumb-container {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 24px 32px;
+        }
+        .spec-container {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 40px 32px;
+        }
+        .tabs-section {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 40px 32px;
+        }
+        .quantity-actions-container {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+
+        @media (max-width: 991px) {
+          .product-detail-grid {
+            grid-template-columns: 1fr;
+            gap: 32px;
+          }
+          .product-detail-container, .breadcrumb-container, .spec-container, .tabs-section {
+            padding: 20px 16px;
+          }
+          .quantity-actions-container {
+            grid-template-columns: 1fr;
+          }
+          .product-detail-title {
+            font-size: 1.5rem !important;
+          }
+          .product-detail-price {
+            font-size: 1.5rem !important;
+          }
+          .product-detail-tabs {
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 4px;
+            gap: 20px !important;
+          }
+          .product-detail-tab {
+            font-size: 0.85rem !important;
+          }
+        }
+
         .product-detail-tabs {
           display: flex;
           gap: 32px;
@@ -119,6 +207,13 @@ export default function ProductDetailView({
           color: #475569;
           border-bottom: 1px solid #E2E8F0;
         }
+        @media (max-width: 600px) {
+          .spec-row {
+            flex-direction: column;
+            gap: 4px;
+            padding: 12px 16px;
+          }
+        }
         .spec-row:last-child {
           border-bottom: none;
         }
@@ -146,9 +241,7 @@ export default function ProductDetailView({
       />
 
       {/* Breadcrumb */}
-      <div
-        style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px 32px" }}
-      >
+      <div className="breadcrumb-container">
         <nav aria-label="breadcrumb" style={{ fontSize: "0.9rem" }}>
           <ol
             style={{
@@ -157,6 +250,7 @@ export default function ProductDetailView({
               listStyle: "none",
               padding: 0,
               margin: 0,
+              flexWrap: "wrap",
             }}
           >
             <li>
@@ -184,17 +278,8 @@ export default function ProductDetailView({
         </nav>
       </div>
 
-      <div
-        style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 32px 40px" }}
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "48px",
-            alignItems: "start",
-          }}
-        >
+      <div className="product-detail-container">
+        <div className="product-detail-grid">
           {/* Left Column: Gallery */}
           <div>
             <div
@@ -237,8 +322,8 @@ export default function ProductDetailView({
                     key={`${img.url}-${idx}`}
                     onClick={() => setCurrentImageIndex(idx)}
                     style={{
-                      flex: "0 0 100px",
-                      height: "100px",
+                      flex: "0 0 80px",
+                      height: "80px",
                       border:
                         idx === currentImageIndex
                           ? "2px solid #2563EB"
@@ -248,14 +333,6 @@ export default function ProductDetailView({
                       cursor: "pointer",
                       padding: "4px",
                       transition: "all 250ms",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.target as HTMLElement).style.borderColor = "#2563EB";
-                    }}
-                    onMouseLeave={(e) => {
-                      if (idx !== currentImageIndex) {
-                        (e.target as HTMLElement).style.borderColor = "#E2E8F0";
-                      }
                     }}
                   >
                     <img
@@ -283,9 +360,12 @@ export default function ProductDetailView({
                   justifyContent: "space-between",
                   alignItems: "start",
                   marginBottom: "12px",
+                  flexDirection: "column",
+                  gap: "8px",
                 }}
               >
                 <h1
+                  className="product-detail-title"
                   style={{
                     fontSize: "2rem",
                     fontWeight: 700,
@@ -298,7 +378,7 @@ export default function ProductDetailView({
                 </h1>
                 <span
                   style={{
-                    fontSize: "0.9rem",
+                    fontSize: "0.85rem",
                     color: "#64748B",
                     fontWeight: 500,
                   }}
@@ -307,34 +387,6 @@ export default function ProductDetailView({
                   {product.id
                     ? product.id.substring(0, 8).toUpperCase()
                     : "N/A"}
-                </span>
-              </div>
-
-              {/* Rating and Category */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "16px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <RatingStars
-                  rating={4.5}
-                  reviewCount={28}
-                  size="md"
-                  showCount={true}
-                />
-                <span
-                  style={{
-                    fontSize: "0.85rem",
-                    color: "#64748B",
-                    padding: "4px 12px",
-                    backgroundColor: "#F0F4FF",
-                    borderRadius: "20px",
-                  }}
-                >
-                  {product.categoryName || "Дрон"}
                 </span>
               </div>
             </div>
@@ -358,34 +410,10 @@ export default function ProductDetailView({
                 Үнэ
               </span>
               <div
+                className="product-detail-price"
                 style={{ fontSize: "2rem", fontWeight: 700, color: "#2563EB" }}
               >
                 {formatMoney(product.price)}
-              </div>
-            </div>
-
-            {/* Actions Links */}
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                marginBottom: "24px",
-                flexWrap: "wrap",
-              }}
-            >
-              <div
-                className="action-link"
-                onClick={() => {}}
-                style={{ cursor: "pointer" }}
-              >
-                <ArrowLeftRight size={18} /> Харьцуулах
-              </div>
-              <div
-                className="action-link"
-                onClick={() => {}}
-                style={{ cursor: "pointer" }}
-              >
-                <Share2 size={18} /> Хуваалцах
               </div>
             </div>
 
@@ -420,27 +448,21 @@ export default function ProductDetailView({
                     style={{
                       border: "none",
                       backgroundColor: "transparent",
-                      padding: "12px 16px",
+                      padding: "10px 14px",
                       cursor: "pointer",
                       color: "#64748B",
-                      transition: "color 250ms",
                     }}
-                    onMouseEnter={(e: any) =>
-                      (e.currentTarget.style.color = "#2563EB")
-                    }
-                    onMouseLeave={(e: any) =>
-                      (e.currentTarget.style.color = "#64748B")
-                    }
                   >
-                    <Minus size={18} />
+                    <Minus size={16} />
                   </button>
                   <div
                     style={{
-                      padding: "12px 24px",
+                      padding: "10px 16px",
                       fontWeight: 600,
                       color: "#0F172A",
-                      minWidth: "60px",
+                      minWidth: "50px",
                       textAlign: "center",
+                      fontSize: "0.95rem",
                     }}
                   >
                     {quantity}
@@ -450,50 +472,19 @@ export default function ProductDetailView({
                     style={{
                       border: "none",
                       backgroundColor: "transparent",
-                      padding: "12px 16px",
+                      padding: "10px 14px",
                       cursor: "pointer",
                       color: "#64748B",
-                      transition: "color 250ms",
                     }}
                   >
-                    <Plus size={18} />
+                    <Plus size={16} />
                   </button>
+                  
                 </div>
-
-                {/* Wishlist Button */}
-                <button
-                  onClick={() => setIsWishlisted(!isWishlisted)}
-                  style={{
-                    border: "1px solid #E2E8F0",
-                    backgroundColor: isWishlisted ? "#FEE2E2" : "#FFFFFF",
-                    padding: "12px 16px",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    color: isWishlisted ? "#DC2626" : "#64748B",
-                    fontWeight: 500,
-                    fontSize: "0.95rem",
-                    transition: "all 250ms",
-                  }}
-                >
-                  <Heart
-                    size={18}
-                    fill={isWishlisted ? "currentColor" : "none"}
-                  />{" "}
-                  Wishlist
-                </button>
               </div>
 
               {/* Add to Cart and Buy Now Buttons */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "12px",
-                }}
-              >
+              <div className="quantity-actions-container">
                 <button
                   onClick={addCurrentProductToCart}
                   disabled={product.stockQty === 0}
@@ -549,11 +540,18 @@ export default function ProductDetailView({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "12px",
-                  fontSize: "0.9rem",
+                  justifyContent: "space-between",
                 }}
               >
                 <div
+                  style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  fontSize: "0.9rem",
+                }}
+                >
+                  <div
                   style={{
                     width: "36px",
                     height: "36px",
@@ -573,7 +571,7 @@ export default function ProductDetailView({
                   />
                 </div>
                 <div>
-                  <span style={{ color: "#64748B" }}>Stock Status: </span>
+                  <span style={{ color: "#64748B" }}>Барааны үлдэгдэл: </span>
                   <span
                     style={{
                       fontWeight: 600,
@@ -581,87 +579,27 @@ export default function ProductDetailView({
                     }}
                   >
                     {product.stockQty > 0
-                      ? `${product.stockQty} шт нэмэлт`
+                      ? `${product.stockQty} ширхэг`
                       : "Дууссан"}
                   </span>
                 </div>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  fontSize: "0.9rem",
-                }}
-              >
-                <div
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "50%",
-                    backgroundColor: "#DBEAFE",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Truck size={18} style={{ color: "#0284C7" }} />
                 </div>
-                <div>
-                  <span style={{ color: "#0F172A", fontWeight: 500 }}>
-                    Үлэнд хүргүүлэлтэнд хамаатай
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Alternative Actions */}
+                
             <div
               style={{
-                paddingBottom: "24px",
-                borderBottom: "1px solid #E2E8F0",
+                display: "flex",
+                gap: "8px",
+                flexWrap: "wrap",
               }}
             >
-              <span
-                style={{
-                  fontSize: "0.85rem",
-                  color: "#64748B",
-                  display: "block",
-                  marginBottom: "12px",
-                  fontWeight: 500,
-                }}
+              <div
+                className="action-link"
+                onClick={() => {}}
+                style={{ cursor: "pointer" }}
               >
-                Бусад сонголт
-              </span>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <button
-                  style={{
-                    padding: "8px 16px",
-                    border: "1px solid #E2E8F0",
-                    backgroundColor: "#FFFFFF",
-                    borderRadius: "6px",
-                    fontSize: "0.85rem",
-                    color: "#475569",
-                    cursor: "pointer",
-                    transition: "all 250ms",
-                  }}
-                >
-                  💬 Bot-тай сошлох
-                </button>
-                <button
-                  style={{
-                    padding: "8px 16px",
-                    border: "1px solid #E2E8F0",
-                    backgroundColor: "#FFFFFF",
-                    borderRadius: "6px",
-                    fontSize: "0.85rem",
-                    color: "#475569",
-                    cursor: "pointer",
-                    transition: "all 250ms",
-                  }}
-                >
-                  📞 Лизинг авах
-                </button>
+                <Share2 size={18} /> Хуваалцах
+              </div>
+            </div>
               </div>
             </div>
           </div>
@@ -669,64 +607,43 @@ export default function ProductDetailView({
       </div>
 
       {/* Specifications Section */}
-      <div
-        style={{ maxWidth: "1280px", margin: "0 auto", padding: "40px 32px" }}
-      >
-        <h2
-          style={{
-            fontSize: "1.3rem",
-            fontWeight: 700,
-            marginBottom: "24px",
-            color: "#0F172A",
-          }}
-        >
-          Бүтээгдэхүүний үзүүлэлтүүд
-        </h2>
-        <div
-          style={{
-            border: "1px solid #E2E8F0",
-            borderRadius: "8px",
-            overflow: "hidden",
-          }}
-        >
-          {product.specs && product.specs.length > 0 ? (
-            product.specs.map((spec, index) => (
+      {product.specs && product.specs.length > 0 && (
+        <div className="spec-container">
+          <h2
+            style={{
+              fontSize: "1.3rem",
+              fontWeight: 700,
+              marginBottom: "24px",
+              color: "#0F172A",
+            }}
+          >
+            Бүтээгдэхүүний үзүүлэлтүүд
+          </h2>
+          <div
+            style={{
+              border: "1px solid #E2E8F0",
+              borderRadius: "8px",
+              overflow: "hidden",
+            }}
+          >
+            {product.specs.map((spec, index) => (
               <div key={`${spec.label}-${index}`} className="spec-row">
                 <span>{spec.label}</span>
                 <span>{spec.value}</span>
               </div>
-            ))
-          ) : (
-            <div className="spec-row">
-              <span>Үзүүлэлт оруулаагүй байна</span>
-              <span>-</span>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Tabs Section */}
-      <div
-        style={{ maxWidth: "1280px", margin: "0 auto", padding: "40px 32px" }}
-      >
+      <div className="tabs-section">
         <div className="product-detail-tabs">
           <div
             className={`product-detail-tab ${activeTab === "info" ? "active" : ""}`}
             onClick={() => setActiveTab("info")}
           >
             Бүтээгдэхүүний мэдээлэл
-          </div>
-          <div
-            className={`product-detail-tab ${activeTab === "stores" ? "active" : ""}`}
-            onClick={() => setActiveTab("stores")}
-          >
-            Худалдаалж буй дэлгүүр
-          </div>
-          <div
-            className={`product-detail-tab ${activeTab === "reviews" ? "active" : ""}`}
-            onClick={() => setActiveTab("reviews")}
-          >
-            Хэрэглэгчдийн сэтгэгдэл
           </div>
         </div>
 

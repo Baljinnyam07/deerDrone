@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import React from "react";
 import Link from "next/link";
 
 export interface Category {
   id: string;
   name: string;
   slug: string;
-  icon?: string;
+  icon?: React.ReactNode;
   count?: number;
+  href?: string;
 }
 
 interface CategoryTabsProps {
@@ -24,95 +25,123 @@ export function CategoryTabs({
   onCategoryChange,
   showCount = false,
 }: CategoryTabsProps) {
-  const [active, setActive] = useState(activeCategory || categories[0]?.slug);
-
-  const handleCategoryClick = (slug: string) => {
-    setActive(slug);
-    onCategoryChange?.(slug);
-  };
+  const renderTabContent = (category: Category, isActive: boolean) => (
+    <div className="tab-wrapper">
+      <span className="tab-text">{category.name}</span>
+      <div className="tab-underline" />
+    </div>
+  );
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: "8px",
-        overflowX: "auto",
-        overflowY: "hidden",
-        paddingBottom: "8px",
-        scrollBehavior: "smooth",
-      }}
-      className="category-tabs-container"
-    >
-      {categories.map((category) => {
-        const isActive = active === category.slug;
+    <div className="tech-tabs-shell">
+      <div className="tech-tabs-container">
+        {categories.map((category) => {
+          const isActive = activeCategory === category.slug;
+          const className = `tech-tab ${isActive ? "active" : ""}`;
 
-        return (
-          <button
-            key={category.id}
-            onClick={() => handleCategoryClick(category.slug)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "10px 20px",
-              borderRadius: "999px",
-              backgroundColor: isActive ? "#2563EB" : "#FFFFFF",
-              color: isActive ? "#FFFFFF" : "#475569",
-              fontSize: "0.9rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
-              whiteSpace: "nowrap",
-              boxShadow: isActive
-                ? "0 4px 6px -1px rgba(37, 99, 235, 0.1)"
-                : "0 1px 2px 0 rgba(15, 23, 42, 0.05)",
-              border: isActive ? "none" : "1px solid #E2E8F0",
-            }}
-            className="category-tab"
-          >
-            {category.icon && (
-              <span style={{ fontSize: "1.1rem" }}>{category.icon}</span>
-            )}
-            <span>{category.name}</span>
-            {showCount && category.count && (
-              <span
-                style={{
-                  backgroundColor: isActive
-                    ? "rgba(255, 255, 255, 0.2)"
-                    : "#F1F5F9",
-                  padding: "2px 8px",
-                  borderRadius: "6px",
-                  fontSize: "0.8rem",
-                  fontWeight: 700,
-                }}
+          if (category.href) {
+            return (
+              <Link
+                key={category.id}
+                href={category.href}
+                className={className}
               >
-                {category.count}
-              </span>
-            )}
-          </button>
-        );
-      })}
-
-      <style jsx>{`
-        .category-tabs-container {
-          -webkit-overflow-scrolling: touch;
-        }
-
-        .category-tab:hover {
-          transform: ${activeCategory === "slug" ? "none" : "translateY(-2px)"};
-        }
-
-        @media (max-width: 640px) {
-          .category-tabs-container {
-            gap: "6px";
+                {renderTabContent(category, isActive)}
+              </Link>
+            );
           }
 
-          .category-tab {
-            padding: 8px 16px;
-            font-size: 0.85rem;
-          }
+          return (
+            <button
+              key={category.id}
+              type="button"
+              onClick={() => onCategoryChange?.(category.slug)}
+              className={className}
+            >
+              {renderTabContent(category, isActive)}
+            </button>
+          );
+        })}
+      </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .tech-tabs-shell {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          margin: 20px 0 40px;
+          border-bottom: 1px solid #f0f0f0;
         }
-      `}</style>
+
+        .tech-tabs-container {
+          display: flex;
+          gap: 32px;
+          overflow-x: auto;
+          scrollbar-width: none;
+          padding: 0 10px;
+        }
+
+        .tech-tabs-container::-webkit-scrollbar {
+          display: none;
+        }
+
+        .tech-tab {
+          position: relative;
+          background: none;
+          border: none;
+          padding: 8px 0 12px;
+          cursor: pointer;
+          text-decoration: none;
+          color: #666666;
+          transition: all 0.25s ease;
+          outline: none;
+          white-space: nowrap;
+        }
+
+        .tab-wrapper {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          position: relative;
+        }
+
+        .tab-text {
+          font-size: 0.85rem;
+          font-weight: 700;
+          letter-spacing: -0.01em;
+        }
+
+        .tab-underline {
+          position: absolute;
+          bottom: -13px; /* Align with container bottom border */
+          left: 0;
+          width: 0;
+          height: 3px;
+          background: #009b72; /* The specific teal/green from screenshot */
+          transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+          border-radius: 4px 4px 0 0;
+        }
+
+        .tech-tab:hover {
+          color: #000000;
+        }
+
+        .tech-tab.active {
+          color: #009b72;
+        }
+
+        .tech-tab.active .tab-underline {
+          width: 100%;
+        }
+
+        @media (max-width: 768px) {
+          .tech-tabs-container {
+            gap: 20px;
+            justify-content: flex-start;
+          }
+          .tab-text { font-size: 0.8rem; }
+        }
+      ` }} />
     </div>
   );
 }

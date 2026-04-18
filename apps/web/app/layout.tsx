@@ -45,7 +45,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="mn">
-      <body>
+      <body style={{ fontFamily: "'TT Norms Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" }}>
+        <style dangerouslySetInnerHTML={{__html: `
+          * {
+            font-family: 'TT Norms Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          }
+        `}} />
         <QueryProvider>
           <SiteHeader />
           <main>{children}</main>

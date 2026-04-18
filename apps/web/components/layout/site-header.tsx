@@ -15,8 +15,7 @@ type MenuChild = {
 };
 
 type MenuItem = {
-  children?: MenuChild[];
-  featured?: boolean;
+  children: MenuChild[];
   href: string;
   id: string;
   label: string;
@@ -25,95 +24,83 @@ type MenuItem = {
 const menuItems: MenuItem[] = [
   {
     id: "products",
-    label: "Products",
+    label: "Бүтээгдэхүүн",
     href: "/products",
     children: [
-      { label: "Professional Drones", href: "/products?category=professional" },
-      { label: "Creator Drones", href: "/products?category=consumer" },
-      { label: "Accessories", href: "/products?category=accessories" },
+      { label: "Дрон", href: "/products?category=drones" },
+      { label: "Камер", href: "/products?category=cameras" },
+      { label: "Гар төхөөрөмж", href: "/products?category=handheld" },
+      { label: "Дагалдах хэрэгсэл", href: "/products?category=accessories" },
     ],
   },
-  { id: "compare", label: "Compare", href: "/#discover" },
-  { id: "stories", label: "Stories", href: "/#stories" },
-  { id: "service", label: "Service", href: "/#service" },
-  { id: "shop", label: "Shop", href: "/products", featured: true },
-];
-
-const navLinks = [
-  { label: "Professional", href: "/products?category=professional" },
-  { label: "Creator", href: "/products?category=consumer" },
-  { label: "Accessories", href: "/products?category=accessories" },
-  { label: "Compare", href: "/#discover" },
-  { label: "Support", href: "/#service" },
+  {
+    id: "about",
+    label: "Танилцуулга",
+    href: "/about",
+    children: [
+      { label: "Бидний тухай", href: "/about" },
+      { label: "Холбоо барих", href: "#" },
+    ],
+  },
+  {
+    id: "help",
+    label: "Тусламж",
+    href: "/help",
+    children: [
+      { label: "Үйлчилгээний нөхцөл", href: "/help/terms" },
+      { label: "Нууцлалын бодлого", href: "/help/privacy" },
+      { label: "Хамтран ажиллах", href: "/help/cooperate" },
+      { label: "Хүргэлтийн нөхцөл", href: "/help/delivery" },
+    ],
+  },
 ];
 
 export function SiteHeader() {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
+  const [isLoginPopupOpen, setIsLoginPopupOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
   const [openMobileSection, setOpenMobileSection] = useState<string | null>(null);
+  const [isHeaderHovered, setIsHeaderHovered] = useState(false);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const cartItems = useStore((state) => state.cartItems);
 
   const isHomePage = pathname === "/";
+  const shouldShowDarkHeader = isScrolled || !isHomePage || isHeaderHovered;
 
   useEffect(() => {
     setMounted(true);
-
     let isActive = true;
     let unsubscribe: (() => void) | undefined;
-
     async function syncAuth() {
       try {
         const { createClient } = await import("../../lib/supabase/client");
         const supabase = createClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (isActive) {
-          setUser(session?.user ?? null);
-        }
-
+        const { data: { session } } = await supabase.auth.getSession();
+        if (isActive) setUser(session?.user ?? null);
         const { data } = supabase.auth.onAuthStateChange((_, nextSession) => {
-          if (isActive) {
-            setUser(nextSession?.user ?? null);
-          }
+          if (isActive) setUser(nextSession?.user ?? null);
         });
-
         unsubscribe = () => data.subscription.unsubscribe();
-      } catch {
-        if (isActive) {
-          setUser(null);
-        }
-      }
+      } catch { if (isActive) setUser(null); }
     }
-
     void syncAuth();
-
-    return () => {
-      isActive = false;
-      unsubscribe?.();
-    };
+    return () => { isActive = false; unsubscribe?.(); };
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 992);
-    };
-
+    const handleResize = () => setIsDesktop(window.innerWidth >= 992);
     handleResize();
     window.addEventListener("resize", handleResize, { passive: true });
     return () => window.removeEventListener("resize", handleResize);
@@ -124,320 +111,327 @@ export function SiteHeader() {
   return (
     <>
       <header
+        onMouseEnter={() => setIsHeaderHovered(true)}
+        onMouseLeave={() => {
+          setIsHeaderHovered(false);
+          setHoveredItem(null);
+        }}
         style={{
           position: "fixed",
           top: 0,
           left: 0,
           right: 0,
-          backgroundColor:
-            isScrolled || !isHomePage ? "rgba(255, 255, 255, 0.85)" : "transparent",
-          backdropFilter: isScrolled || !isHomePage ? "blur(30px)" : "none",
-          borderBottom: isScrolled || !isHomePage ? "1px solid #E2E8F0" : "none",
-          boxShadow: isScrolled || !isHomePage ? "0 1px 3px rgba(0, 0, 0, 0.05)" : "none",
+          backgroundColor: shouldShowDarkHeader ? "rgba(255, 255, 255, 1)" : "transparent",
+          backdropFilter: shouldShowDarkHeader ? "blur(30px)" : "none",
+          borderBottom: shouldShowDarkHeader ? "1px solid #E2E8F0" : "none",
           zIndex: 1050,
-          transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
-          paddingTop: isScrolled || !isHomePage ? "12px" : "16px",
-          paddingBottom: isScrolled || !isHomePage ? "12px" : "16px",
+          transition: "all 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+          paddingTop: isScrolled ? "8px" : "16px",
+          paddingBottom: isScrolled ? "8px" : "16px",
         }}
       >
-        <div
-          style={{
-            maxWidth: "1440px",
-            margin: "0 auto",
-            paddingLeft: "32px",
-            paddingRight: "32px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "32px",
-          }}
-        >
+        <div style={{ maxWidth: "1440px", margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "32px", height: "48px" }}>
           {/* Logo */}
-          <Link
-            href="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              textDecoration: "none",
-              flexShrink: 0,
-            }}
-          >
-            <Image
-              alt="DEER"
-              src="/assets/brand/deer-logo.svg"
-              width={100}
-              height={28}
-              style={{
-                filter: !isScrolled && isHomePage ? "invert(1)" : "none",
-                width: "auto",
-                height: "28px",
-                transition: "filter 250ms",
-              }}
-              priority
-            />
+          <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}>
+            <Image alt="DEER" src="/assets/brand/deer-logo.svg" width={110} height={32} style={{ filter: !shouldShowDarkHeader ? "invert(1)" : "none", width: "auto", height: "32px", transition: "filter 300ms" }} priority />
           </Link>
 
           {/* Desktop Navigation */}
-          <nav
-            style={{
-              display: isDesktop ? "flex" : "none",
-              alignItems: "center",
-              gap: "40px",
-              position: "absolute",
-              left: "50%",
-              transform: "translateX(-50%)",
-            }}
-          >
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                style={{
-                  textDecoration: "none",
-                  fontWeight: 500,
-                  fontSize: "0.95rem",
-                  letterSpacing: "0.5px",
-                  color: !isScrolled && isHomePage ? "#FFFFFF" : "#0F172A",
-                  transition: "opacity 250ms cubic-bezier(0.4, 0, 0.2, 1)",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.6")}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+          <nav style={{ display: isDesktop ? "flex" : "none", alignItems: "center", gap: "40px", position: "absolute", left: "50%", transform: "translateX(-50%)", height: "100%" }}>
+            {menuItems.map((item) => (
+              <div 
+                key={item.id} 
+                onMouseEnter={() => setHoveredItem(item.id)}
+                style={{ height: "100%", display: "flex", alignItems: "center" }}
               >
-                {link.label}
-              </Link>
+                <Link 
+                  href={item.href} 
+                  style={{ 
+                    textDecoration: "none", 
+                    fontWeight: 700, 
+                    fontSize: "0.95rem", 
+                    color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A",
+                    transition: "all 200ms",
+                    opacity: hoveredItem === item.id ? 0.6 : 1
+                  }}
+                >
+                  {item.label}
+                </Link>
+              </div>
             ))}
           </nav>
 
-          {/* Right Actions */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "24px",
-              marginLeft: "auto",
-            }}
-          >
-            {/* Search Button */}
-            <button
-              onClick={() => setIsSearchOpen(true)}
-              style={{
-                background: "none",
-                border: "none",
-                padding: "8px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: !isScrolled && isHomePage ? "#FFFFFF" : "#0F172A",
-                transition: "opacity 250ms",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.6")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-              type="button"
-              aria-label="Search"
-            >
-              <Search size={22} strokeWidth={1.5} />
-            </button>
-
-            {/* Account Button */}
-            <Link
-              href={user ? "/account" : "/login"}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                textDecoration: "none",
-                padding: "8px",
-                color: !isScrolled && isHomePage ? "#FFFFFF" : "#0F172A",
-                transition: "opacity 250ms",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.6")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-            >
-              <User size={22} strokeWidth={1.5} />
-            </Link>
-
-            {/* Cart Button */}
-            <Link
-              href="/cart"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                position: "relative",
-                padding: "8px",
-                textDecoration: "none",
-                color: !isScrolled && isHomePage ? "#FFFFFF" : "#0F172A",
-                transition: "opacity 250ms",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.6")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-            >
-              <ShoppingCart size={22} strokeWidth={1.5} />
-              {mounted && cartItemCount > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: "-4px",
-                    right: "-4px",
-                    backgroundColor: "#2563EB",
-                    color: "#FFFFFF",
-                    borderRadius: "12px",
-                    padding: "2px 6px",
-                    fontSize: "0.65rem",
-                    fontWeight: 600,
-                    minWidth: "18px",
-                    textAlign: "center",
-                  }}
-                >
-                  {cartItemCount}
-                </span>
-              )}
-            </Link>
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMenuOpen(true)}
-              style={{
-                display: isDesktop ? "none" : "flex",
-                background: "none",
-                border: "none",
-                padding: "8px",
-                cursor: "pointer",
-                alignItems: "center",
-                justifyContent: "center",
-                color: !isScrolled && isHomePage ? "#FFFFFF" : "#0F172A",
-                transition: "opacity 250ms",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.6")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-              type="button"
-              aria-label="Menu"
-            >
-              <Menu size={24} />
-            </button>
+          {/* Icons & Actions */}
+          <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+            <button onClick={() => setIsSearchOpen(true)} style={{ background: "none", border: "none", padding: "8px", cursor: "pointer", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}><Search size={22} strokeWidth={1.5} /></button>
+            {user ? (
+              <Link href="/account" style={{ padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}>
+                <User size={22} strokeWidth={1.5} />
+              </Link>
+            ) : (
+              <button 
+                onClick={() => setIsLoginPopupOpen(true)} 
+                style={{ background: "none", border: "none", padding: "8px", cursor: "pointer", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}
+              >
+                <User size={22} strokeWidth={1.5} />
+              </button>
+            )}
+            {user && (
+              <Link href="/cart" style={{ position: "relative", padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}>
+                <ShoppingCart size={22} strokeWidth={1.5} />
+                {mounted && cartItemCount > 0 && <span style={{ position: "absolute", top: "0", right: "0", backgroundColor: "#2563EB", color: "#FFFFFF", borderRadius: "10px", padding: "2px 6px", fontSize: "0.65rem", fontWeight: 700 }}>{cartItemCount}</span>}
+              </Link>
+            )}
+            <button onClick={() => setIsMenuOpen(true)} style={{ display: isDesktop ? "none" : "flex", background: "none", border: "none", padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}><Menu size={24} /></button>
           </div>
         </div>
-      </header>
 
-      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-
-      {!isHomePage && <div style={{ height: "65px" }} />}
-
-      <AnimatePresence>
-        {isMenuOpen && (
-          <motion.div
-            animate={{ opacity: 1 }}
-            className="mobile-nav-drawer"
-            exit={{ opacity: 0 }}
-            initial={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div
-              className="mobile-nav-backdrop"
-              onClick={() => setIsMenuOpen(false)}
-              role="presentation"
-            />
-
+        {/* Hover Category Bar */}
+        <AnimatePresence>
+          {hoveredItem && isDesktop && (
             <motion.div
-              animate={{ x: 0 }}
-              className="mobile-nav-panel"
-              exit={{ x: "-100%" }}
-              initial={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 26, stiffness: 220 }}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "46px", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                right: 0,
+                backgroundColor: "#F1F5F9",
+                borderTop: "1px solid #E2E8F0",
+                borderBottom: "1px solid #E2E8F0",
+                overflow: "hidden",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.03)"
+              }}
+              onMouseEnter={() => setHoveredItem(hoveredItem)}
+              onMouseLeave={() => setHoveredItem(null)}
             >
-              <div className="mobile-nav-top">
-                <Link className="brand-lockup" href="/" onClick={() => setIsMenuOpen(false)}>
-                  <Image 
-                    alt="Deer Technology" 
-                    className="brand-logo" 
-                    src="/assets/brand/deer-logo.svg"
-                    width={120}
-                    height={34}
-                  />
-                </Link>
-
-                <button
-                  aria-label="Close menu"
-                  className="mobile-nav-close"
-                  onClick={() => setIsMenuOpen(false)}
-                  type="button"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <div className="mobile-nav-body">
-                <div className="mobile-nav-shortcuts">
-                  <Link href="/products" onClick={() => setIsMenuOpen(false)}>
-                    Browse Products
+              <div style={{ maxWidth: "1440px", margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "center", gap: "32px", height: "100%" }}>
+                {menuItems.find(i => i.id === hoveredItem)?.children.map((link, idx) => (
+                  <Link 
+                    key={idx} 
+                    href={link.href} 
+                    onClick={(e) => {
+                      if (link.label === "Холбоо барих") {
+                        e.preventDefault();
+                        setIsContactOpen(true);
+                        setHoveredItem(null);
+                      }
+                    }}
+                    style={{ 
+                      textDecoration: "none", 
+                      fontSize: "0.85rem", 
+                      fontWeight: 650, 
+                      color: "#475569",
+                      padding: "0 4px",
+                      transition: "color 200ms"
+                    }}
+                    className="category-nav-link"
+                  >
+                    {link.label}
                   </Link>
-                  <Link href="/cart" onClick={() => setIsMenuOpen(false)}>
-                    Open Cart
-                  </Link>
-                </div>
-
-                <nav aria-label="Mobile navigation" className="mobile-nav-list">
-                  {menuItems.map((item) => {
-                    if (!item.children?.length) {
-                      return (
-                        <Link
-                          className={`mobile-nav-link ${item.featured ? "is-featured" : ""}`}
-                          href={item.href}
-                          key={item.id}
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          {item.label}
-                        </Link>
-                      );
-                    }
-
-                    const isOpen = openMobileSection === item.id;
-
-                    return (
-                      <div className="mobile-nav-group" key={item.id}>
-                        <button
-                          className={`mobile-nav-link mobile-nav-button ${
-                            isOpen ? "is-open" : ""
-                          }`}
-                          onClick={() =>
-                            setOpenMobileSection((current) =>
-                              current === item.id ? null : item.id,
-                            )
-                          }
-                          type="button"
-                        >
-                          <span>{item.label}</span>
-                          <span className="mobile-nav-caret">{isOpen ? "-" : "+"}</span>
-                        </button>
-
-                        <AnimatePresence initial={false}>
-                          {isOpen ? (
-                            <motion.div
-                              animate={{ height: "auto", opacity: 1 }}
-                              className="mobile-subnav is-open"
-                              exit={{ height: 0, opacity: 0 }}
-                              initial={{ height: 0, opacity: 0 }}
-                            >
-                              {item.children.map((child) => (
-                                <Link
-                                  className="mobile-subnav-link"
-                                  href={child.href}
-                                  key={child.href}
-                                  onClick={() => setIsMenuOpen(false)}
-                                >
-                                  {child.label}
-                                </Link>
-                              ))}
-                            </motion.div>
-                          ) : null}
-                        </AnimatePresence>
-                      </div>
-                    );
-                  })}
-                </nav>
+                ))}
               </div>
             </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
+
+      {/* Side Contact Drawer (Exact same as Footer) */}
+      <div 
+        onClick={() => setIsContactOpen(false)}
+        style={{ 
+          position: "fixed", 
+          inset: 0, 
+          backgroundColor: "rgba(0,0,0,0.5)", 
+          zIndex: 9998, 
+          display: isContactOpen ? "block" : "none",
+          transition: "opacity 0.3s ease",
+          opacity: isContactOpen ? 1 : 0
+        }}
+      />
+      <div 
+        style={{ 
+          position: "fixed", 
+          top: 0, 
+          right: 0, 
+          height: "100%", 
+          width: "100%", 
+          maxWidth: "400px", 
+          backgroundColor: "#FFFFFF", 
+          zIndex: 9999, 
+          visibility: isContactOpen ? "visible" : "hidden", 
+          transform: isContactOpen ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), visibility 0.4s",
+          boxShadow: isContactOpen ? "-15px 0 40px rgba(0,0,0,0.08)" : "none",
+          display: "flex",
+          flexDirection: "column",
+          padding: "0"
+        }}
+      >
+        <div style={{ padding: "24px", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h5 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0, color: "#1d1d1f" }}>Холбоо барих</h5>
+          <button onClick={() => setIsContactOpen(false)} style={{ background: "none", border: "none", padding: "8px", cursor: "pointer", color: "#64748B" }}>
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div style={{ padding: "24px", overflowY: "auto", flex: 1 }}>
+          <div style={{ marginBottom: "32px" }}>
+            <h6 style={{ fontWeight: 700, marginBottom: "8px", color: "#1d1d1f", fontSize: "1.05rem" }}>Хаяг:</h6>
+            <p style={{ color: "#64748B", fontSize: "0.95rem", lineHeight: "1.6", margin: 0 }}>
+              Улаанбаатар хот, Хан-Уул дүүрэг, 15-р хороо<br/>
+              Их наяд Плаза, Зүүн өндөр, 3-р давхар, 305 тоот
+            </p>
+          </div>
+
+          <div style={{ marginBottom: "32px" }}>
+            <h6 style={{ fontWeight: 700, marginBottom: "12px", color: "#1d1d1f", fontSize: "1.05rem" }}>Утас:</h6>
+            <p style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px", fontSize: "0.95rem" }}>
+              <span style={{ fontSize: "1.2rem" }}>📞</span>
+              <a href="tel:88157242" style={{ textDecoration: "none", color: "#64748B" }}>8815-7242</a>
+            </p>
+            <p style={{ display: "flex", alignItems: "center", gap: "8px", margin: 0, fontSize: "0.95rem" }}>
+              <span style={{ fontSize: "1.2rem" }}>📞</span>
+              <a href="tel:99977242" style={{ textDecoration: "none", color: "#64748B" }}>9997-7242</a>
+            </p>
+          </div>
+
+          <div style={{ marginBottom: "32px" }}>
+            <h6 style={{ fontWeight: 700, marginBottom: "8px", color: "#1d1d1f", fontSize: "1.05rem" }}>Имэйл:</h6>
+            <p style={{ display: "flex", alignItems: "center", gap: "8px", margin: 0, fontSize: "0.95rem" }}>
+              <span style={{ fontSize: "1.2rem" }}>📧</span>
+              <a href="mailto:deer.drone.shop@gmail.com" style={{ textDecoration: "none", color: "#64748B" }}>Deer.Drone.Shop@gmail.com</a>
+            </p>
+          </div>
+
+          <div style={{ marginBottom: "32px" }}>
+            <h6 style={{ fontWeight: 700, marginBottom: "8px", color: "#1d1d1f", fontSize: "1.05rem" }}>Ажлын цаг:</h6>
+            <p style={{ color: "#64748B", fontSize: "0.95rem" }}>Даваа – Ням: 11:00 – 19:00</p>
+          </div>
+
+          <div style={{ borderRadius: "12px", overflow: "hidden", width: "100%", marginTop: "40px", height: "220px", border: "1px solid #f0f0f0" }}>
+            <iframe 
+               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2675.297745778844!2d106.91572977636655!3d47.89196396843467!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x5d9693abebca4e81%3A0xe5aebd5fbc7cd10f!2sIkh%20Naytad%20Plaza!5e0!3m2!1smn!2smn!4v1699999999999!5m2!1smn!2smn"
+              width="100%" 
+              height="100%" 
+              style={{ border: 0 }} 
+              allowFullScreen={false} 
+              loading="lazy" 
+              referrerPolicy="no-referrer-when-downgrade">
+            </iframe>
+          </div>
+        </div>
+      </div>
+
+      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      {!isHomePage && <div style={{ height: "65px" }} />}
+
+      {/* Login Popup Window */}
+      <AnimatePresence>
+        {isLoginPopupOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            style={{ position: "fixed", inset: 0, zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
+          >
+            <div onClick={() => setIsLoginPopupOpen(false)} style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }} />
+            
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.95, opacity: 0, y: 20 }} 
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              style={{ position: "relative", backgroundColor: "#FFFFFF", borderRadius: "16px", padding: "32px", maxWidth: "420px", width: "100%", boxShadow: "0 20px 40px rgba(0,0,0,0.1)", textAlign: "center" }}
+            >
+              <button 
+                onClick={() => setIsLoginPopupOpen(false)} 
+                style={{ position: "absolute", top: "16px", right: "16px", background: "none", border: "none", cursor: "pointer", color: "#64748B", padding: "4px" }}
+              >
+                <X size={20} />
+              </button>
+
+              <div style={{ marginBottom: "24px" }}>
+                <div style={{ width: "60px", height: "60px", margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#F0F4FF", borderRadius: "12px" }}>
+                  <Image alt="DEER" src="/assets/brand/deer-logo.svg" width={36} height={12} style={{ filter: "hue-rotate(200deg) brightness(1.2)" }} />
+                </div>
+                <h3 style={{ margin: "0 0 8px 0", fontSize: "1.4rem", fontWeight: 700, color: "#0F172A" }}>DEER Drone</h3>
+                <p style={{ margin: 0, fontSize: "0.95rem", color: "#64748B" }}>Үргэлжлүүлэхийн тулд нэвтэрнэ үү.</p>
+              </div>
+
+              <Link
+                href={`/api/auth/facebook?redirect=${encodeURIComponent(pathname === '/login' ? '/account' : pathname)}`}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+                  width: "100%", padding: "14px",
+                  backgroundColor: "#1877F2", color: "#FFFFFF",
+                  borderRadius: "10px", fontSize: "1rem", fontWeight: 600,
+                  textDecoration: "none", transition: "all 0.2s"
+                }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = "#0A66C2"}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#1877F2"}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width={20} height={20} viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                </svg>
+                Facebook-ээр нэвтрэх
+              </Link>
+              
+              <p style={{ marginTop: "24px", fontSize: "0.8rem", color: "#94A3B8" }}>
+                Нэвтэрснээр та манай Үйлчилгээний нөхцөлийг зөвшөөрсөнд тооцно.
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style jsx>{`
+        :global(.category-nav-link:hover) { color: #0F172A !important; }
+      `}</style>
+
+      {/* Mobile Drawer */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div animate={{ opacity: 1 }} exit={{ opacity: 0 }} initial={{ opacity: 0 }} style={{ position: "fixed", inset: 0, zIndex: 2000 }}>
+             <div onClick={() => setIsMenuOpen(false)} style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.5)" }} />
+             <motion.div animate={{ x: 0 }} initial={{ x: "-100%" }} transition={{ type: "spring", damping: 25 }} style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "300px", backgroundColor: "#FFFFFF", padding: "30px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "40px" }}>
+                   <Image alt="Logo" src="/assets/brand/deer-logo.svg" width={100} height={28} />
+                   <button onClick={() => setIsMenuOpen(false)} style={{ background: "none", border: "none" }}><X size={24} /></button>
+                </div>
+                {menuItems.map(item => (
+                   <div key={item.id} style={{ marginBottom: "20px" }}>
+                      <div onClick={() => setOpenMobileSection(openMobileSection === item.id ? null : item.id)} style={{ fontSize: "1.1rem", fontWeight: 700, display: "flex", justifyContent: "space-between", cursor: "pointer" }}>
+                         {item.label} <span>{item.children.length > 0 ? "+" : ""}</span>
+                      </div>
+                      {openMobileSection === item.id && (
+                        <div style={{ paddingLeft: "15px", marginTop: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                           {item.children.map((c, idx) => (
+                             <Link 
+                               key={idx} 
+                               href={c.href} 
+                               onClick={(e) => {
+                                 if (c.label === "Холбоо барих") {
+                                   e.preventDefault();
+                                   setIsContactOpen(true);
+                                   setIsMenuOpen(false);
+                                 } else {
+                                   setIsMenuOpen(false);
+                                 }
+                               }} 
+                               style={{ color: "#64748b", textDecoration: "none" }}
+                             >
+                               {c.label}
+                             </Link>
+                           ))}
+                        </div>
+                      )}
+                   </div>
+                ))}
+             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

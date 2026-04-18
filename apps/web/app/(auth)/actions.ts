@@ -47,15 +47,18 @@ export async function signup(formData: FormData) {
   redirect("/account");
 }
 
-export async function loginWithFacebook() {
+export async function loginWithFacebook(formData: FormData) {
   const supabase = await createClient();
 
   const origin = getSiteUrl();
-  
+  // Read the desired post-login destination from the form
+  const redirectTo = (formData.get('redirectTo') as string | null) || '/account';
+  const callbackUrl = `${origin}/api/auth/callback?next=${encodeURIComponent(redirectTo)}`;
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'facebook',
     options: {
-      redirectTo: `${origin}/api/auth/callback`,
+      redirectTo: callbackUrl,
     },
   });
 

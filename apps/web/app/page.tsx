@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getProducts, getSiteSettings } from "../lib/supabase/queries";
-import { ArrowRight, Camera, Battery, Zap, Globe } from "lucide-react";
+import { ArrowRight, Search, Users, Wrench, FileVideo } from "lucide-react";
 import { ProductCarousel } from "../components/product/product-carousel";
 
 export default async function HomePage() {
@@ -10,6 +10,9 @@ export default async function HomePage() {
   ]);
 
   const featured = products.slice(0, 6);
+  
+  // Find the selected hero product from settings, or fallback to index 1 (or 0)
+  const heroProduct = products.find(p => p.slug === settings.home_hero_product_slug) || featured[1] || featured[0];
 
   // Fallback URLs (The original DJI videos)
   const fallbackVideos = {
@@ -51,7 +54,7 @@ export default async function HomePage() {
       }}
     >
 
-      {/* Hero Section 2 - Second Product */}
+      {/* Hero Section 2 - Main Hero Product */}
       <section className="position-relative w-100 overflow-hidden bg-black" style={{ height: "100vh" }}>
         <video
           className="position-absolute w-100 h-100"
@@ -85,20 +88,14 @@ export default async function HomePage() {
           <div className="container">
             <div className="row">
               <div className="col-12 col-md-6">
-                <span
-                  className="text-uppercase mb-3 fw-semibold"
-                  style={{ fontSize: "0.9rem", letterSpacing: "0.2em", opacity: 0.9 }}
-                >
-                  {featured[1]?.categoryName || "Creator Series"}
-                </span>
                 <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", letterSpacing: "-0.03em", lineHeight: 1.05 }}>
-                  {featured[1]?.name || "DEER ACTION CAM"}
+                  {heroProduct?.name || "DEER ACTION CAM"}
                 </h2>
                 <p className="fs-5 mb-4" style={{ fontWeight: 300, fontSize: "clamp(1rem, 1.8vw, 1.3rem)", maxWidth: "500px", lineHeight: 1.6 }}>
-                  {featured[1]?.shortDescription || "Адал явдалд бэлэн"}
+                  {heroProduct?.shortDescription || "Адал явдалд бэлэн"}
                 </p>
                 <div className="d-flex flex-wrap gap-3">
-                  <Link href={`/products/${featured[1]?.slug || "action-4"}`} className="dji-border-btn">
+                  <Link href={`/products/${heroProduct?.slug || "action-4"}`} className="dji-border-btn">
                     Дэлгэрэнгүй <ArrowRight size={16} className="ms-2 mt-1" />
                   </Link>
                 </div>
@@ -111,36 +108,33 @@ export default async function HomePage() {
       {/* Feature Summary Section */}
       <section className="bg-white" style={{ padding: "100px 0" }}>
         <div className="container">
-          <div className="text-center mb-5 pb-5">
+          <div className="text-center pb-5">
             <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(2rem, 4vw, 3rem)", letterSpacing: "-0.04em", color: "#111827" }}>
-              Яагаад DEER Drone гэж?
+              Бид юу хийдэг вэ ?
             </h2>
-            <p className="text-secondary mx-auto" style={{ fontSize: "1.1rem", maxWidth: "600px", fontWeight: 400, opacity: 0.7 }}>
-              Бид дроны хамгийн сүүлийн үеийн технология, мэргэжлийн үйлчилгээг хослуулан хүргэж байна.
-            </p>
           </div>
 
           <div className="row g-4 justify-content-center">
             {[
               { 
-                icon: Camera, 
-                title: "4K HDR Camera", 
-                desc: "Мэргэжлийн түвшний гайхалтай зураг, видео бичлэг."
+                icon: Search, 
+                title: "Мэргэжлийн зөвлөгөө", 
+                desc: "Сонголтоос эхлээд систем нэгтгэл хүртэл танд яг хэрэгтэй тэргүүн зэргийн консалтинг."
               },
               { 
-                icon: Battery, 
-                title: "46 min Flight", 
-                desc: "Нэг удаагийн цэнэглэлтээр удаан нисэх боломж."
+                icon: Users, 
+                title: "Ашиглалтын сургалт", 
+                desc: "Дроныг аюулгүй бөгөөд бүрэн дүүрэн ашиглах онол болон практикт суурилсан зааварчилгаа."
               },
               { 
-                icon: Zap, 
-                title: "Smart Features", 
-                desc: "Саад тотгороос зайлсхийх AI мэдрэгчийн систем."
+                icon: Wrench, 
+                title: "Засвар & Дэмжлэг", 
+                desc: "Технологийн хэвийн ажиллагааг хангах баталгаат засвар, өндөр түвшний гарын авлага, тасралтгүй дэмжлэг."
               },
               { 
-                icon: Globe, 
-                title: "Global Support", 
-                desc: "Албан ёсны баталгаа, засвар үйлчилгээний систем."
+                icon: FileVideo, 
+                title: "Контент бүтээл", 
+                desc: "Агаарын өндөр чанартай зураг, видео контент бүтээх мэргэжлийн түвшний зураг авалт."
               }
             ].map((f, i) => (
               <div key={i} className="col-12 col-md-6 col-lg-3">

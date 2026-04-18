@@ -1,40 +1,34 @@
 "use client";
 
+import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Mail, Phone, MapPin } from "lucide-react";
 
-const footerSections = [
+type FooterLink = { label: string; href: string; action?: string; };
+
+const footerSections: { title: string; links: FooterLink[] }[] = [
   {
     title: "Танилцуулга",
     links: [
-      { label: "Бидний тухай", href: "#" },
-      { label: "Хамтран ажиллах", href: "#" },
-      { label: "Салбар дэлгүүр", href: "#" },
-      { label: "Ажлын байр", href: "#" },
+      { label: "Бидний тухай", href: "/about" },
+      { label: "Холбоо барих", href: "#", action: "contact" },
     ],
   },
   {
     title: "Тусламж",
     links: [
-      { label: "Үйлчилгээний нөхцөл", href: "#" },
-      { label: "Нууцлалын бодлого", href: "#" },
-      { label: "Хүргэлтийн нөхцөл", href: "#" },
-    ],
-  },
-  {
-    title: "Холбоо барих",
-    links: [
-      {
-        label: "ecommerce@hobbyzone.mn",
-        href: "mailto:ecommerce@hobbyzone.mn",
-      },
-      { label: "+976 7623-0000", href: "tel:+97676230000" },
+      { label: "Үйлчилгээний нөхцөл", href: "/help/terms" },
+      { label: "Нууцлалын бодлого", href: "/help/privacy" },
+      { label: "Хамтран ажиллах", href: "/help/cooperate" },
+      { label: "Хүргэлтийн нөхцөл", href: "/help/delivery" },
     ],
   },
 ];
 
 export function SiteFooter() {
+  const [isContactOpen, setIsContactOpen] = useState(false);
+
   return (
     <footer
       style={{
@@ -177,8 +171,33 @@ export function SiteFooter() {
             >
               {section.links.map((link) => (
                 <li key={link.label}>
-                  {link.href.startsWith("mailto:") ||
-                  link.href.startsWith("tel:") ? (
+                  {link.action === "contact" ? (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsContactOpen(true);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        fontSize: "0.9rem",
+                        color: "#64748B",
+                        textDecoration: "none",
+                        transition: "color 250ms",
+                        cursor: "pointer",
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.color = "#2563EB")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.color = "#64748B")
+                      }
+                    >
+                      {link.label}
+                    </button>
+                  ) : link.href.startsWith("mailto:") || link.href.startsWith("tel:") ? (
                     <a
                       href={link.href}
                       style={{
@@ -244,7 +263,6 @@ export function SiteFooter() {
               gap: "6px",
             }}
           >
-            <MapPin size={16} style={{ color: "#2563EB" }} />
             Хаяг
           </h6>
           <p
@@ -255,8 +273,8 @@ export function SiteFooter() {
               margin: 0,
             }}
           >
-            River Tower 401 | River Garden 4th Mongol street, 11 khoroo,
-            Khan-Uul district | Ulaanbaatar | Mongolia
+            Улаанбаатар хот, Хан-Уул дүүрэг, 15-р хороо
+            Их наяд Плаза, Зүүн өндөр, 3-р давхар, 305 тоот
           </p>
         </div>
       </div>
@@ -283,6 +301,96 @@ export function SiteFooter() {
           © {new Date().getFullYear()} DEER Drone. Бүх эрхийг хуулиар
           хамгаалагдсан.
         </p>
+      </div>
+
+      {/* Smooth Animated Contact Drawer */}
+      <div 
+        className={`offcanvas-backdrop fade ${isContactOpen ? 'show' : ''}`} 
+        style={{ 
+          zIndex: 9998, 
+          pointerEvents: isContactOpen ? 'auto' : 'none',
+          display: isContactOpen ? 'block' : 'none',
+          transition: 'opacity 0.3s ease'
+        }}
+        onClick={() => setIsContactOpen(false)}
+      ></div>
+
+      <div 
+        tabIndex={-1} 
+        style={{ 
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          height: '100%',
+          width: '100%',
+          maxWidth: '400px',
+          backgroundColor: '#fff',
+          zIndex: 9999, 
+          visibility: isContactOpen ? 'visible' : 'hidden', 
+          transform: isContactOpen ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), visibility 0.4s',
+          boxShadow: isContactOpen ? '-15px 0 40px rgba(0,0,0,0.08)' : 'none',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <div className="border-bottom py-4 px-4 d-flex align-items-center justify-content-between">
+          <h5 className="fw-bold mb-0" style={{ letterSpacing: '-0.02em', color: '#1d1d1f' }}>Холбоо барих</h5>
+          <button 
+            type="button" 
+            className="btn-close" 
+            onClick={() => setIsContactOpen(false)}
+            style={{ width: '0.8em', height: '0.8em' }}
+          ></button>
+        </div>
+        
+        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+          <div className="mb-4">
+            <h6 className="fw-bold mb-2 text-dark" style={{ fontSize: '1.05rem' }}>Хаяг:</h6>
+            <p className="text-secondary" style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>
+              Улаанбаатар хот, Хан-Уул дүүрэг, 15-р хороо<br/>
+              Их наяд Плаза, Зүүн өндөр, 3-р давхар, 305 тоот
+            </p>
+          </div>
+
+          <div className="mb-4">
+            <h6 className="fw-bold mb-2 text-dark" style={{ fontSize: '1.05rem' }}>Утас:</h6>
+            <p className="mb-1" style={{ fontSize: '0.95rem' }}>
+              <span className="me-2">📞</span>
+              <a href="tel:88157242" className="text-decoration-none text-secondary">8815-7242</a>
+            </p>
+            <p className="mb-0" style={{ fontSize: '0.95rem' }}>
+              <span className="me-2">📞</span>
+              <a href="tel:99977242" className="text-decoration-none text-secondary">9997-7242</a>
+            </p>
+          </div>
+
+          <div className="mb-4">
+            <h6 className="fw-bold mb-2 text-dark" style={{ fontSize: '1.05rem' }}>Имэйл:</h6>
+            <p className="mb-0" style={{ fontSize: '0.95rem' }}>
+              <span className="me-2">📧</span>
+              <a href="mailto:deer.drone.shop@gmail.com" className="text-decoration-none text-secondary">Deer.Drone.Shop@gmail.com</a>
+            </p>
+          </div>
+
+          <div className="mb-4">
+            <h6 className="fw-bold mb-2 text-dark" style={{ fontSize: '1.05rem' }}>Ажлын цаг:</h6>
+            <p className="text-secondary" style={{ fontSize: '0.95rem' }}>Даваа – Ням: 11:00 – 19:00</p>
+          </div>
+
+          {/* Google Map Embedded */}
+          <div className="rounded-3 overflow-hidden w-100 mt-5" style={{ height: '220px', border: '1px solid #f0f0f0' }}>
+            <iframe 
+               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2675.297745778844!2d106.91572977636655!3d47.89196396843467!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x5d9693abebca4e81%3A0xe5aebd5fbc7cd10f!2sIkh%20Naytad%20Plaza!5e0!3m2!1smn!2smn!4v1699999999999!5m2!1smn!2smn"
+              width="100%" 
+              height="100%" 
+              style={{ border: 0 }} 
+              allowFullScreen={false} 
+              loading="lazy" 
+              referrerPolicy="no-referrer-when-downgrade">
+            </iframe>
+          </div>
+        </div>
       </div>
     </footer>
   );
