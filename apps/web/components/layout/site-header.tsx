@@ -25,7 +25,7 @@ const menuItems: MenuItem[] = [
   {
     id: "products",
     label: "Бүтээгдэхүүн",
-    href: "/products",
+    href: "/products?category=drones",
     children: [
       { label: "Дрон", href: "/products?category=drones" },
       { label: "Камер", href: "/products?category=cameras" },
@@ -45,7 +45,7 @@ const menuItems: MenuItem[] = [
   {
     id: "help",
     label: "Тусламж",
-    href: "/help",
+    href: "/help/terms",
     children: [
       { label: "Үйлчилгээний нөхцөл", href: "/help/terms" },
       { label: "Нууцлалын бодлого", href: "/help/privacy" },
