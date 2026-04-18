@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Heart,
@@ -295,12 +296,12 @@ export default function ProductDetailView({
                 overflow: "hidden",
               }}
             >
-              <img
+              <Image
                 src={imageUrl}
                 alt={images[currentImageIndex]?.alt || product.name}
+                fill
+                priority
                 style={{
-                  width: "100%",
-                  height: "100%",
                   objectFit: "contain",
                   transition: "transform 250ms cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
@@ -335,15 +336,16 @@ export default function ProductDetailView({
                       transition: "all 250ms",
                     }}
                   >
-                    <img
-                      src={img.url}
-                      alt={`Thumbnail ${idx + 1}`}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                      }}
-                    />
+                    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                      <Image
+                        src={img.url}
+                        alt={`Thumbnail ${idx + 1}`}
+                        fill
+                        style={{
+                          objectFit: "contain",
+                        }}
+                      />
+                    </div>
                   </button>
                 ))}
               </div>

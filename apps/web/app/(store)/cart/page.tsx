@@ -9,6 +9,7 @@ import { useStore } from "../../../store/useStore";
 import { formatMoney } from "@deer-drone/utils";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
 
 const CSS = `
   *, *::before, *::after { box-sizing: border-box; }
@@ -500,8 +501,13 @@ export default function CartPage() {
                   className="cart-item"
                 >
                   {/* Image */}
-                  <Link href={item.slug ? `/products/${item.slug}` : "/products"} className="cart-item-img">
-                    <img src={item.image} alt={item.name} />
+                  <Link href={item.slug ? `/products/${item.slug}` : "/products"} className="cart-item-img" style={{ position: "relative" }}>
+                    <Image 
+                      src={item.image} 
+                      alt={item.name} 
+                      fill
+                      style={{ objectFit: "cover" }}
+                    />
                   </Link>
 
                   {/* Details */}

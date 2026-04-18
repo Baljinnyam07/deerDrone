@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { loginWithFacebook } from "../actions";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 const FacebookIcon = ({ size = 20 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
@@ -12,7 +13,7 @@ const FacebookIcon = ({ size = 20 }: { size?: number }) => (
   </svg>
 );
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams();
   // Where to send the user after a successful login
   const redirectTo = searchParams.get("redirect") || "/account";
@@ -131,5 +132,17 @@ export default function LoginPage() {
         )}
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #F8FAFC 0%, #F0F4FF 100%)" }}>
+        <Loader2 className="animate-spin" size={32} color="#2563EB" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }
