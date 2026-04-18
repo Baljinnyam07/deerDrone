@@ -19,6 +19,14 @@ export const metadata: Metadata = {
   },
   description:
     "DEER Drone is a production-ready storefront for industrial drones, creator kits, service support, and delivery across Mongolia.",
+  icons: {
+    icon: [
+      { url: "/assets/brand/deer-logo.svg", type: "image/svg+xml" }
+    ],
+    apple: [
+      { url: "/assets/brand/deer-logo.svg" }
+    ]
+  },
   alternates: {
     canonical: "/",
   },
