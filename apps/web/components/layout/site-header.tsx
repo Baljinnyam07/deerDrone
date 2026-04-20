@@ -71,7 +71,7 @@ export function SiteHeader() {
   const cartItems = useStore((state) => state.cartItems);
 
   const isHomePage = pathname === "/";
-  const shouldShowDarkHeader = isScrolled || !isHomePage || isHeaderHovered;
+  const shouldShowDarkHeader = isScrolled || !isHomePage || isHeaderHovered || !!hoveredItem;
 
   useEffect(() => {
     setMounted(true);
@@ -114,16 +114,15 @@ export function SiteHeader() {
         onMouseEnter={() => setIsHeaderHovered(true)}
         onMouseLeave={() => {
           setIsHeaderHovered(false);
-          setHoveredItem(null);
         }}
         style={{
           position: "fixed",
           top: 0,
           left: 0,
           right: 0,
-          backgroundColor: shouldShowDarkHeader ? "rgba(255, 255, 255, 1)" : "transparent",
+          backgroundColor: shouldShowDarkHeader ? "rgba(255, 255, 255, 0.5)" : "transparent",
           backdropFilter: shouldShowDarkHeader ? "blur(30px)" : "none",
-          borderBottom: shouldShowDarkHeader ? "1px solid #E2E8F0" : "none",
+          // borderBottom: shouldShowDarkHeader ? "1px solid #E2E8F0" : "none",
           zIndex: 1050,
           transition: "all 300ms cubic-bezier(0.4, 0, 0.2, 1)",
           paddingTop: isScrolled ? "8px" : "16px",
@@ -186,8 +185,10 @@ export function SiteHeader() {
           </div>
         </div>
 
-        {/* Hover Category Bar */}
-        <AnimatePresence>
+      </header>
+
+      {/* Hover Category Bar */}
+      <AnimatePresence>
           {hoveredItem && isDesktop && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
@@ -195,14 +196,14 @@ export function SiteHeader() {
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
               style={{
-                position: "absolute",
-                top: "100%",
+                position: "fixed",
+                top: isScrolled ? "64px" : "80px",
                 left: 0,
                 right: 0,
-                backgroundColor: "#F1F5F9",
-                borderTop: "1px solid #E2E8F0",
-                borderBottom: "1px solid #E2E8F0",
-                overflow: "hidden",
+                backgroundColor: "rgba(255, 255, 255, 0.5)",
+                backdropFilter: "blur(30px)",
+                WebkitBackdropFilter: "blur(30px)",
+                zIndex: 1049,
                 boxShadow: "0 10px 30px rgba(0,0,0,0.03)"
               }}
               onMouseEnter={() => setHoveredItem(hoveredItem)}
@@ -237,7 +238,6 @@ export function SiteHeader() {
             </motion.div>
           )}
         </AnimatePresence>
-      </header>
 
       {/* Side Contact Drawer (Exact same as Footer) */}
       <div 

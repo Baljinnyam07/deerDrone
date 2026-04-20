@@ -926,7 +926,7 @@ main {
 }
 
 /* Buttons */
-.dji-border-btn {
+/* .dji-border-btn {
   display: inline-block;
   padding: 12px 28px;
   border: 1.5px solid rgba(255, 255, 255, 0.4);
@@ -943,7 +943,7 @@ main {
   background-color: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.6);
   transform: translateY(-2px);
-}
+} */
 
 .dji-solid-btn {
   display: inline-block;
@@ -4180,7 +4180,7 @@ main {
 .dji-border-btn {
   background: transparent;
   color: #fff !important;
-  padding: 12px 32px;
+  padding: 8px 24px;
   border-radius: 999px;
   font-weight: 600;
   font-size: 0.95rem;
@@ -4188,6 +4188,7 @@ main {
   transition: all 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.4);
   text-decoration: none;
+  backdrop-filter: blur(10px);
 }
 
 .dji-border-btn:hover {

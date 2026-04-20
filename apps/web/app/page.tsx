@@ -106,63 +106,53 @@ export default async function HomePage() {
       </section>
 
       {/* Why Drones Section */}
-      <section className="bg-white" style={{ padding: "120px 0", overflow: "hidden" }}>
-        <div className="container">
-          <div className="row g-5 align-items-center">
-            <div className="col-lg-6">
-              <div style={{ position: "relative" }}>
-                <span className="text-primary fw-bold text-uppercase mb-3 d-block" style={{ letterSpacing: "0.1em", fontSize: "0.9rem" }}>
-                  Perspective
-                </span>
-                <h2 className="fw-bold mb-4" style={{ fontSize: "clamp(2.5rem, 5vw, 4rem)", letterSpacing: "-0.04em", lineHeight: 1.1, color: "#111827" }}>
-                  Яагаад дрон <br /> авах гэж ?
-                </h2>
-                <div style={{ width: "60px", height: "4px", backgroundColor: "var(--bs-primary)", marginBottom: "40px" }} />
-                
-                <p className="lead mb-4" style={{ fontSize: "1.4rem", fontWeight: 500, color: "#111827", lineHeight: 1.5 }}>
-                  Дэлхийг зүгээр нэг харахаас илүү, өөр өнцгөөс мэдрэхийг хүсдэг хүмүүст дрон хэрэгтэй.
-                </p>
-                
-                <p className="text-secondary mb-5" style={{ fontSize: "1.1rem", lineHeight: 1.8 }}>
-                  Өнөөдөр дрон бол тоглоом биш. Энэ бол таны харж, мэдэрч, бүтээж чадах боломжийг шинэ түвшинд гаргах хэрэгсэл юм.
-                </p>
-              </div>
-            </div>
-            
-            <div className="col-lg-6">
-              <div className="row g-4">
-                <div className="col-12">
-                  <div className="p-4 rounded-4" style={{ backgroundColor: "#F8FAFC", border: "1px solid #F1F5F9" }}>
-                    <p className="mb-0" style={{ fontSize: "1.1rem", color: "#334155", lineHeight: 1.7 }}>
-                      Та аялал, гэр бүл, найз нөхдийнхөө мөчүүдийг энгийн зураг биш, тэнгэрээс авсан чанартай бичлэг болгон үлдээж чадна. Нэг л бичлэг таны дурсамжийг илүү үнэ цэнтэй болгоно.
-                    </p>
+      <section style={{ overflow: "hidden", backgroundColor: "#fff", padding: " 16px 16px" }}>
+        <div style={{ display: "flex", minHeight: "600px", gap: "16px" }}>
+          {/* Left - Content */}
+          <div style={{
+            flex: 1,
+            backgroundImage: "url('/assets/image.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            position: "relative",
+            overflow: "hidden",
+          }}>
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 100%)" }} />
+            <div style={{ position: "relative", zIndex: 1, padding: "80px 60px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <span style={{ color: "rgba(255,255,255,0.45)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: "0.72rem", display: "block", marginBottom: "20px" }}>
+                Яагаад дрон авах гэж?
+              </span>
+              <h2 style={{ fontSize: "clamp(2rem, 3.5vw, 3.2rem)", letterSpacing: "-0.03em", lineHeight: 1.1, color: "#FFFFFF", fontWeight: 700, marginBottom: "52px", fontFamily: "var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', sans-serif" }}>
+                Дэлхийг өөр <br />өнцгөөс хар
+              </h2>
+              {[
+                { title: "Дурсамж", desc: "Та аялал, гэр бүл, найз нөхдийнхөө мөчүүдийг тэнгэрээс авсан чанартай бичлэг болгон үлдээж чадна." },
+                { title: "Ялгарал", desc: "Сошиал орчинд энгийн контент биш, агаараас авсан зураг, бичлэг хүмүүсийн анхаарлыг шууд татдаг." },
+                { title: "Орлого", desc: "Үл хөдлөх хөрөнгө, арга хэмжээ, аяллын контент зэрэг олон төрлийн ажил хийж орлого олох боломжтой." },
+              ].map((item) => (
+                <div key={item.title} style={{ display: "flex", gap: "20px", marginBottom: "28px" }}>
+                  <div style={{ width: "3px", borderRadius: "2px", backgroundColor: "#60A5FA", flexShrink: 0 }} />
+                  <div>
+                    <h4 style={{ fontSize: "1rem", fontWeight: 700, color: "#FFFFFF", marginBottom: "6px" }}>{item.title}</h4>
+                    <p style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.6)", lineHeight: 1.7, margin: 0 }}>{item.desc}</p>
                   </div>
                 </div>
-                <div className="col-md-6">
-                  <div className="p-4 h-100 rounded-4" style={{ backgroundColor: "#EFF6FF", border: "1px solid #DBEAFE" }}>
-                    <h4 className="fw-bold mb-3" style={{ fontSize: "1.1rem", color: "#1E40AF" }}>Ялгарал</h4>
-                    <p className="mb-0" style={{ fontSize: "0.95rem", color: "#1E3A8A", opacity: 0.8 }}>
-                      Сошиал орчинд энгийн контент биш, агаараас авсан зураг, бичлэг хүмүүсийн анхаарлыг шууд татдаг.
-                    </p>
-                  </div>
-                </div>
-                <div className="col-md-6">
-                  <div className="p-4 h-100 rounded-4" style={{ backgroundColor: "#F0FDF4", border: "1px solid #DCFCE7" }}>
-                    <h4 className="fw-bold mb-3" style={{ fontSize: "1.1rem", color: "#166534" }}>Орлого</h4>
-                    <p className="mb-0" style={{ fontSize: "0.95rem", color: "#14532D", opacity: 0.8 }}>
-                      Үл хөдлөх хөрөнгө, арга хэмжээ, аяллын контент зэрэг олон төрлийн ажил хийж орлого олох боломжтой.
-                    </p>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
-          
-          <div className="mt-5 pt-4 text-center">
-            <div className="p-5 rounded-5 shadow-sm" style={{ backgroundColor: "#0F172A", color: "white" }}>
-              <p className="mb-0 mx-auto" style={{ maxWidth: "800px", fontSize: "1.25rem", fontWeight: 300, lineHeight: 1.7, opacity: 0.9 }}>
-                Эцэст нь, дрон авна гэдэг төхөөрөмж авах тухай биш. Энэ бол өөр өнцгөөс харах, өөр боломж нээх, өөр түвшинд хүрэх шийдвэр юм.
-              </p>
+
+          {/* Right - Video */}
+          <div style={{ flex: 1, position: "relative", overflow: "hidden"}}>
+            <video
+              autoPlay muted loop playsInline
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+            >
+              <source src={settings.home_showcase_main || fallbackVideos.home_showcase_main} type="video/mp4" />
+            </video>
+            <div style={{ position: "absolute", bottom: "32px", left: "32px", zIndex: 1 }}>
+              <span style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.15em" }}>
+                Shot on DEER
+              </span>
             </div>
           </div>
         </div>

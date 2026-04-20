@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
+
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], display: "swap" });
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
 import { ChatbotWidget } from "../components/chatbot/chatbot-widget";
@@ -52,11 +55,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="mn">
-      <body style={{ fontFamily: "'TT Norms Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" }}>
+    <html lang="mn" className={jakarta.className}>
+      <body>
         <style dangerouslySetInnerHTML={{__html: `
           * {
-            font-family: 'TT Norms Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', sans-serif;
           }
         `}} />
         <QueryProvider>
