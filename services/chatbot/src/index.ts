@@ -1,3 +1,4 @@
+import "dotenv/config";
 import Fastify from "fastify";
 import type { ChatRequest } from "@deer-drone/types";
 import { runConversation, streamChunks } from "./engine/conversation.js";
@@ -73,18 +74,17 @@ server.post("/webhook", async (request: any, reply: any) => {
   const body = request.body;
 
   if (body.object === "page") {
-    // Return a '200 OK' response to all requests early
-    reply.status(200).send("EVENT_RECEIVED");
-
-    body.entry?.forEach((entry: any) => {
+    const promises = [];
+    
+    for (const entry of body.entry || []) {
       const webhookEvent = entry.messaging?.[0];
       if (webhookEvent) {
-        handleWebhookEvent(webhookEvent).catch((err) => {
-          server.log.error(err);
-        });
+        promises.push(handleWebhookEvent(webhookEvent));
       }
-    });
-    return;
+    }
+
+    await Promise.all(promises);
+    return reply.status(200).send("EVENT_RECEIVED");
   }
   
   return reply.status(404).send();

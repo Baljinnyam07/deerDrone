@@ -14,14 +14,19 @@ const supabaseKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   "";
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+if (!supabaseUrl || !supabaseKey) {
+  console.error("❌ SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are missing!");
+}
 
-export async function searchProductsTool(query: string) {
+const supabase = createClient(supabaseUrl || "https://placeholder.supabase.co", supabaseKey || "placeholder");
+
+
+export async function searchProductsTool(query: string, limit = 6) {
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, slug, price, hero_note, short_description")
+    .select("id, name, price, hero_note, short_description")
     .ilike("name", `%${query}%`)
-    .limit(3);
+    .limit(limit);
 
   if (error) {
     console.error("searchProductsTool error", error);
@@ -47,7 +52,7 @@ export async function getProductsByIdsTool(ids: string[]) {
   if (!ids || ids.length === 0) return [];
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, slug, price, hero_note, short_description")
+    .select("id, name, price, hero_note, short_description")
     .in("id", ids);
 
   if (error) {
@@ -60,8 +65,8 @@ export async function getProductsByIdsTool(ids: string[]) {
 export async function getProductDetailsTool(slugOrName: string) {
   const { data } = await supabase
     .from("products")
-    .select("id, name, slug, price, hero_note, short_description, description")
-    .or(`slug.ilike.%${slugOrName}%,name.ilike.%${slugOrName}%`)
+    .select("id, name, price, hero_note, short_description, description")
+    .ilike("name", `%${slugOrName}%`) // only check name since slug is missing 
     .limit(1)
     .single();
 
@@ -74,7 +79,13 @@ export function getDeliveryInfoTool(zone: "ub" | "rural") {
     : { fee: 10000, eta: "3-5 хоног" };
 }
 
-export async function captureLeadTool(name: string, phone: string, interest: string) {
+export async function captureLeadTool(
+  name: string,
+  phone: string,
+  interest: string,
+  intent?: string,
+  category?: string
+) {
   const { data, error } = await supabase
     .from("leads")
     .insert({
@@ -83,6 +94,8 @@ export async function captureLeadTool(name: string, phone: string, interest: str
       interest,
       status: "new",
       source_page: "chatbot",
+      ...(intent ? { intent } : {}),
+      ...(category ? { category } : {}),
     })
     .select()
     .single();
@@ -95,13 +108,43 @@ export async function captureLeadTool(name: string, phone: string, interest: str
   return data;
 }
 
-export function toChatCards(items: any[]) {
-  return items.slice(0, 2).map((product) => ({
+/**
+ * Get featured products — is_featured = true first, then falls back to
+ * all products ordered by created_at desc (newest first). Returns up to `limit`.
+ */
+export async function getFeaturedProductsTool(limit = 6) {
+  // Try featured flag first
+  const { data: featured } = await supabase
+    .from("products")
+    .select("id, name, price, hero_note, short_description")
+    .eq("is_featured", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (featured && featured.length > 0) return featured;
+
+  // Fallback: newest products
+  const { data: fallback, error } = await supabase
+    .from("products")
+    .select("id, name, price, hero_note, short_description")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("getFeaturedProductsTool error", error);
+    return [];
+  }
+  return fallback || [];
+}
+
+export function toChatCards(items: any[], limit = 6) {
+  return items.slice(0, limit).map((product) => ({
     id: product.id,
     name: product.name,
-    slug: product.slug,
-    price: product.price,
-    heroNote: product.hero_note || "",
+    slug: product.slug ?? "",
+    price: product.price ?? 0,
+    heroNote: product.hero_note ?? "",
+    image_url: product.image_url ?? product.image ?? undefined,
   }));
 }
 

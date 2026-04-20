@@ -1,130 +1,319 @@
-import type { ChatRequest, ChatResponse } from "@deer-drone/types";
-import { formatMoney } from "@deer-drone/utils";
+/**
+ * Rule-First Conversation Engine
+ *
+ * Decision tree (in order):
+ *  1. Classify intent deterministically (no AI)
+ *  2. Short-circuit with static response if possible
+ *  3. For product intents → DB lookup + carousel
+ *  4. For lead intents → capture lead + static ack
+ *  5. AI ONLY for: technical_consultation, compare_products, unknown (drone-related)
+ *
+ * Token-saving measures:
+ *  - History capped at 4 turns (8 messages)
+ *  - max_tokens = 300
+ *  - temperature = 0.3
+ *  - Only 1–3 relevant products in context (not full catalog)
+ *  - Full catalog only when no keyword match exists
+ */
+
+import type { ChatRequest, ChatResponse } from "../types.js";
 import { OpenAI } from "openai";
+import { classifyIntent, looksLikeDroneRelated, type Intent } from "../intents.js";
+import { STATIC } from "../constants/staticResponses.js";
+import { systemPrompt } from "../prompts/system.js";
+import {
+  matchProducts,
+  getMinimalCatalogContext,
+  getProductsByIds,
+  toChatCards,
+} from "../productMatcher.js";
 import {
   captureLeadTool,
   getAllProductsTool,
-  getProductsByIdsTool,
-  toChatCards,
+  getFeaturedProductsTool,
   getSystemPromptTool,
 } from "../tools/catalog.js";
-import { systemPrompt } from "../prompts/system.js";
 
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+// ---------------------------------------------------------------------------
+// OpenAI client (lazy — only created when key is present)
+// ---------------------------------------------------------------------------
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
-// Conversation history map
-const conversationHistory = new Map<string, Array<{ role: "assistant" | "user", content: string }>>();
-const MAX_HISTORY = 10;
+// ---------------------------------------------------------------------------
+// Conversation history — capped at MAX_TURNS * 2 messages (user + assistant)
+// ---------------------------------------------------------------------------
+const MAX_TURNS = 4; // 4 user + 4 assistant = 8 messages max
+const conversationHistory = new Map<
+  string,
+  Array<{ role: "assistant" | "user"; content: string }>
+>();
 
 function getHistory(sessionId: string) {
-  return conversationHistory.get(sessionId) || [];
+  return conversationHistory.get(sessionId) ?? [];
 }
 
-function addToHistory(sessionId: string, role: "assistant" | "user", content: string) {
+function addToHistory(
+  sessionId: string,
+  role: "assistant" | "user",
+  content: string
+) {
   const history = getHistory(sessionId);
   history.push({ role, content });
-  if (history.length > MAX_HISTORY) history.shift();
+  // Keep only last MAX_TURNS * 2 messages
+  if (history.length > MAX_TURNS * 2) history.splice(0, 2);
   conversationHistory.set(sessionId, history);
 }
 
-export async function runConversation(request: ChatRequest): Promise<ChatResponse> {
-  let finalReply = "Уучлаарай, би ойлгосонгүй.";
-  let finalCards: any[] = [];
-  let finalLead: any = null;
+// ---------------------------------------------------------------------------
+// Lead capture helper
+// ---------------------------------------------------------------------------
+async function captureLead(
+  interest: string,
+  intent: Intent,
+  category?: string
+) {
+  try {
+    await captureLeadTool("Тодорхойгүй", "", interest, intent, category);
+  } catch (err) {
+    console.error("captureLead error:", err);
+  }
+}
 
-  if (openai) {
-    try {
-      const allProducts = await getAllProductsTool();
-      const productsContext = allProducts.length > 0
-        ? JSON.stringify(allProducts.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          price: p.price
-        })))
-        : "[]";
-
-      const rawPrompt = await getSystemPromptTool();
-      const promptTemplate = rawPrompt || systemPrompt;
-      const prompt = promptTemplate.replace("{productsContext}", productsContext);
-
-      console.log("📦 Products Context Length:", productsContext.length);
-
-      const history = getHistory(request.sessionId);
-      const messages: any[] = [
-        { role: "system", content: prompt },
-        ...history,
-        { role: "user", content: request.message }
-      ];
-
-      console.log("🧠 Sending to OpenAI...");
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages,
-        response_format: { type: "json_object" },
-        max_tokens: 500,
-        temperature: 0.4
-      });
-
-      const raw = completion.choices[0]?.message?.content || "{}";
-      console.log("📥 Raw AI Response:", raw);
-      const result = JSON.parse(raw);
-
-      // Try to find the message in various potential fields
-      finalReply = result.message || result.response || result.reply || result.text;
-
-      // If still no reply, look for any string field in the entire object
-      if (!finalReply) {
-        const firstStringField = Object.values(result).find(v => typeof v === 'string');
-        if (firstStringField) {
-          finalReply = String(firstStringField);
-        }
-      }
-
-      if (!finalReply) {
-        if (result.suggested_product_ids?.length > 0 || result.recommended_drones?.length > 0) {
-          finalReply = "Танд дараах загваруудыг санал болгож байна:";
-        } else {
-          finalReply = "Уучлаарай, би таны асуултыг ойлгосонгүй. Та дахин дэлгэрэнгүй хэлнэ үү?";
-        }
-      }
-
-      addToHistory(request.sessionId, "user", request.message);
-      addToHistory(request.sessionId, "assistant", finalReply);
-
-      const intent = result.intent || "chat";
-
-      if (intent === "lease") {
-        const lead = await captureLeadTool("Тодорхойгүй", "+976--", request.message);
-        finalLead = lead ? { id: lead.id, interest: lead.interest, status: lead.status } : undefined;
-      }
-
-      const rawSuggested = result.suggested_product_ids || result.recommended_drones || [];
-      if (rawSuggested.length > 0) {
-        // Extract IDs if objects were returned instead of just IDs
-        const productIds = rawSuggested.map((item: any) => typeof item === 'string' ? item : item.id).filter(Boolean);
-
-        if (productIds.length > 0) {
-          const foundProducts = await getProductsByIdsTool(productIds);
-          finalCards = toChatCards(foundProducts);
-        }
-      }
-
-    } catch (err) {
-      console.error("OpenAI Error:", err);
-      finalReply = "Уучлаарай, системд түр саатал гарлаа. Та хэдэн минутын дараа дахин оролдоно уу 🙏";
-    }
-  } else {
-    finalReply = "LLM тохируулаагүй байна.";
+// ---------------------------------------------------------------------------
+// AI fallback — only called for consultation / compare / unknown drone topics
+// ---------------------------------------------------------------------------
+async function callAI(
+  sessionId: string,
+  message: string,
+  intent: Intent,
+  contextProducts: { id: string; name: string; price: number }[]
+): Promise<{ reply: string; cards: any[] }> {
+  if (!openai) {
+    return { reply: STATIC.llmNotConfigured, cards: [] };
   }
 
+  try {
+    // Use DB prompt if admin has customised it, else use local compact prompt
+    const dbPrompt = await getSystemPromptTool();
+    const basePrompt = dbPrompt || systemPrompt;
+
+    // Only inject products if we have them (saves tokens when empty)
+    const productsContext =
+      contextProducts.length > 0
+        ? JSON.stringify(contextProducts)
+        : "[]";
+    const prompt = basePrompt.replace("{productsContext}", productsContext);
+
+    const history = getHistory(sessionId);
+    const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
+      { role: "system", content: prompt },
+      ...history,
+      { role: "user", content: message },
+    ];
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages,
+      response_format: { type: "json_object" },
+      max_tokens: 300,      // Hard cap — was 1000
+      temperature: 0.3,     // Lower = more deterministic = cheaper retries
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    console.log("🤖 AI raw:", raw);
+
+    let result: any = {};
+    try {
+      result = JSON.parse(raw);
+    } catch {
+      return { reply: STATIC.fallback, cards: [] };
+    }
+
+    let reply =
+      result.message ||
+      result.response ||
+      result.reply;
+
+    if (!reply) {
+      const firstStr = Object.values(result).find(v => typeof v === 'string');
+      reply = firstStr ? String(firstStr) : STATIC.fallback;
+    }
+
+    // Resolve any AI-suggested product IDs to cards
+    const suggestedIds: string[] = Array.isArray(result.suggested_product_ids)
+      ? result.suggested_product_ids
+          .map((x: any) => (typeof x === "string" ? x : x?.id))
+          .filter(Boolean)
+          .slice(0, 3)
+      : [];
+
+    let cards: any[] = [];
+    if (suggestedIds.length > 0) {
+      const found = await getProductsByIds(suggestedIds);
+      cards = toChatCards(found);
+    }
+
+    return { reply, cards };
+  } catch (err) {
+    console.error("OpenAI error:", err);
+    return { reply: STATIC.systemError, cards: [] };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Main conversation handler
+// ---------------------------------------------------------------------------
+export async function runConversation(request: ChatRequest): Promise<ChatResponse> {
+  const { sessionId, message } = request;
+
+  // ── Step 1: Classify intent deterministically ──────────────────────────
+  const intent = classifyIntent(message);
+  console.log(`[intent] ${intent} | "${message.slice(0, 60)}"`);
+
+  // ── Step 2: Static short-circuit paths (ZERO AI) ──────────────────────
+
+  if (intent === "spam") {
+    return reply(sessionId, STATIC.spam);
+  }
+
+  if (intent === "off_topic") {
+    return reply(sessionId, STATIC.off_topic);
+  }
+
+  if (intent === "greeting") {
+    // Show featured / newest products (up to 6 for carousel)
+    const featured = await getFeaturedProductsTool(6);
+    const mapped = featured.map((p: any) => ({ ...p, heroNote: p.hero_note }));
+    const cards = toChatCards(mapped);
+    return reply(sessionId, STATIC.greeting, cards);
+  }
+
+  if (intent === "delivery") {
+    return reply(sessionId, STATIC.delivery);
+  }
+
+  if (intent === "human_handoff") {
+    await captureLead(message, intent);
+    return reply(sessionId, STATIC.humanHandoff);
+  }
+
+  // ── Step 3: Lead capture paths (ZERO AI) ──────────────────────────────
+
+  if (intent === "loan_request") {
+    await captureLead(message, intent, "loan");
+    return reply(sessionId, STATIC.loanAck);
+  }
+
+  if (intent === "lease_request") {
+    await captureLead(message, intent, "lease");
+    return reply(sessionId, STATIC.leaseAck);
+  }
+
+  if (intent === "rental_request") {
+    await captureLead(message, intent, "rental");
+    return reply(sessionId, STATIC.rentalAck);
+  }
+
+  if (intent === "quote_request") {
+    await captureLead(message, intent, "quote");
+    return reply(sessionId, STATIC.quoteAck);
+  }
+
+  if (intent === "bulk_order") {
+    await captureLead(message, intent, "bulk_order");
+    return reply(sessionId, STATIC.bulkOrderAck);
+  }
+
+  // ── Step 4: Product browse — DB only, no AI ───────────────────────────
+
+  if (intent === "product_search" || intent === "product_detail") {
+    const matched = await matchProducts(message);
+
+    if (matched.length > 0) {
+      const cards = toChatCards(matched);
+      return reply(sessionId, STATIC.productsIntro, cards);
+    }
+
+    // No keyword match → show featured products up to 6
+    const featured = await getFeaturedProductsTool(6);
+    if (featured.length === 0) return reply(sessionId, STATIC.noProducts);
+    const mapped = featured.map((p: any) => ({ ...p, heroNote: p.hero_note }));
+    const cards = toChatCards(mapped);
+    return reply(sessionId, STATIC.productsIntro, cards);
+  }
+
+  if (intent === "order_request") {
+    await captureLead(message, intent, "order");
+    // Try to identify which product they want
+    const matched = await matchProducts(message);
+    const cards = matched.length > 0 ? toChatCards(matched) : [];
+    const ackText =
+      matched.length > 0
+        ? STATIC.orderInterest(matched[0].name)
+        : STATIC.orderInterestGeneric;
+    return reply(sessionId, ackText, cards);
+  }
+
+  // ── Step 5: AI fallback — consultation, compare, or unknown drone topic ─
+
+  if (
+    intent === "technical_consultation" ||
+    intent === "compare_products" ||
+    (intent === "unknown" && looksLikeDroneRelated(message))
+  ) {
+    // Get minimal context: try to match specific products first (1-3),
+    // fall back to small catalog summary (max 8)
+    const matched = await matchProducts(message);
+    const contextProducts =
+      matched.length > 0
+        ? matched.map((p) => ({ id: p.id, name: p.name, price: p.price }))
+        : await getMinimalCatalogContext(8);
+
+    const { reply: aiReply, cards: aiCards } = await callAI(
+      sessionId,
+      message,
+      intent,
+      contextProducts
+    );
+
+    // Only store consultation messages in history (not static responses)
+    addToHistory(sessionId, "user", message);
+    addToHistory(sessionId, "assistant", aiReply);
+
+    return {
+      sessionId,
+      reply: aiReply,
+      cards: aiCards.length > 0 ? aiCards : undefined,
+    };
+  }
+
+  // ── Step 6: True unknown — off-topic rejection (ZERO AI) ─────────────
+  return reply(sessionId, STATIC.off_topic);
+}
+
+// ---------------------------------------------------------------------------
+// Helper: build ChatResponse without touching history
+// ---------------------------------------------------------------------------
+function reply(
+  sessionId: string,
+  text: string,
+  cards?: any[]
+): ChatResponse {
   return {
-    sessionId: request.sessionId,
-    reply: finalReply,
-    cards: finalCards.length > 0 ? finalCards : undefined,
-    lead: finalLead,
+    sessionId,
+    reply: text,
+    cards: cards && cards.length > 0 ? cards : undefined,
   };
 }
 
+// ---------------------------------------------------------------------------
+// Streaming helper (unchanged API surface)
+// ---------------------------------------------------------------------------
 export function streamChunks(text: string): string[] {
-  return text.split(". ").filter(Boolean).map((chunk) => (chunk.endsWith(".") ? chunk : `${chunk}.`));
+  return text
+    .split(/(?<=\.)\s+/)
+    .filter(Boolean)
+    .map((chunk) => (chunk.endsWith(".") ? chunk : `${chunk}.`));
 }

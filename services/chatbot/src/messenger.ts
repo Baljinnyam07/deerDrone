@@ -1,10 +1,28 @@
+/**
+ * Messenger webhook handler — refactored for rule-first, AI-free postbacks.
+ *
+ * Key changes from original:
+ *  - ORDER_{id}  → capture lead + static ack (no simulated AI message)
+ *  - DETAIL_{id} → fetch product from DB + static detail card (no AI)
+ *  - Text messages still go through runConversation (rule-first engine)
+ *  - Long text split safely at ≤ 1900 chars
+ */
+
 import { runConversation } from "./engine/conversation.js";
-import { getMessengerConfigTool } from "./tools/catalog.js";
+import {
+  getMessengerConfigTool,
+  captureLeadTool,
+} from "./tools/catalog.js";
+import { getProductById, toChatCards } from "./productMatcher.js";
+import { STATIC } from "./constants/staticResponses.js";
+import { formatMoney } from "./utils.js";
 
 const API_VERSION = "v20.0";
 const BASE_URL = `https://graph.facebook.com/${API_VERSION}/me`;
 
-// Send typing indicator
+// ---------------------------------------------------------------------------
+// Typing indicator
+// ---------------------------------------------------------------------------
 export async function sendTyping(senderId: string, token: string, on = true) {
   if (!token) return;
   try {
@@ -13,15 +31,17 @@ export async function sendTyping(senderId: string, token: string, on = true) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         recipient: { id: senderId },
-        sender_action: on ? "typing_on" : "typing_off"
-      })
+        sender_action: on ? "typing_on" : "typing_off",
+      }),
     });
-  } catch (err) {
-    // Ignore typing errors
+  } catch {
+    // Non-fatal — ignore typing errors
   }
 }
 
-// Send standard text
+// ---------------------------------------------------------------------------
+// Text message sender (with safe chunking)
+// ---------------------------------------------------------------------------
 export async function sendMessage(senderId: string, text: string, token: string) {
   if (!token) return;
   const chunks = splitMessage(text, 1900);
@@ -32,38 +52,45 @@ export async function sendMessage(senderId: string, text: string, token: string)
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           recipient: { id: senderId },
-          message: { text: chunk }
-        })
+          message: { text: chunk },
+        }),
       });
     } catch (err) {
-      console.error("Error sending message to FB:", err);
+      console.error("sendMessage error:", err);
     }
   }
 }
 
-// Send Product Carousel
-export async function sendProductCarousel(senderId: string, products: any[], token: string) {
+// ---------------------------------------------------------------------------
+// Product carousel sender
+// ---------------------------------------------------------------------------
+export async function sendProductCarousel(
+  senderId: string,
+  products: any[],
+  token: string
+) {
   if (!token || !products.length) return;
 
-  const elements = products.slice(0, 10).map((p) => {
-    return {
-      title: p.name,
-      subtitle: `${(p.price || 0).toLocaleString()} ₮ - ${p.heroNote || p.short_description || "Дэлгэрэнгүй"}`,
-      image_url: p.image_url || p.image || "https://placehold.co/300x200?text=Drone",
-      buttons: [
-        {
-          type: "postback",
-          title: "🛒 Захиалах",
-          payload: `ORDER_${p.id}`
-        },
-        {
-          type: "postback",
-          title: "📋 Дэлгэрэнгүй",
-          payload: `DETAIL_${p.id}`
-        }
-      ]
-    };
-  });
+  const elements = products.slice(0, 10).map((p) => ({
+    title: p.name,
+    subtitle: `${formatMoney(p.price || 0)} — ${
+      p.heroNote || p.short_description || "Дэлгэрэнгүй мэдээлэл"
+    }`,
+    image_url:
+      p.image_url || p.image || "https://placehold.co/300x200?text=Drone",
+    buttons: [
+      {
+        type: "postback",
+        title: "🛒 Захиалах",
+        payload: `ORDER_${p.id}`,
+      },
+      {
+        type: "postback",
+        title: "📋 Дэлгэрэнгүй",
+        payload: `DETAIL_${p.id}`,
+      },
+    ],
+  }));
 
   try {
     await fetch(`${BASE_URL}/messages?access_token=${token}`, {
@@ -74,83 +101,132 @@ export async function sendProductCarousel(senderId: string, products: any[], tok
         message: {
           attachment: {
             type: "template",
-            payload: {
-              template_type: "generic",
-              elements
-            }
-          }
-        }
-      })
+            payload: { template_type: "generic", elements },
+          },
+        },
+      }),
     });
   } catch (err) {
-    console.error("Error sending carousel to FB:", err);
+    console.error("sendProductCarousel error:", err);
   }
 }
 
-function splitMessage(text: string, limit = 1900) {
-  if (text.length <= limit) return [text];
-  const chunks = [];
-  let start = 0;
-  while (start < text.length) {
-    let end = start + limit;
-    if (end < text.length) {
-      const lastNewline = text.lastIndexOf("\n", end);
-      if (lastNewline > start + limit / 2) end = lastNewline + 1;
-    }
-    chunks.push(text.slice(start, end).trim());
-    start = end;
+// ---------------------------------------------------------------------------
+// Postback handlers — NO AI involved
+// ---------------------------------------------------------------------------
+
+async function handleOrderPostback(
+  senderId: string,
+  productId: string,
+  token: string
+) {
+  const product = await getProductById(productId);
+
+  // Create lead regardless of whether product was found
+  const interest = product
+    ? `Messenger захиалга: ${product.name} (ID: ${productId})`
+    : `Messenger захиалга: бүтээгдэхүүн ID ${productId}`;
+
+  try {
+    await captureLeadTool("Тодорхойгүй", "", interest, "order_request", "order");
+  } catch (err) {
+    console.error("Lead capture error:", err);
   }
-  return chunks;
+
+  const ack = product
+    ? STATIC.orderInterest(product.name)
+    : STATIC.orderInterestGeneric;
+
+  await sendMessage(senderId, ack, token);
+
+  // Show the product card again so they have context
+  if (product) {
+    await sendProductCarousel(senderId, toChatCards([product]), token);
+  }
 }
 
+async function handleDetailPostback(
+  senderId: string,
+  productId: string,
+  token: string
+) {
+  const product = await getProductById(productId);
+
+  if (!product) {
+    await sendMessage(senderId, STATIC.productNotFound, token);
+    return;
+  }
+
+  // Build a compact detail message (static template)
+  const detail =
+    `📦 ${product.name}\n` +
+    `💰 Үнэ: ${formatMoney(product.price)}\n` +
+    (product.heroNote ? `✨ ${product.heroNote}\n` : "") +
+    (product.short_description ? `📝 ${product.short_description}\n` : "") +
+    `\nДэлгэрэнгүй мэдэх эсвэл захиалах бол доорх товчийг дарна уу.`;
+
+  await sendMessage(senderId, detail, token);
+  // Send single-item carousel so they can ORDER or ask for more DETAIL
+  await sendProductCarousel(senderId, toChatCards([product]), token);
+}
+
+// ---------------------------------------------------------------------------
+// Main webhook event handler
+// ---------------------------------------------------------------------------
 export async function handleWebhookEvent(event: any) {
-  const senderId = event.sender.id;
+  const senderId: string = event.sender?.id;
+  if (!senderId) return;
+
+  console.log("WEBHOOK_EVENT", {
+    senderId,
+    hasMessage: !!event.message,
+    hasPostback: !!event.postback,
+  });
 
   const config = await getMessengerConfigTool();
+
   if (!config || !config.is_enabled) {
+    console.log("MESSENGER_DISABLED", { hasConfig: !!config });
     if (config?.page_access_token) {
-      await sendMessage(senderId, "Уучлаарай, систем засвартай байна.", config.page_access_token);
+      await sendMessage(senderId, STATIC.systemDisabled, config.page_access_token);
     }
     return;
   }
 
-  const token = config.page_access_token;
+  const token: string = config.page_access_token;
   if (!token) return;
 
+  // ── Postback handling (ORDER / DETAIL) — deterministic, NO AI ──────────
   if (event.postback) {
-    const payload = event.postback.payload;
-    // Simplistic handling for postbacks, can call the AI with a simulated message
-    let simulatedMessage = "";
+    const payload: string = event.postback.payload ?? "";
+
     if (payload.startsWith("ORDER_")) {
-      simulatedMessage = "Би энэ дроныг захиалмаар байна";
-    } else if (payload.startsWith("DETAIL_")) {
-       simulatedMessage = "Дэлгэрэнгүй мэдээлэл өгөөч";
+      const productId = payload.slice(6);
+      await sendTyping(senderId, token);
+      await handleOrderPostback(senderId, productId, token);
+      return;
     }
-    
-    await sendTyping(senderId, token);
-    const response = await runConversation({
-      sessionId: senderId,
-      message: simulatedMessage
-    });
-    
-    if (response.reply) {
-      await sendMessage(senderId, response.reply, token);
+
+    if (payload.startsWith("DETAIL_")) {
+      const productId = payload.slice(7);
+      await sendTyping(senderId, token);
+      await handleDetailPostback(senderId, productId, token);
+      return;
     }
-    if (response.cards && response.cards.length > 0) {
-      await sendProductCarousel(senderId, response.cards, token);
-    }
+
+    // Unknown postback — ignore silently
     return;
   }
 
-  if (event.message && event.message.text && !event.message.is_echo) {
-    const text = event.message.text;
+  // ── Text message handling ───────────────────────────────────────────────
+  if (event.message?.text && !event.message.is_echo) {
+    const text: string = event.message.text;
+    console.log("TEXT_MESSAGE", { senderId, text: text.slice(0, 80) });
+
     await sendTyping(senderId, token);
 
     try {
-      const response = await runConversation({
-        sessionId: senderId,
-        message: text
-      });
+      const response = await runConversation({ sessionId: senderId, message: text });
 
       if (response.reply) {
         await sendMessage(senderId, response.reply, token);
@@ -159,8 +235,30 @@ export async function handleWebhookEvent(event: any) {
         await sendProductCarousel(senderId, response.cards, token);
       }
     } catch (err) {
-      console.error("Conversation logic error", err);
-      await sendMessage(senderId, "Систем дээр алдаа гарлаа.", token);
+      console.error("Conversation error:", err);
+      await sendMessage(senderId, STATIC.systemError, token);
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Internal: safe text splitter
+// ---------------------------------------------------------------------------
+function splitMessage(text: string, limit = 1900): string[] {
+  if (text.length <= limit) return [text];
+  const chunks: string[] = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = start + limit;
+    if (end < text.length) {
+      // Prefer splitting at newline or space
+      const lastNL = text.lastIndexOf("\n", end);
+      const lastSP = text.lastIndexOf(" ", end);
+      const breakAt = lastNL > start + limit / 2 ? lastNL + 1 : lastSP > start + limit / 2 ? lastSP + 1 : end;
+      end = breakAt;
+    }
+    chunks.push(text.slice(start, end).trim());
+    start = end;
+  }
+  return chunks.filter(Boolean);
 }
