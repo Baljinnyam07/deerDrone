@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
-import { requireAdminApi } from "@/lib/auth";
+import { requireAdminApi, withAuthCookies } from "@/lib/auth";
 import type { NextRequest } from "next/server";
 
 export async function PATCH(request: NextRequest) {
@@ -48,7 +48,7 @@ export async function PATCH(request: NextRequest) {
       console.error("Audit log error:", logError);
     }
 
-    return NextResponse.json({ success: true, order });
+    return withAuthCookies(auth.response, NextResponse.json({ success: true, order }));
   } catch (error: any) {
     console.error("Status update error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -15,13 +15,11 @@ export async function middleware(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) =>
+        cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value),
         );
         response = NextResponse.next({
-          request: {
-            headers: request.headers,
-          },
+          request,
         });
         cookiesToSet.forEach(({ name, value, options }) =>
           response.cookies.set(name, value, options),
@@ -30,8 +28,7 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // IMPORTANT: We only perform session refreshing here. 
-  // We have TEMPORARILY disabled the redirect logic to fix the asset loading error.
+  // Session-г шинэчлэх — cookie-г setAll-аар автоматаар response дээр тавина
   await supabase.auth.getUser();
 
   return response;
@@ -44,7 +41,6 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * Feel free to add other excluded static paths here, as needed.
      */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],

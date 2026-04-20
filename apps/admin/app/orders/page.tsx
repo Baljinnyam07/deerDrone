@@ -8,7 +8,10 @@ async function getOrders() {
     .from("orders")
     .select(`
       *,
-      items:order_items(*)
+      items:order_items(
+        *,
+        product:products(name)
+      )
     `)
     .order("created_at", { ascending: false });
 

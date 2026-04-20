@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { requireAdminApi } from "../../../../lib/auth";
+import { requireAdminApi, withAuthCookies } from "../../../../lib/auth";
 import { createAdminClient } from "../../../../lib/supabase";
-
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdminApi(request);
@@ -13,27 +11,20 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const formData = await request.formData();
-    const file = formData.get("file");
+    const { fileName, fileType, fileSize } = await request.json();
 
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: "Файл илгээгдээгүй байна." }, { status: 400 });
+    if (!fileName) {
+      return NextResponse.json({ error: "Файлын нэр олдсонгүй." }, { status: 400 });
     }
 
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json({ error: "Зөвхөн зураг upload хийх боломжтой." }, { status: 400 });
+    const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+    if (fileSize > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json({ error: "Зургийн хэмжээ 10MB-аас ихгүй байх ёстой." }, { status: 400 });
     }
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      return NextResponse.json(
-        { error: "Зургийн хэмжээ 10MB-аас ихгүй байх ёстой." },
-        { status: 400 },
-      );
-    }
-
-    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const extension = fileName.split(".").pop()?.toLowerCase() || "jpg";
     const safeName =
-      file.name
+      fileName
         .replace(/\.[^/.]+$/, "")
         .toLowerCase()
         .replace(/[^a-z0-9-]+/g, "-")
@@ -42,18 +33,16 @@ export async function POST(request: NextRequest) {
     const filePath = `products/${Date.now()}-${crypto.randomUUID()}-${safeName}.${extension}`;
 
     const supabase = createAdminClient();
-    const { error } = await supabase.storage
+    
+    // Create a signed URL valid for 60 seconds for direct browser upload
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from("product-images")
-      .upload(filePath, Buffer.from(await file.arrayBuffer()), {
-        cacheControl: "3600",
-        contentType: file.type,
-        upsert: false,
-      });
+      .createSignedUploadUrl(filePath);
 
-    if (error) {
-      console.error("Product image upload failed:", error);
+    if (uploadError || !uploadData) {
+      console.error("Signed URL generation failed:", uploadError);
       return NextResponse.json(
-        { error: "Зураг upload хийх үед алдаа гарлаа." },
+        { error: "Зураг хуулах холбоос үүсгэхэд алдаа гарлаа." },
         { status: 500 },
       );
     }
@@ -62,15 +51,17 @@ export async function POST(request: NextRequest) {
       data: { publicUrl },
     } = supabase.storage.from("product-images").getPublicUrl(filePath);
 
-    return NextResponse.json(
-      {
-        path: filePath,
-        url: publicUrl,
-      },
-      { status: 201 },
+    return withAuthCookies(
+      auth.response,
+      NextResponse.json({ 
+        path: filePath, 
+        url: publicUrl, 
+        signedUrl: uploadData.signedUrl, 
+        token: uploadData.token 
+      }, { status: 200 }),
     );
   } catch (error) {
-    console.error("Product image upload error:", error);
+    console.error("Product image upload URL error:", error);
     return NextResponse.json(
       { error: "Серверийн алдаа гарлаа." },
       { status: 500 },

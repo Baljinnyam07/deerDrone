@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
-import { requireAdminApi } from "@/lib/auth";
+import { requireAdminApi, withAuthCookies } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, url: publicUrl });
+    return withAuthCookies(auth.response, NextResponse.json({ success: true, url: publicUrl }));
   } catch (error: any) {
     console.error("Upload handler error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -78,7 +78,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return withAuthCookies(auth.response, NextResponse.json({ success: true }));
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

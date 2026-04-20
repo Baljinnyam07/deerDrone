@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createAdminClient } from "../../../../lib/supabase";
-import { requireAdminApi } from "../../../../lib/auth";
+import { requireAdminApi, withAuthCookies } from "../../../../lib/auth";
 
 export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
@@ -74,7 +74,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       }
     }
 
-    return NextResponse.json({ success: true });
+    return withAuthCookies(auth.response, NextResponse.json({ success: true }));
   } catch (err: any) {
     console.error("Update product error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -94,7 +94,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
     const { error } = await supabase.from("products").delete().eq("id", params.id);
     
     if (error) throw error;
-    return NextResponse.json({ success: true });
+    return withAuthCookies(auth.response, NextResponse.json({ success: true }));
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

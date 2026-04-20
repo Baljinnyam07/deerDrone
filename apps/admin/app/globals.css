@@ -35,8 +35,8 @@
   --admin-radius-sm: 6px;
   --admin-transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
 
-  --font-body: 'Inter', system-ui, sans-serif;
-  --font-display: 'Sora', 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'TT Norms Pro', 'Inter', system-ui, sans-serif;
+  --font-display: 'TT Norms Pro', 'Plus Jakarta Sans', sans-serif;
 
   --sidebar-width: 260px;
   --header-height: 64px;
@@ -684,6 +684,8 @@ button {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .admin-panel-header h2 {
@@ -1516,7 +1518,7 @@ select {
 }
 
 .admin-page-title {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: clamp(1.5rem, 4vw, 2.25rem);
   font-weight: 800;
   color: var(--admin-text);
@@ -1910,6 +1912,25 @@ select {
   grid-template-columns: 2fr 1.2fr 1fr 1fr 100px;
 }
 
+@media (max-width: 1024px) {
+  .admin-table-header.cols-5-products {
+    grid-template-columns: 2fr 1fr 1fr 60px;
+  }
+  .admin-table-header.cols-5-products > div:nth-child(2) {
+    display: none; /* Hide Category */
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-table-header.cols-5-products {
+    grid-template-columns: 1fr 1fr 50px;
+  }
+  .admin-table-header.cols-5-products > div:nth-child(3),
+  .admin-table-header.cols-5-products > div:nth-child(4) {
+    display: none; /* Hide more */
+  }
+}
+
 .admin-table-row {
   display: grid;
   gap: 16px;
@@ -1941,6 +1962,42 @@ select {
   grid-template-columns: 2fr 1.2fr 1fr 1fr 100px;
 }
 
+@media (max-width: 1024px) {
+  .admin-table-row.cols-5-products {
+    grid-template-columns: 2fr 1fr 1fr 60px;
+  }
+  .admin-table-row.cols-5-products > div:nth-child(2) {
+    display: none; /* Hide Category */
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-table-row.cols-5-products {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+  }
+  .admin-table-row.cols-5-products .admin-table-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+  .admin-table-row.cols-5-products > div:nth-child(2),
+  .admin-table-row.cols-5-products > div:nth-child(3),
+  .admin-table-row.cols-5-products > div:nth-child(4) {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+  }
+  /* Labels for mobile card style */
+  .admin-table-row.cols-5-products > div:nth-child(2)::before { content: 'Ангилал: '; font-weight: 600; color: var(--admin-muted); }
+  .admin-table-row.cols-5-products > div:nth-child(3)::before { content: 'Үнэ: '; font-weight: 600; color: var(--admin-muted); }
+  .admin-table-row.cols-5-products > div:nth-child(4)::before { content: 'Үлдэгдэл: '; font-weight: 600; color: var(--admin-muted); }
+}
+
 .admin-table-cell {
   display: flex;
   align-items: center;
@@ -1959,7 +2016,6 @@ select {
 
 .admin-table-cell-meta {
   display: flex;
-  flex-direction: column;
   gap: 2px;
 }
 
@@ -1981,8 +2037,8 @@ select {
 }
 
 .admin-table-thumbnail {
-  width: 52px;
-  height: 52px;
+  width: 120px;
+  height: 120px;
   border-radius: 8px;
   background: var(--admin-surface);
   display: flex;
@@ -1992,6 +2048,13 @@ select {
   border: 1px solid var(--admin-border-subtle);
   flex-shrink: 0;
   box-shadow: var(--admin-shadow-sm);
+}
+
+@media (max-width: 640px) {
+  .admin-table-thumbnail {
+    width: 64px;
+    height: 64px;
+  }
 }
 
 .admin-table-thumbnail img {

@@ -52,7 +52,10 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
         }),
       });
 
-      if (!res.ok) throw new Error("Update failed");
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Update failed: ${errText}`);
+      }
       
       toast(`Захиалгын төлөв амжилттай солигдлоо: ${statusMap[newStatus]?.label}`, "success");
       // Update local state if needed, or refresh
@@ -60,8 +63,9 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
       if (selectedOrder) {
         setSelectedOrder({ ...selectedOrder, status: newStatus });
       }
-    } catch (err) {
-      toast("Төлөв шинэчлэхэд алдаа гарлаа", "error");
+    } catch (err: any) {
+      console.error(err);
+      toast(err.message || "Төлөв шинэчлэхэд алдаа гарлаа", "error");
     } finally {
       setIsUpdating(false);
     }
@@ -203,7 +207,7 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
                 {(selectedOrder.items || []).map((item: any, idx: number) => (
                   <div key={idx} className="drawer-list-item">
                     <div className="drawer-list-item-meta">
-                      <div className="drawer-list-item-label">Бараа #{idx + 1}</div>
+                      <div className="drawer-list-item-label">{item.product?.name || `Бараа #${idx + 1}`}</div>
                       <div className="drawer-list-item-hint">Тоо ширхэг: {item.quantity}</div>
                     </div>
                     <div className="drawer-list-item-value">{safeMoney(item.price)}</div>

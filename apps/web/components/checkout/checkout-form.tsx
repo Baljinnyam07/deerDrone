@@ -6,7 +6,11 @@ import { formatMoney } from "@deer-drone/utils";
 import Link from "next/link";
 import { useStore } from "../../store/useStore";
 import type { CartItem } from "../../store/useStore";
-import { CheckCircle2, QrCode, Building2, Copy, Check, ArrowLeft, ArrowRight, User, MapPin, CreditCard, CheckCircle, Shield, Truck, Home, AlertCircle } from "lucide-react";
+import {
+  CheckCircle2, QrCode, Building2, Copy, Check,
+  ArrowLeft, ArrowRight, User, MapPin, CreditCard,
+  CheckCircle, Shield, Truck, Home, AlertCircle,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
@@ -15,24 +19,13 @@ const defaultPayload = (): CheckoutPayload => ({
   contactPhone: "",
   paymentMethod: "qpay",
   shippingMethod: "ub",
-  shippingAddress: {
-    city: "Улаанбаатар",
-    district: "",
-    khoroo: "",
-    line1: "",
-  },
+  shippingAddress: { city: "Улаанбаатар", district: "", khoroo: "", line1: "" },
   notes: "",
   items: [],
 });
 
 interface OrderResult {
-  order: {
-    id: string;
-    orderNumber: string;
-    status: string;
-    total: number;
-    createdAt: string;
-  };
+  order: { id: string; orderNumber: string; status: string; total: number; createdAt: string };
   payment: {
     method: string;
     invoiceUrl?: string;
@@ -48,91 +41,347 @@ const steps = [
   { id: "contact", title: "Холбоо барих", icon: User },
   { id: "shipping", title: "Хүргэлт", icon: MapPin },
   { id: "payment", title: "Төлбөр", icon: CreditCard },
-  { id: "review", title: "Баталгаажуулах", icon: CheckCircle },
+  { id: "review", title: "Батлах", icon: CheckCircle },
 ];
 
-const StepIndicator = ({ currentStep }: { currentStep: number }) => (
-  <div
-    style={{
-      marginBottom: "48px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-    }}
-  >
-    {steps.map((step, index) => {
-      const StepIcon = step.icon;
-      const isActive = index === currentStep;
-      const isCompleted = index < currentStep;
+const CSS = `
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-      return (
-        <div
-          key={step.id}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            flex: 1,
-            position: "relative",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              flex: 1,
-            }}
-          >
-            <div
-              style={{
-                width: "56px",
-                height: "56px",
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: isCompleted ? "#10B981" : isActive ? "#2563EB" : "#E2E8F0",
-                color: isCompleted || isActive ? "#FFFFFF" : "#94A3B8",
-                transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
-                zIndex: 2,
-              }}
-            >
-              <StepIcon size={24} />
+  .co-page {
+    background: #fff;
+    min-height: 100vh;
+    padding-bottom: 80px;
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  /* ── Success screen ── */
+  .co-success {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 60px 16px 40px;
+    text-align: center;
+  }
+  .co-success-icon {
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    background: #DCFCE7;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+  }
+  .co-success-title {
+    font-size: 2rem; font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #0F172A; margin-bottom: 12px;
+  }
+  .co-success-btns {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+    margin-top: 32px;
+  }
+  .co-success-btns a {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 24px;
+    border-radius: 8px; font-weight: 600; font-size: 0.95rem;
+    text-decoration: none; transition: all 200ms;
+  }
+  .co-btn-outline {
+    background: #F8FAFC; color: #2563EB; border: 1px solid #E2E8F0;
+  }
+  .co-btn-outline:hover { background: #EEF2FF; }
+  .co-btn-primary {
+    background: #2563EB; color: #fff; border: 1px solid #2563EB;
+  }
+  .co-btn-primary:hover { background: #1D4ED8; }
+
+  /* ── Step indicator ── */
+  .co-steps {
+    width: 100%;
+    margin-bottom: 40px;
+  }
+  .co-steps-icons {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+  .co-steps-labels {
+    display: flex;
+    width: 100%;
+    margin-top: 10px;
+  }
+  .co-step-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .co-step-icon {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: #E2E8F0; color: #94A3B8;
+    border: 3px solid #E2E8F0;
+    transition: all 250ms;
+    flex-shrink: 0;
+  }
+  .co-step-icon.active {
+    background: #2563EB; color: #fff;
+    border-color: #2563EB;
+    box-shadow: 0 0 0 4px rgba(37,99,235,0.15);
+  }
+  .co-step-icon.done {
+    background: #10B981; color: #fff;
+    border-color: #10B981;
+  }
+  .co-step-line {
+    flex: 1; height: 2px; background: #E2E8F0;
+    transition: background 250ms;
+  }
+  .co-step-line.done { background: #10B981; }
+  .co-step-label-wrap {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+  }
+  .co-step-label {
+    font-size: 0.72rem; font-weight: 600;
+    color: #94A3B8; text-align: center;
+    white-space: nowrap;
+    margin-top: 8px;
+    display: block;
+  }
+  .co-step-label.active { color: #2563EB; }
+  .co-step-label.done   { color: #10B981; }
+
+  /* ── Layout ── */
+  .co-wrap {
+    max-width: 1200px; margin: 0 auto;
+    padding: 32px 16px;
+  }
+  .co-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 32px;
+    align-items: start;
+  }
+
+  /* ── Sidebar ── */
+  .co-sidebar {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 24px;
+    position: sticky;
+    top: 88px;
+  }
+  .co-sidebar-title {
+    font-size: 1rem; font-weight: 700;
+    color: #0F172A; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .co-cart-item {
+    display: flex; gap: 12px;
+    padding-bottom: 16px; margin-bottom: 16px;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .co-cart-item:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .co-cart-img {
+    width: 56px; height: 56px; min-width: 56px;
+    border-radius: 8px; border: 1px solid #E2E8F0;
+    background: #fff; position: relative; overflow: hidden;
+  }
+  .co-cart-info h6 {
+    font-size: 0.85rem; font-weight: 600; color: #0F172A;
+    margin-bottom: 4px;
+    overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+  .co-cart-info .qty { font-size: 0.78rem; color: #64748B; }
+  .co-cart-info .price { font-size: 0.9rem; font-weight: 600; color: #2563EB; }
+  .co-totals { border-top: 1px solid #E2E8F0; padding-top: 16px; margin-top: 16px; }
+  .co-total-row {
+    display: flex; justify-content: space-between;
+    font-size: 0.9rem; margin-bottom: 10px;
+    color: #64748B;
+  }
+  .co-total-row span:last-child { font-weight: 600; color: #0F172A; }
+  .co-total-final {
+    display: flex; justify-content: space-between;
+    align-items: center;
+    padding-top: 12px; border-top: 1px solid #E2E8F0;
+    margin-top: 4px;
+  }
+  .co-total-final span:first-child { font-weight: 700; color: #0F172A; font-size: 1rem; }
+  .co-total-final span:last-child  { font-size: 1.4rem; font-weight: 800; color: #2563EB; }
+
+  /* ── Form ── */
+  .co-form-title {
+    font-size: 1.6rem; font-weight: 700;
+    letter-spacing: -0.02em; color: #0F172A;
+    margin-bottom: 6px;
+  }
+  .co-form-subtitle { font-size: 0.95rem; color: #64748B; margin-bottom: 28px; }
+  .co-field { margin-bottom: 20px; }
+  .co-label {
+    display: block; font-size: 0.78rem; font-weight: 700;
+    color: #0F172A; text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .co-req { color: #EF4444; }
+  .co-input, .co-select, .co-textarea {
+    display: block; width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid #E2E8F0; border-radius: 8px;
+    font-size: 1rem; color: #0F172A;
+    background: #fff;
+    transition: border-color 200ms, background 200ms;
+    appearance: auto;
+  }
+  .co-textarea { resize: vertical; font-family: inherit; min-height: 96px; }
+  .co-input:focus, .co-select:focus, .co-textarea:focus {
+    outline: none; border-color: #2563EB; background: #EEF2FF;
+  }
+
+  /* ── Payment options ── */
+  .co-pay-option {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px; border: 2px solid #E2E8F0; border-radius: 10px;
+    cursor: pointer; margin-bottom: 12px; transition: all 200ms;
+  }
+  .co-pay-option.selected { border-color: #2563EB; background: #EEF2FF; }
+  .co-pay-option input { accent-color: #2563EB; }
+  .co-pay-name { font-weight: 600; color: #0F172A; font-size: 0.95rem; margin-bottom: 2px; }
+  .co-pay-desc { font-size: 0.82rem; color: #64748B; }
+
+  /* ── Review ── */
+  .co-review-card {
+    background: #F8FAFC; border: 1px solid #E2E8F0;
+    border-radius: 10px; padding: 18px; margin-bottom: 16px;
+  }
+  .co-review-card h5 {
+    font-size: 0.9rem; font-weight: 700; color: #0F172A;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  }
+  .co-review-row {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 8px 0; border-bottom: 1px solid #E2E8F0;
+    gap: 12px;
+  }
+  .co-review-row:last-child { border-bottom: none; }
+  .co-review-row .lbl { color: #64748B; font-size: 0.85rem; white-space: nowrap; flex-shrink: 0; }
+  .co-review-row .val { font-weight: 600; color: #0F172A; font-size: 0.85rem; text-align: right; word-break: break-word; }
+
+  /* ── Nav buttons ── */
+  .co-actions {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px; margin-top: 36px;
+  }
+  .co-btn-back, .co-btn-next, .co-btn-submit {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px; padding: 13px 28px;
+    border-radius: 8px; font-weight: 600; font-size: 1rem;
+    cursor: pointer; border: none; transition: all 200ms;
+  }
+  .co-btn-back {
+    background: #F8FAFC; color: #2563EB; border: 1.5px solid #E2E8F0;
+  }
+  .co-btn-back:hover { background: #EEF2FF; border-color: #2563EB; }
+  .co-btn-next {
+    background: #2563EB; color: #fff; margin-left: auto;
+  }
+  .co-btn-next:hover:not(:disabled) { background: #1D4ED8; transform: translateY(-1px); }
+  .co-btn-next:disabled { opacity: 0.5; cursor: not-allowed; }
+  .co-btn-submit { background: #2563EB; color: #fff; margin-left: auto; }
+  .co-btn-submit:hover:not(:disabled) { background: #1D4ED8; transform: translateY(-1px); }
+  .co-btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Error ── */
+  .co-error {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: #FEE2E2; border: 1px solid #FECACA;
+    border-radius: 8px; padding: 14px; margin-top: 20px;
+    color: #991B1B; font-size: 0.9rem;
+  }
+
+  /* ─────── TABLET ≤ 1024px ─────── */
+  @media (max-width: 1024px) {
+    .co-grid {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    .co-sidebar {
+      position: static;
+      order: -1;
+    }
+  }
+
+  /* ─────── MOBILE ≤ 640px ─────── */
+  @media (max-width: 640px) {
+    .co-wrap { padding: 20px 14px; }
+    .co-success { padding: 40px 14px 32px; }
+    .co-success-title { font-size: 1.6rem; }
+    .co-success-icon { width: 72px; height: 72px; }
+
+    .co-step-icon { width: 36px; height: 36px; min-width: 36px; border-width: 2px; }
+    .co-step-icon svg { width: 15px; height: 15px; }
+    .co-step-label { font-size: 0.62rem; margin-top: 6px; }
+    .co-steps { margin-bottom: 28px; }
+
+    .co-form-title { font-size: 1.3rem; }
+    .co-form-subtitle { font-size: 0.88rem; margin-bottom: 20px; }
+
+    .co-actions { flex-direction: column-reverse; }
+    .co-btn-back, .co-btn-next, .co-btn-submit {
+      width: 100%; padding: 14px;
+      margin-left: 0;
+    }
+
+    .co-sidebar { padding: 16px; }
+    .co-sidebar-title { font-size: 0.9rem; margin-bottom: 14px; }
+
+    .co-total-final span:last-child { font-size: 1.2rem; }
+
+    .co-success-btns { flex-direction: column; }
+    .co-success-btns a { justify-content: center; }
+  }
+`;
+
+function StepIndicator({ currentStep }: { currentStep: number }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", width: "100%", marginBottom: 40 }}>
+      {steps.map((step, index) => {
+        const Icon = step.icon;
+        const isActive = index === currentStep;
+        const isDone = index < currentStep;
+        return (
+          <div key={step.id} style={{ display: "flex", alignItems: "flex-start", flex: index < steps.length - 1 ? 1 : 0 }}>
+            {/* Icon + Label stacked */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 48 }}>
+              <div className={`co-step-icon${isDone ? " done" : isActive ? " active" : ""}`}>
+                <Icon size={18} />
+              </div>
+              <span className={`co-step-label${isDone ? " done" : isActive ? " active" : ""}`}>
+                {step.title}
+              </span>
             </div>
-            <span
-              style={{
-                marginTop: "12px",
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                textAlign: "center",
-                color: isActive ? "#2563EB" : isCompleted ? "#10B981" : "#94A3B8",
-                transition: "color 250ms",
-              }}
-            >
-              {step.title}
-            </span>
+            {/* Connector line between steps */}
+            {index < steps.length - 1 && (
+              <div
+                className={`co-step-line${isDone ? " done" : ""}`}
+                style={{ marginTop: 24 /* half of icon height 48px */ }}
+              />
+            )}
           </div>
-
-          {index !== steps.length - 1 && (
-            <div
-              style={{
-                height: "2px",
-                flex: 1,
-                backgroundColor: index < currentStep ? "#10B981" : "#E2E8F0",
-                transition: "background-color 250ms",
-                margin: "0 12px",
-              }}
-            />
-          )}
-        </div>
-      );
-    })}
-  </div>
-);
+        );
+      })}
+    </div>
+  );
+}
 
 export function CheckoutForm() {
   const { cartItems, clearCart } = useStore();
-  const subtotal = cartItems.reduce((acc: number, current: CartItem) => acc + (current.price * current.quantity), 0);
+  const subtotal = cartItems.reduce(
+    (acc: number, cur: CartItem) => acc + cur.price * cur.quantity, 0
+  );
 
   const [form, setForm] = useState<CheckoutPayload>(defaultPayload());
   const [result, setResult] = useState<OrderResult | null>(null);
@@ -142,79 +391,39 @@ export function CheckoutForm() {
   const [copied, setCopied] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
-  function updateField<Key extends keyof CheckoutPayload>(key: Key, value: CheckoutPayload[Key]) {
-    setForm((current) => ({ ...current, [key]: value }));
+  function updateField<K extends keyof CheckoutPayload>(k: K, v: CheckoutPayload[K]) {
+    setForm((f) => ({ ...f, [k]: v }));
   }
-
-  function updateAddress(field: keyof CheckoutPayload["shippingAddress"], value: string) {
-    setForm((current) => ({
-      ...current,
-      shippingAddress: {
-        ...current.shippingAddress,
-        [field]: value,
-      },
-    }));
+  function updateAddress(f: keyof CheckoutPayload["shippingAddress"], v: string) {
+    setForm((cur) => ({ ...cur, shippingAddress: { ...cur.shippingAddress, [f]: v } }));
   }
 
   const validateStep = () => {
-    switch (currentStep) {
-      case 0:
-        return form.contactName.trim() && form.contactPhone.trim();
-      case 1:
-        return form.shippingAddress.line1.trim() && form.shippingAddress.city.trim();
-      case 2:
-        return true;
-      case 3:
-        return true;
-      default:
-        return true;
-    }
+    if (currentStep === 0) return !!(form.contactName.trim() && form.contactPhone.trim());
+    if (currentStep === 1) return !!(form.shippingAddress.line1.trim() && form.shippingAddress.city.trim());
+    return true;
   };
 
-  const handleNext = () => {
-    if (validateStep() && currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
+  const handleNext = () => { if (validateStep() && currentStep < steps.length - 1) setCurrentStep(s => s + 1); };
+  const handlePrev = () => { if (currentStep > 0) setCurrentStep(s => s - 1); };
 
-  const handlePrevious = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setError("");
-
-    if (cartItems.length === 0) {
-      setError("Сагс хоосон байна.");
-      return;
-    }
-
+    if (cartItems.length === 0) { setError("Сагс хоосон байна."); return; }
     startTransition(async () => {
       try {
         const payload: CheckoutPayload = {
           ...form,
-          items: cartItems.map((item) => ({
-            productId: item.id,
-            quantity: item.quantity,
-          })),
+          items: cartItems.map(i => ({ productId: i.id, quantity: i.quantity })),
         };
-
-        const response = await fetch("/api/v1/checkout", {
+        const res = await fetch("/api/v1/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setError(data.error || "Алдаа гарлаа. Дахин оролдоно уу.");
-          return;
-        }
-
+        const data = await res.json();
+        if (!res.ok) { setError(data.error || "Алдаа гарлаа."); return; }
         setResult(data as OrderResult);
         clearCart();
       } catch {
@@ -226,153 +435,47 @@ export function CheckoutForm() {
   const shippingCost = form.shippingMethod === "ub" ? 5000 : 15000;
   const total = subtotal + shippingCost;
 
-  // Order Confirmation Screen
+  /* ─── Success screen ─── */
   if (result) {
     return (
-      <div style={{ backgroundColor: "#FFFFFF", minHeight: "100vh", paddingBottom: "60px" }}>
-        <div
-          style={{
-            maxWidth: "1280px",
-            margin: "0 auto",
-            padding: "80px 32px",
-            textAlign: "center",
-          }}
-        >
+      <div className="co-page">
+        <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        <div className="co-success">
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            style={{
-              width: "120px",
-              height: "120px",
-              borderRadius: "50%",
-              backgroundColor: "#DCFCE7",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 32px",
-            }}
+            initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }} className="co-success-icon"
           >
-            <CheckCircle2 size={56} style={{ color: "#16A34A" }} />
+            <CheckCircle2 size={44} style={{ color: "#16A34A" }} />
           </motion.div>
 
-          <motion.h1
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            style={{
-              fontSize: "2.8rem",
-              fontWeight: 700,
-              letterSpacing: "-0.02em",
-              margin: 0,
-              marginBottom: "16px",
-              color: "#0F172A",
-            }}
-          >
-            Захиалга амжилттай!
-          </motion.h1>
+          <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
+            className="co-success-title">Захиалга амжилттай!</motion.h1>
 
-          <motion.p
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            style={{
-              fontSize: "1.1rem",
-              color: "#64748B",
-              marginBottom: "8px",
-            }}
-          >
-            Таны <strong>{result.order.orderNumber}</strong> дугаартай захиалга амжилттай хүлээн авагдлаа.
+          <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
+            style={{ color: "#64748B", fontSize: "0.95rem", lineHeight: 1.6, marginBottom: 8 }}>
+            Таны <strong>{result.order.orderNumber}</strong> дугаартай захиалга хүлээн авагдлаа.
+          </motion.p>
+          <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
+            style={{ color: "#64748B", fontSize: "0.95rem", marginBottom: 32 }}>
+            Нийт дүн: <strong style={{ color: "#2563EB", fontSize: "1.2rem" }}>{formatMoney(result.order.total)}</strong>
           </motion.p>
 
-          <motion.p
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            style={{
-              fontSize: "1rem",
-              color: "#64748B",
-              marginBottom: "48px",
-            }}
-          >
-            Нийт дүн: <strong style={{ color: "#2563EB", fontSize: "1.3rem" }}>{formatMoney(result.order.total)}</strong>
-          </motion.p>
-
-          {/* Payment Instructions */}
           {result.payment.method === "qpay" && result.payment.qrCode && (
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              style={{
-                maxWidth: "500px",
-                margin: "0 auto 48px",
-                backgroundColor: "#F8FAFC",
-                border: "1px solid #E2E8F0",
-                borderRadius: "12px",
-                padding: "32px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  marginBottom: "24px",
-                }}
-              >
-                <QrCode size={24} style={{ color: "#2563EB" }} />
-                <h3
-                  style={{
-                    fontSize: "1.3rem",
-                    fontWeight: 700,
-                    margin: 0,
-                    color: "#0F172A",
-                  }}
-                >
-                  QPay Төлбөр
-                </h3>
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}
+              style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: 24, marginBottom: 24, textAlign: "left" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <QrCode size={22} style={{ color: "#2563EB" }} />
+                <h3 style={{ fontWeight: 700, fontSize: "1.1rem" }}>QPay Төлбөр</h3>
               </div>
-
-              <div
-                style={{
-                  backgroundColor: "#FFFFFF",
-                  borderRadius: "8px",
-                  padding: "24px",
-                  marginBottom: "24px",
-                }}
-              >
-                <Image
-                  src={result.payment.qrCode}
-                  alt="QPay QR Code"
-                  width={300}
-                  height={300}
-                  style={{ maxWidth: "100%", height: "auto" }}
-                  unoptimized
-                />
+              <div style={{ background: "#fff", borderRadius: 8, padding: 16, textAlign: "center", marginBottom: 16 }}>
+                <Image src={result.payment.qrCode} alt="QPay QR" width={250} height={250}
+                  style={{ maxWidth: "100%", height: "auto" }} unoptimized />
               </div>
-
-              <p
-                style={{
-                  fontSize: "0.95rem",
-                  color: "#64748B",
-                  marginBottom: "12px",
-                  lineHeight: 1.6,
-                }}
-              >
-                Дээрх QR кодыг ямар нэг банкны мобайл аппликейшнээрээ (XacBank, Khan Bank, Mongolian Trade Bank гэх мэт) уншуулж төлбөрөө хийнэ үү.
+              <p style={{ fontSize: "0.85rem", color: "#64748B", lineHeight: 1.6 }}>
+                Банкны мобайл аппаар QR уншуулж төлбөрөө хийнэ үү.
               </p>
-
               {result.payment.expiresAt && (
-                <div
-                  style={{
-                    fontSize: "0.85rem",
-                    color: "#94A3B8",
-                    padding: "12px",
-                    backgroundColor: "#F0F4FF",
-                    borderRadius: "6px",
-                  }}
-                >
+                <div style={{ marginTop: 12, padding: "10px 14px", background: "#EEF2FF", borderRadius: 6, fontSize: "0.82rem", color: "#3730A3" }}>
                   Хүчинтэй хугацаа: {new Date(result.payment.expiresAt).toLocaleTimeString("mn-MN")} хүртэл
                 </div>
               )}
@@ -380,1025 +483,246 @@ export function CheckoutForm() {
           )}
 
           {result.payment.method === "bank_transfer" && (
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              style={{
-                maxWidth: "500px",
-                margin: "0 auto 48px",
-                backgroundColor: "#F8FAFC",
-                border: "1px solid #E2E8F0",
-                borderRadius: "12px",
-                padding: "32px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  marginBottom: "24px",
-                }}
-              >
-                <Building2 size={24} style={{ color: "#2563EB" }} />
-                <h3
-                  style={{
-                    fontSize: "1.3rem",
-                    fontWeight: 700,
-                    margin: 0,
-                    color: "#0F172A",
-                  }}
-                >
-                  Дансаар шилжүүлэх
-                </h3>
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}
+              style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: 24, marginBottom: 24, textAlign: "left" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <Building2 size={22} style={{ color: "#2563EB" }} />
+                <h3 style={{ fontWeight: 700, fontSize: "1.1rem" }}>Дансаар шилжүүлэх</h3>
               </div>
-
-              <div
-                style={{
-                  backgroundColor: "#FFFFFF",
-                  borderRadius: "8px",
-                  padding: "20px",
-                  marginBottom: "24px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "16px",
-                    paddingBottom: "16px",
-                    borderBottom: "1px solid #E2E8F0",
-                  }}
-                >
-                  <span style={{ color: "#64748B", fontSize: "0.9rem" }}>Данс эзэмшигч:</span>
-                  <span style={{ fontWeight: 600, color: "#0F172A" }}>{result.payment.accountName}</span>
+              {[
+                { label: "Данс эзэмшигч", value: result.payment.accountName },
+                { label: "Дансны дугаар", value: result.payment.accountNumber },
+              ].map(row => (
+                <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #E2E8F0", gap: 12 }}>
+                  <span style={{ color: "#64748B", fontSize: "0.88rem" }}>{row.label}:</span>
+                  <span style={{ fontWeight: 600 }}>{row.value}</span>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "16px",
-                    paddingBottom: "16px",
-                    borderBottom: "1px solid #E2E8F0",
-                  }}
-                >
-                  <span style={{ color: "#64748B", fontSize: "0.9rem" }}>Дансны дугаар:</span>
-                  <span style={{ fontWeight: 600, color: "#0F172A" }}>{result.payment.accountNumber}</span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <span style={{ color: "#64748B", fontSize: "0.9rem" }}>Гүйлгээний утга:</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <span style={{ fontWeight: 600, color: "#2563EB" }}>
-                      {result.payment.reference}
-                    </span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(result.payment.reference || "");
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
-                      }}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: "8px",
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      {copied ? (
-                        <Check size={16} style={{ color: "#10B981" }} />
-                      ) : (
-                        <Copy size={16} style={{ color: "#94A3B8" }} />
-                      )}
-                    </button>
-                  </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", gap: 12 }}>
+                <span style={{ color: "#64748B", fontSize: "0.88rem" }}>Гүйлгээний утга:</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontWeight: 600, color: "#2563EB" }}>{result.payment.reference}</span>
+                  <button onClick={() => { navigator.clipboard.writeText(result.payment.reference || ""); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex" }}>
+                    {copied ? <Check size={15} style={{ color: "#10B981" }} /> : <Copy size={15} style={{ color: "#94A3B8" }} />}
+                  </button>
                 </div>
               </div>
-
-              <p
-                style={{
-                  fontSize: "0.9rem",
-                  color: "#64748B",
-                  margin: 0,
-                  lineHeight: 1.6,
-                }}
-              >
-                Гүйлгээний утгадаа захиалгын дугаараа (дээрхээс) бичнэ үү.
+              <p style={{ fontSize: "0.85rem", color: "#64748B", marginTop: 12 }}>
+                Гүйлгээний утгадаа захиалгын дугаараа бичнэ үү.
               </p>
             </motion.div>
           )}
 
-          {/* Action Buttons */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            style={{
-              display: "flex",
-              gap: "16px",
-              maxWidth: "500px",
-              margin: "0 auto",
-              justifyContent: "center",
-            }}
-          >
-            <Link
-              href="/"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                padding: "12px 28px",
-                backgroundColor: "#F8FAFC",
-                color: "#2563EB",
-                textDecoration: "none",
-                borderRadius: "8px",
-                fontWeight: 600,
-                fontSize: "1rem",
-                border: "1px solid #E2E8F0",
-                transition: "all 250ms",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#F0F4FF";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "#F8FAFC";
-              }}
-            >
-              <Home size={18} />
-              Нүүр хуудас
-            </Link>
-            <Link
-              href="/products"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                padding: "12px 28px",
-                backgroundColor: "#2563EB",
-                color: "#FFFFFF",
-                textDecoration: "none",
-                borderRadius: "8px",
-                fontWeight: 600,
-                fontSize: "1rem",
-                border: "none",
-                transition: "all 250ms",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#1D4ED8";
-                e.currentTarget.style.transform = "translateY(-2px)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "#2563EB";
-                e.currentTarget.style.transform = "translateY(0)";
-              }}
-            >
-              Дэлгүүр үргэлжлүүлэх
-              <ArrowRight size={18} />
-            </Link>
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }}
+            className="co-success-btns">
+            <Link href="/" className="co-btn-outline"><Home size={16} /> Нүүр хуудас</Link>
+            <Link href="/products" className="co-btn-primary">Дэлгүүр үргэлжлүүлэх <ArrowRight size={16} /></Link>
           </motion.div>
         </div>
       </div>
     );
   }
 
-  // Checkout Form Main View
+  /* ─── Sidebar summary ─── */
+  const Sidebar = (
+    <div className="co-sidebar">
+      <div className="co-sidebar-title">
+        <Shield size={16} style={{ color: "#2563EB" }} /> Захиалгын тойм
+      </div>
+      <div style={{ maxHeight: 280, overflowY: "auto" }}>
+        {mounted && cartItems.length > 0 ? cartItems.map((item: CartItem) => (
+          <div key={item.id} className="co-cart-item">
+            <div className="co-cart-img">
+              <Image src={item.image} alt={item.name} fill style={{ objectFit: "contain", padding: 4 }} />
+            </div>
+            <div className="co-cart-info" style={{ flex: 1, minWidth: 0 }}>
+              <h6>{item.name}</h6>
+              <div className="qty">{item.quantity} ш × {formatMoney(item.price)}</div>
+            </div>
+          </div>
+        )) : (
+          <p style={{ color: "#64748B", fontSize: "0.88rem", textAlign: "center", padding: "16px 0" }}>Сагс хоосон байна</p>
+        )}
+      </div>
+      <div className="co-totals">
+        <div className="co-total-row">
+          <span>Нийт дүн:</span>
+          <span>{mounted ? formatMoney(subtotal) : "₮0"}</span>
+        </div>
+        <div className="co-total-row">
+          <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Truck size={13} /> Хүргэлт:</span>
+          <span>{formatMoney(shippingCost)}</span>
+        </div>
+        <div className="co-total-final">
+          <span>Төлөх дүн:</span>
+          <span>{mounted ? formatMoney(total) : "₮0"}</span>
+        </div>
+      </div>
+    </div>
+  );
 
+  /* ─── Main form ─── */
   return (
-    <div style={{ backgroundColor: "#FFFFFF", minHeight: "100vh", paddingBottom: "60px" }}>
-      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "40px 32px" }}>
+    <div className="co-page">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <div className="co-wrap">
         <StepIndicator currentStep={currentStep} />
-
-        {/* Main Grid Layout */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 380px",
-            gap: "48px",
-            alignItems: "start",
-          }}
-        >
-          {/* Form Column */}
+        <div className="co-grid">
+          {/* Form column */}
           <div>
-            <style
-              dangerouslySetInnerHTML={{
-                __html: `
-              .checkout-input {
-                display: block;
-                width: 100%;
-                padding: 12px 16px;
-                border: 1px solid #E2E8F0;
-                border-radius: 8px;
-                font-size: 1rem;
-                color: #0F172A;
-                background-color: #FFFFFF;
-                transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
-              }
-              .checkout-input:focus {
-                outline: none;
-                border-color: #2563EB;
-                background-color: #F0F4FF;
-              }
-              .checkout-input:disabled {
-                background-color: #F8FAFC;
-                cursor: not-allowed;
-                opacity: 0.6;
-              }
-              .checkout-label {
-                display: block;
-                font-size: 0.85rem;
-                font-weight: 600;
-                color: #0F172A;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                margin-bottom: 12px;
-              }
-              .required {
-                color: #EF4444;
-              }
-              .form-group {
-                margin-bottom: 28px;
-              }
-              .checkout-textarea {
-                display: block;
-                width: 100%;
-                padding: 12px 16px;
-                border: 1px solid #E2E8F0;
-                border-radius: 8px;
-                font-size: 1rem;
-                font-family: inherit;
-                color: #0F172A;
-                background-color: #FFFFFF;
-                transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
-                resize: none;
-              }
-              .checkout-textarea:focus {
-                outline: none;
-                border-color: #2563EB;
-                background-color: #F0F4FF;
-              }
-              .checkout-select {
-                display: block;
-                width: 100%;
-                padding: 12px 16px;
-                border: 1px solid #E2E8F0;
-                border-radius: 8px;
-                font-size: 1rem;
-                color: #0F172A;
-                background-color: #FFFFFF;
-                transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
-              }
-              .checkout-select:focus {
-                outline: none;
-                border-color: #2563EB;
-                background-color: #F0F4FF;
-              }
-              .payment-option {
-                display: flex;
-                align-items: center;
-                gap: 16px;
-                padding: 20px;
-                border: 2px solid #E2E8F0;
-                border-radius: 8px;
-                cursor: pointer;
-                transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
-              }
-              .payment-option:hover {
-                border-color: #2563EB;
-                background-color: #F0F4FF;
-              }
-              .payment-option input[type="radio"] {
-                cursor: pointer;
-                accent-color: #2563EB;
-              }
-              .review-item {
-                display: flex;
-                justify-content: space-between;
-                padding: 16px 0;
-                border-bottom: 1px solid #E2E8F0;
-              }
-              .review-item:last-child {
-                border-bottom: none;
-              }
-            `,
-              }}
-            />
-
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentStep}
-                initial={{ x: 20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -20, opacity: 0 }}
-                transition={{ duration: 0.3 }}
+                initial={{ x: 16, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -16, opacity: 0 }} transition={{ duration: 0.25 }}
               >
                 <form onSubmit={handleSubmit}>
-                  {/* Step 1: Contact Information */}
+
+                  {/* Step 1 — Contact */}
                   {currentStep === 0 && (
                     <div>
-                      <h1
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: 700,
-                          letterSpacing: "-0.02em",
-                          margin: "0 0 8px 0",
-                          color: "#0F172A",
-                        }}
-                      >
-                        Холбоо барих мэдээлэл
-                      </h1>
-                      <p
-                        style={{
-                          fontSize: "1rem",
-                          color: "#64748B",
-                          marginBottom: "32px",
-                        }}
-                      >
-                        Танд захиалгын судалгаа илгээх холбоо барих утас шаардлагатай
-                      </p>
-
-                      <div className="form-group">
-                        <label className="checkout-label">
-                          Овог нэр <span className="required">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          className="checkout-input"
-                          placeholder="Жишээ: Батболд Нариндаа"
-                          value={form.contactName}
-                          onChange={(e) => updateField("contactName", e.target.value)}
-                          required
-                        />
+                      <h1 className="co-form-title">Холбоо барих мэдээлэл</h1>
+                      <p className="co-form-subtitle">Захиалгын мэдэгдэл илгээх холбоо барих мэдээлэл</p>
+                      <div className="co-field">
+                        <label className="co-label">Овог нэр <span className="co-req">*</span></label>
+                        <input className="co-input" type="text" placeholder="Жишээ: Батболд Нариндаа"
+                          value={form.contactName} onChange={e => updateField("contactName", e.target.value)} required />
                       </div>
-
-                      <div className="form-group">
-                        <label className="checkout-label">
-                          Утасны дугаар <span className="required">*</span>
-                        </label>
-                        <input
-                          type="tel"
-                          className="checkout-input"
-                          placeholder="99XX-XXXX эсвэл +976..."
-                          value={form.contactPhone}
-                          onChange={(e) => updateField("contactPhone", e.target.value)}
-                          required
-                        />
+                      <div className="co-field">
+                        <label className="co-label">Утасны дугаар <span className="co-req">*</span></label>
+                        <input className="co-input" type="tel" placeholder="99XX-XXXX эсвэл +976..."
+                          value={form.contactPhone} onChange={e => updateField("contactPhone", e.target.value)} required />
                       </div>
                     </div>
                   )}
 
-                  {/* Step 2: Shipping Address */}
+                  {/* Step 2 — Shipping */}
                   {currentStep === 1 && (
                     <div>
-                      <h1
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: 700,
-                          letterSpacing: "-0.02em",
-                          margin: "0 0 8px 0",
-                          color: "#0F172A",
-                        }}
-                      >
-                        Хүргэлтийн хаяг
-                      </h1>
-                      <p
-                        style={{
-                          fontSize: "1rem",
-                          color: "#64748B",
-                          marginBottom: "32px",
-                        }}
-                      >
-                        Бүтээгдэхүүнийг хүргэх бүрэн хаягаа оруулна уу
-                      </p>
-
-                      <div className="form-group">
-                        <label className="checkout-label">
-                          Хүргэлтийн бүс <span className="required">*</span>
-                        </label>
-                        <select
-                          className="checkout-select"
-                          value={form.shippingMethod}
-                          onChange={(e) => updateField("shippingMethod", e.target.value as "ub" | "rural")}
-                        >
-                          <option value="ub">Улаанбаатар хот - 5,000₮</option>
-                          <option value="rural">Орон нутаг (аймаг) - 15,000₮</option>
+                      <h1 className="co-form-title">Хүргэлтийн хаяг</h1>
+                      <p className="co-form-subtitle">Бүтээгдэхүүнийг хүргэх бүрэн хаягаа оруулна уу</p>
+                      <div className="co-field">
+                        <label className="co-label">Хүргэлтийн бүс <span className="co-req">*</span></label>
+                        <select className="co-select" value={form.shippingMethod}
+                          onChange={e => updateField("shippingMethod", e.target.value as "ub" | "rural")}>
+                          <option value="ub">Улаанбаатар хот — 5,000₮</option>
+                          <option value="rural">Орон нутаг (аймаг) — 15,000₮</option>
                         </select>
                       </div>
-
-                      <div className="form-group">
-                        <label className="checkout-label">
-                          Хот / Аймаг <span className="required">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          className="checkout-input"
-                          placeholder="Жишээ: Улаанбаатар"
-                          value={form.shippingAddress.city}
-                          onChange={(e) => updateAddress("city", e.target.value)}
-                          required
-                        />
+                      <div className="co-field">
+                        <label className="co-label">Хот / Аймаг <span className="co-req">*</span></label>
+                        <input className="co-input" type="text" placeholder="Жишээ: Улаанбаатар"
+                          value={form.shippingAddress.city} onChange={e => updateAddress("city", e.target.value)} required />
                       </div>
-
-                      <div className="form-group">
-                        <label className="checkout-label">
-                          Дэлгэрэнгүй хаяг <span className="required">*</span>
-                        </label>
-                        <textarea
-                          className="checkout-textarea"
-                          placeholder="Орцны код, байр, тоот, давхар, өрөөний дугаар"
-                          rows={4}
-                          value={form.shippingAddress.line1}
-                          onChange={(e) => updateAddress("line1", e.target.value)}
-                          required
-                        />
+                      <div className="co-field">
+                        <label className="co-label">Дэлгэрэнгүй хаяг <span className="co-req">*</span></label>
+                        <textarea className="co-textarea" placeholder="Байр, орц, тоот, давхар..."
+                          value={form.shippingAddress.line1} onChange={e => updateAddress("line1", e.target.value)} required />
                       </div>
-
-                      <div className="form-group">
-                        <label className="checkout-label">Нэмэлт дэмдэглэл</label>
-                        <input
-                          type="text"
-                          className="checkout-input"
-                          placeholder="Жишээ: Орой 6 цагаас хойш бүтээгдэхүүнийг хүргэнэ үү"
-                          value={form.notes || ""}
-                          onChange={(e) => updateField("notes", e.target.value)}
-                        />
+                      <div className="co-field">
+                        <label className="co-label">Нэмэлт тэмдэглэл</label>
+                        <input className="co-input" type="text" placeholder="Жишээ: Орой 6 цагаас хойш хүргэнэ үү"
+                          value={form.notes || ""} onChange={e => updateField("notes", e.target.value)} />
                       </div>
                     </div>
                   )}
 
-                  {/* Step 3: Payment Method */}
+                  {/* Step 3 — Payment */}
                   {currentStep === 2 && (
                     <div>
-                      <h1
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: 700,
-                          letterSpacing: "-0.02em",
-                          margin: "0 0 8px 0",
-                          color: "#0F172A",
-                        }}
-                      >
-                        Төлбөрийн хэлбэр
-                      </h1>
-                      <p
-                        style={{
-                          fontSize: "1rem",
-                          color: "#64748B",
-                          marginBottom: "32px",
-                        }}
-                      >
-                        Төлбөрийн аргаа сонгоно уу
-                      </p>
-
-                      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                        <label
-                          className="payment-option"
-                          style={{
-                            borderColor: form.paymentMethod === "qpay" ? "#2563EB" : undefined,
-                            backgroundColor: form.paymentMethod === "qpay" ? "#F0F4FF" : undefined,
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            name="payment"
-                            checked={form.paymentMethod === "qpay"}
-                            onChange={() => updateField("paymentMethod", "qpay")}
-                          />
-                          <QrCode
-                            size={32}
-                            style={{
-                              color: form.paymentMethod === "qpay" ? "#2563EB" : "#94A3B8",
-                            }}
-                          />
+                      <h1 className="co-form-title">Төлбөрийн хэлбэр</h1>
+                      <p className="co-form-subtitle">Төлбөрийн аргаа сонгоно уу</p>
+                      {[
+                        { id: "qpay", icon: <QrCode size={28} />, name: "QPay", desc: "QR кодоор мобайл банкаар төлөх" },
+                        { id: "bank_transfer", icon: <Building2 size={28} />, name: "Дансаар шилжүүлэх", desc: "Банкны данс рүү шилжүүлэх" },
+                      ].map(opt => (
+                        <label key={opt.id}
+                          className={`co-pay-option${form.paymentMethod === opt.id ? " selected" : ""}`}>
+                          <input type="radio" name="payment"
+                            checked={form.paymentMethod === opt.id}
+                            onChange={() => updateField("paymentMethod", opt.id as "qpay" | "bank_transfer")} />
+                          <span style={{ color: form.paymentMethod === opt.id ? "#2563EB" : "#94A3B8" }}>{opt.icon}</span>
                           <div>
-                            <div
-                              style={{
-                                fontWeight: 600,
-                                color: "#0F172A",
-                                fontSize: "1rem",
-                                marginBottom: "4px",
-                              }}
-                            >
-                              QPay
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "0.9rem",
-                                color: "#64748B",
-                              }}
-                            >
-                              QR кодоор мобайл банкаар төлөх
-                            </div>
+                            <div className="co-pay-name">{opt.name}</div>
+                            <div className="co-pay-desc">{opt.desc}</div>
                           </div>
                         </label>
-
-                        <label
-                          className="payment-option"
-                          style={{
-                            borderColor: form.paymentMethod === "bank_transfer" ? "#2563EB" : undefined,
-                            backgroundColor: form.paymentMethod === "bank_transfer" ? "#F0F4FF" : undefined,
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            name="payment"
-                            checked={form.paymentMethod === "bank_transfer"}
-                            onChange={() => updateField("paymentMethod", "bank_transfer")}
-                          />
-                          <Building2
-                            size={32}
-                            style={{
-                              color: form.paymentMethod === "bank_transfer" ? "#2563EB" : "#94A3B8",
-                            }}
-                          />
-                          <div>
-                            <div
-                              style={{
-                                fontWeight: 600,
-                                color: "#0F172A",
-                                fontSize: "1rem",
-                                marginBottom: "4px",
-                              }}
-                            >
-                              Дансаар шилжүүлэх
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "0.9rem",
-                                color: "#64748B",
-                              }}
-                            >
-                              Банкны данс рүү төлбөр шилжүүлэх
-                            </div>
-                          </div>
-                        </label>
-                      </div>
+                      ))}
                     </div>
                   )}
 
-                  {/* Step 4: Review */}
+                  {/* Step 4 — Review */}
                   {currentStep === 3 && (
                     <div>
-                      <h1
-                        style={{
-                          fontSize: "2rem",
-                          fontWeight: 700,
-                          letterSpacing: "-0.02em",
-                          margin: "0 0 8px 0",
-                          color: "#0F172A",
-                        }}
-                      >
-                        Захиалгыг баталгаажуулах
-                      </h1>
-                      <p
-                        style={{
-                          fontSize: "1rem",
-                          color: "#64748B",
-                          marginBottom: "32px",
-                        }}
-                      >
-                        Захиалгынхаа мэдээллийг шалгаад баталгаажуулна уу
-                      </p>
-
-                      {/* Contact Review */}
-                      <div
-                        style={{
-                          backgroundColor: "#F8FAFC",
-                          border: "1px solid #E2E8F0",
-                          borderRadius: "8px",
-                          padding: "20px",
-                          marginBottom: "24px",
-                        }}
-                      >
-                        <h5
-                          style={{
-                            fontSize: "1rem",
-                            fontWeight: 600,
-                            color: "#0F172A",
-                            marginBottom: "16px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            margin: "0 0 16px 0",
-                          }}
-                        >
-                          <User size={18} style={{ color: "#2563EB" }} /> Холбоо барих
-                        </h5>
-                        <div className="review-item">
-                          <span style={{ color: "#64748B" }}>Овог нэр:</span>
-                          <span style={{ fontWeight: 600 }}>{form.contactName}</span>
+                      <h1 className="co-form-title">Захиалгыг баталгаажуулах</h1>
+                      <p className="co-form-subtitle">Захиалгынхаа мэдээллийг шалгаад баталгаажуулна уу</p>
+                      <div className="co-review-card">
+                        <h5><User size={15} style={{ color: "#2563EB" }} /> Холбоо барих</h5>
+                        <div className="co-review-row">
+                          <span className="lbl">Овог нэр:</span>
+                          <span className="val">{form.contactName}</span>
                         </div>
-                        <div className="review-item">
-                          <span style={{ color: "#64748B" }}>Утас:</span>
-                          <span style={{ fontWeight: 600 }}>{form.contactPhone}</span>
+                        <div className="co-review-row">
+                          <span className="lbl">Утас:</span>
+                          <span className="val">{form.contactPhone}</span>
                         </div>
                       </div>
-
-                      {/* Shipping Review */}
-                      <div
-                        style={{
-                          backgroundColor: "#F8FAFC",
-                          border: "1px solid #E2E8F0",
-                          borderRadius: "8px",
-                          padding: "20px",
-                          marginBottom: "24px",
-                        }}
-                      >
-                        <h5
-                          style={{
-                            fontSize: "1rem",
-                            fontWeight: 600,
-                            color: "#0F172A",
-                            marginBottom: "16px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            margin: "0 0 16px 0",
-                          }}
-                        >
-                          <MapPin size={18} style={{ color: "#2563EB" }} /> Хүргэлт
-                        </h5>
-                        <div className="review-item">
-                          <span style={{ color: "#64748B" }}>Бүс:</span>
-                          <span style={{ fontWeight: 600 }}>
-                            {form.shippingMethod === "ub" ? "Улаанбаатар" : "Орон нутаг"}
-                          </span>
+                      <div className="co-review-card">
+                        <h5><MapPin size={15} style={{ color: "#2563EB" }} /> Хүргэлт</h5>
+                        <div className="co-review-row">
+                          <span className="lbl">Бүс:</span>
+                          <span className="val">{form.shippingMethod === "ub" ? "Улаанбаатар" : "Орон нутаг"}</span>
                         </div>
-                        <div className="review-item">
-                          <span style={{ color: "#64748B" }}>Хаяг:</span>
-                          <span style={{ fontWeight: 600 }}>{form.shippingAddress.line1}</span>
+                        <div className="co-review-row">
+                          <span className="lbl">Хаяг:</span>
+                          <span className="val">{form.shippingAddress.city}{form.shippingAddress.line1 ? `, ${form.shippingAddress.line1}` : ""}</span>
                         </div>
                       </div>
-
-                      {/* Payment Review */}
-                      <div
-                        style={{
-                          backgroundColor: "#F8FAFC",
-                          border: "1px solid #E2E8F0",
-                          borderRadius: "8px",
-                          padding: "20px",
-                        }}
-                      >
-                        <h5
-                          style={{
-                            fontSize: "1rem",
-                            fontWeight: 600,
-                            color: "#0F172A",
-                            marginBottom: "16px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            margin: "0 0 16px 0",
-                          }}
-                        >
-                          <CreditCard size={18} style={{ color: "#2563EB" }} /> Төлбөр
-                        </h5>
-                        <div className="review-item">
-                          <span style={{ color: "#64748B" }}>Төлбөрийн хэлбэр:</span>
-                          <span style={{ fontWeight: 600 }}>
-                            {form.paymentMethod === "qpay" ? "QPay" : "Дансаар шилжүүлэх"}
-                          </span>
+                      <div className="co-review-card">
+                        <h5><CreditCard size={15} style={{ color: "#2563EB" }} /> Төлбөр</h5>
+                        <div className="co-review-row">
+                          <span className="lbl">Хэлбэр:</span>
+                          <span className="val">{form.paymentMethod === "qpay" ? "QPay" : "Дансаар шилжүүлэх"}</span>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Error Message */}
                   {error && (
-                    <div
-                      style={{
-                        backgroundColor: "#FEE2E2",
-                        border: "1px solid #FECACA",
-                        borderRadius: "8px",
-                        padding: "16px",
-                        marginTop: "24px",
-                        color: "#991B1B",
-                        display: "flex",
-                        gap: "12px",
-                      }}
-                    >
-                      <AlertCircle size={18} style={{ flexShrink: 0 }} />
-                      <div>{error}</div>
+                    <div className="co-error">
+                      <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span>{error}</span>
                     </div>
                   )}
 
-                  {/* Navigation Buttons */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: currentStep > 0 ? "space-between" : "flex-end",
-                      gap: "16px",
-                      marginTop: "48px",
-                    }}
-                  >
+                  <div className="co-actions">
                     {currentStep > 0 && (
-                      <button
-                        type="button"
-                        onClick={handlePrevious}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "12px 28px",
-                          backgroundColor: "#F8FAFC",
-                          color: "#2563EB",
-                          border: "1px solid #E2E8F0",
-                          borderRadius: "8px",
-                          fontWeight: 600,
-                          fontSize: "1rem",
-                          cursor: "pointer",
-                          transition: "all 250ms",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = "#F0F4FF";
-                          e.currentTarget.style.borderColor = "#2563EB";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = "#F8FAFC";
-                          e.currentTarget.style.borderColor = "#E2E8F0";
-                        }}
-                      >
-                        <ArrowLeft size={18} /> Буцах
+                      <button type="button" className="co-btn-back" onClick={handlePrev}>
+                        <ArrowLeft size={16} /> Буцах
                       </button>
                     )}
-
                     {currentStep < steps.length - 1 ? (
-                      <button
-                        type="button"
-                        onClick={handleNext}
-                        disabled={!validateStep()}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "8px",
-                          padding: "12px 28px",
-                          backgroundColor: "#2563EB",
-                          color: "#FFFFFF",
-                          border: "none",
-                          borderRadius: "8px",
-                          fontWeight: 600,
-                          fontSize: "1rem",
-                          cursor: !validateStep() ? "not-allowed" : "pointer",
-                          opacity: !validateStep() ? 0.5 : 1,
-                          transition: "all 250ms",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (validateStep()) {
-                            e.currentTarget.style.backgroundColor = "#1D4ED8";
-                            e.currentTarget.style.transform = "translateY(-2px)";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = "#2563EB";
-                          e.currentTarget.style.transform = "translateY(0)";
-                        }}
-                      >
-                        Дараагийн <ArrowRight size={18} />
+                      <button type="button" className="co-btn-next"
+                        onClick={handleNext} disabled={!validateStep()}>
+                        Дараагийн <ArrowRight size={16} />
                       </button>
                     ) : (
-                      <button
-                        type="submit"
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "8px",
-                          padding: "12px 28px",
-                          backgroundColor: "#2563EB",
-                          color: "#FFFFFF",
-                          border: "none",
-                          borderRadius: "8px",
-                          fontWeight: 600,
-                          fontSize: "1rem",
-                          cursor: isPending || cartItems.length === 0 ? "not-allowed" : "pointer",
-                          opacity: isPending || cartItems.length === 0 ? 0.5 : 1,
-                          transition: "all 250ms",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isPending && cartItems.length > 0) {
-                            e.currentTarget.style.backgroundColor = "#1D4ED8";
-                            e.currentTarget.style.transform = "translateY(-2px)";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = "#2563EB";
-                          e.currentTarget.style.transform = "translateY(0)";
-                        }}
-                        disabled={isPending || cartItems.length === 0}
-                      >
-                        {isPending ? "Захиалга үүсгэж байна..." : `Захиалгыг баталгаажуулах`}
-                        <ArrowRight size={18} />
+                      <button type="submit" className="co-btn-submit"
+                        disabled={isPending || cartItems.length === 0}>
+                        {isPending ? "Үүсгэж байна..." : "Захиалгыг баталгаажуулах"}
+                        <ArrowRight size={16} />
                       </button>
                     )}
                   </div>
+
                 </form>
               </motion.div>
             </AnimatePresence>
           </div>
 
-          {/* Sticky Order Summary Sidebar */}
-          <div
-            style={{
-              backgroundColor: "#F8FAFC",
-              border: "1px solid #E2E8F0",
-              borderRadius: "12px",
-              padding: "28px",
-              position: "sticky",
-              top: "24px",
-              height: "fit-content",
-              transition: "all 250ms",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "#2563EB";
-              e.currentTarget.style.boxShadow = "0 12px 40px rgba(37, 99, 235, 0.1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "#E2E8F0";
-              e.currentTarget.style.boxShadow = "none";
-            }}
-          >
-            <h3
-              style={{
-                fontSize: "1.1rem",
-                fontWeight: 700,
-                marginBottom: "20px",
-                color: "#0F172A",
-                margin: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <Shield size={18} style={{ color: "#2563EB" }} /> Захиалгын тойм
-            </h3>
-
-            {/* Items List */}
-            <div
-              style={{
-                marginBottom: "20px",
-                maxHeight: "350px",
-                overflowY: "auto",
-                paddingRight: "8px",
-              }}
-            >
-              {mounted && cartItems.length > 0 ? (
-                cartItems.map((item: CartItem) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      display: "flex",
-                      gap: "12px",
-                      marginBottom: "16px",
-                      paddingBottom: "16px",
-                      borderBottom: "1px solid #E2E8F0",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "70px",
-                        height: "70px",
-                        backgroundColor: "#FFFFFF",
-                        borderRadius: "8px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        padding: "8px",
-                        position: "relative",
-                      }}
-                    >
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        style={{ objectFit: "contain", padding: "8px" }}
-                      />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <h6
-                        style={{
-                          fontSize: "0.9rem",
-                          fontWeight: 600,
-                          color: "#0F172A",
-                          margin: "0 0 6px 0",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {item.name}
-                      </h6>
-                      <div
-                        style={{
-                          fontSize: "0.8rem",
-                          color: "#64748B",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        {item.quantity} ш × {formatMoney(item.price)}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.9rem",
-                          fontWeight: 600,
-                          color: "#2563EB",
-                        }}
-                      >
-                        {formatMoney(item.price * item.quantity)}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p
-                  style={{
-                    fontSize: "0.9rem",
-                    color: "#64748B",
-                    textAlign: "center",
-                    padding: "20px",
-                  }}
-                >
-                  Сагс хоосон байна
-                </p>
-              )}
-            </div>
-
-            {/* Order Summary */}
-            <div style={{ paddingTop: "16px", borderTop: "1px solid #E2E8F0" }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "12px",
-                  fontSize: "0.9rem",
-                }}
-              >
-                <span style={{ color: "#64748B" }}>Нийт дүн:</span>
-                <span style={{ fontWeight: 600, color: "#0F172A" }}>
-                  {mounted ? formatMoney(subtotal) : "₮0"}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "16px",
-                  fontSize: "0.9rem",
-                }}
-              >
-                <span
-                  style={{
-                    color: "#64748B",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
-                  <Truck size={14} /> Хүргэлт:
-                </span>
-                <span
-                  style={{
-                    fontWeight: 600,
-                    color: "#0F172A",
-                  }}
-                >
-                  {formatMoney(shippingCost)}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  paddingTop: "16px",
-                  borderTop: "1px solid #E2E8F0",
-                  fontSize: "1.1rem",
-                }}
-              >
-                <span style={{ fontWeight: 600, color: "#0F172A" }}>Төлөх дүн:</span>
-                <span
-                  style={{
-                    fontWeight: 700,
-                    color: "#2563EB",
-                    fontSize: "1.5rem",
-                  }}
-                >
-                  {mounted ? formatMoney(total) : "₮0"}
-                </span>
-              </div>
-            </div>
-          </div>
+          {/* Sidebar */}
+          {Sidebar}
         </div>
       </div>
     </div>

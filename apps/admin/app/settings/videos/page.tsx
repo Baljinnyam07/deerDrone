@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase";
 import { VideoSlot } from "./video-slot";
+import { HeroProductSelector } from "./hero-product-selector";
 import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin-page-header";
 import { ChevronLeft, Info } from "lucide-react";
@@ -15,15 +16,24 @@ async function getVideoSettings() {
   return data || [];
 }
 
+async function getProductsForSettings() {
+  const supabase = createAdminClient();
+  const { data } = await supabase.from("products").select("id, name, slug").order("created_at", { ascending: false });
+  return data || [];
+}
+
 export default async function VideoSettingsPage() {
   const settings = await getVideoSettings();
+  const productOptions = await getProductsForSettings();
+  const heroProductSlug = settings.find(s => s.key === "home_hero_product_slug")?.value || null;
+  const videoSettings = settings.filter(s => s.key !== "home_hero_product_slug");
 
   return (
     <section>
       <AdminPageHeader
-        kicker="Settings / Videos"
-        title="Видео удирдлага"
-        description="Нүүр хуудасны 5 стратегийн байршлын видеог удирдах хэсэг."
+        kicker="Settings / Videos & Hero"
+        title="Нүүр хуудасны удирдлага"
+        description="Нүүр хуудасны дээр байрлах видео болон онцлох барааг удирдах хэсэг."
       />
 
       <div className="alert alert-info">
@@ -39,7 +49,9 @@ export default async function VideoSettingsPage() {
       </div>
 
       <div style={{ maxWidth: "800px" }}>
-        {settings.map((s) => (
+        <HeroProductSelector initialSlug={heroProductSlug} products={productOptions} />
+
+        {videoSettings.map((s) => (
           <VideoSlot
             key={s.key}
             slotKey={s.key}
@@ -49,7 +61,7 @@ export default async function VideoSettingsPage() {
           />
         ))}
 
-        {settings.length === 0 && (
+        {videoSettings.length === 0 && (
           <div className="admin-panel" style={{ textAlign: "center", padding: "40px" }}>
             <p className="admin-muted">Видеоны тохиргоо олдсонгүй. Мэдээллийн санд `site_settings` хүснэгтийг зөв үүсгэсэн эсэхээ шалгана уу.</p>
           </div>

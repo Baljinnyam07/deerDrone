@@ -45,21 +45,36 @@ export function CreateProductForm({ categories }: { categories: any[] }) {
   }
 
   async function uploadImage(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await fetch("/api/uploads/product-image", {
+    // 1. Get signed upload URL from our API
+    const res = await fetch("/api/uploads/product-image", {
       method: "POST",
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      }),
     });
 
-    const payload = await response.json();
-
-    if (!response.ok || !payload.url) {
-      throw new Error(payload.error || "Зураг upload хийх үед алдаа гарлаа.");
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "Зураг хуулах холбоос авахад алдаа гарлаа.");
     }
 
-    return payload.url as string;
+    const { url, signedUrl } = await res.json();
+
+    // 2. Upload directly to Supabase via Signed URL
+    const uploadRes = await fetch(signedUrl, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type },
+    });
+
+    if (!uploadRes.ok) {
+      throw new Error("Зураг хуулах явцад алдаа гарлаа (Direct upload failed).");
+    }
+
+    return url as string;
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -270,31 +285,14 @@ export function CreateProductForm({ categories }: { categories: any[] }) {
           {images.map((image, index) => (
             <div
               key={`${image.preview}-${index}`}
-              style={{
-                position: "relative",
-                width: "100px",
-                height: "100px",
-                borderRadius: "8px",
-                overflow: "hidden",
-                border: "1px solid #e2e8f0",
-              }}
+              className="relative w-24 h-24 rounded-lg overflow-hidden border border-slate-200 bg-white"
             >
-              <img src={image.preview} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={image.preview} alt="preview" className="w-full h-full object-cover" />
               <button
                 type="button"
                 onClick={() => removeImage(index)}
-                style={{
-                  position: "absolute",
-                  top: 4,
-                  right: 4,
-                  background: "rgba(0,0,0,0.5)",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "50%",
-                  padding: "4px",
-                  cursor: "pointer",
-                  display: "flex",
-                }}
+                className="absolute top-1 right-1 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 flex items-center justify-center transition"
+                aria-label="Remove image"
               >
                 <X size={14} />
               </button>

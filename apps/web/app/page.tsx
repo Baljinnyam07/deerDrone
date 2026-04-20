@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getProducts, getSiteSettings } from "../lib/supabase/queries";
-import { ArrowRight, Camera, Battery, Zap, Globe } from "lucide-react";
+import { ArrowRight, Search, Users, Wrench, FileVideo } from "lucide-react";
 import { ProductCarousel } from "../components/product/product-carousel";
 
 export default async function HomePage() {
@@ -10,6 +10,9 @@ export default async function HomePage() {
   ]);
 
   const featured = products.slice(0, 6);
+  
+  // Find the selected hero product from settings, or fallback to index 1 (or 0)
+  const heroProduct = products.find(p => p.slug === settings.home_hero_product_slug) || featured[1] || featured[0];
 
   // Fallback URLs (The original DJI videos)
   const fallbackVideos = {
@@ -51,7 +54,7 @@ export default async function HomePage() {
       }}
     >
 
-      {/* Hero Section 2 - Second Product */}
+      {/* Hero Section 2 - Main Hero Product */}
       <section className="position-relative w-100 overflow-hidden bg-black" style={{ height: "100vh" }}>
         <video
           className="position-absolute w-100 h-100"
@@ -85,20 +88,14 @@ export default async function HomePage() {
           <div className="container">
             <div className="row">
               <div className="col-12 col-md-6">
-                <span
-                  className="text-uppercase mb-3 fw-semibold"
-                  style={{ fontSize: "0.9rem", letterSpacing: "0.2em", opacity: 0.9 }}
-                >
-                  {featured[1]?.categoryName || "Creator Series"}
-                </span>
                 <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", letterSpacing: "-0.03em", lineHeight: 1.05 }}>
-                  {featured[1]?.name || "DEER ACTION CAM"}
+                  {heroProduct?.name || "DEER ACTION CAM"}
                 </h2>
                 <p className="fs-5 mb-4" style={{ fontWeight: 300, fontSize: "clamp(1rem, 1.8vw, 1.3rem)", maxWidth: "500px", lineHeight: 1.6 }}>
-                  {featured[1]?.shortDescription || "Адал явдалд бэлэн"}
+                  {heroProduct?.shortDescription || "Адал явдалд бэлэн"}
                 </p>
                 <div className="d-flex flex-wrap gap-3">
-                  <Link href={`/products/${featured[1]?.slug || "action-4"}`} className="dji-border-btn">
+                  <Link href={`/products/${heroProduct?.slug || "action-4"}`} className="dji-border-btn">
                     Дэлгэрэнгүй <ArrowRight size={16} className="ms-2 mt-1" />
                   </Link>
                 </div>
@@ -108,68 +105,55 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Feature Summary Section */}
-      <section className="bg-white" style={{ padding: "100px 0" }}>
-        <div className="container">
-          <div className="text-center mb-5 pb-5">
-            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(2rem, 4vw, 3rem)", letterSpacing: "-0.04em", color: "#111827" }}>
-              Яагаад DEER Drone гэж?
-            </h2>
-            <p className="text-secondary mx-auto" style={{ fontSize: "1.1rem", maxWidth: "600px", fontWeight: 400, opacity: 0.7 }}>
-              Бид дроны хамгийн сүүлийн үеийн технология, мэргэжлийн үйлчилгээг хослуулан хүргэж байна.
-            </p>
+      {/* Why Drones Section */}
+      <section style={{ overflow: "hidden", backgroundColor: "#fff", padding: " 16px 16px" }}>
+        <div style={{ display: "flex", minHeight: "600px", gap: "16px" }}>
+          {/* Left - Content */}
+          <div style={{
+            flex: 1,
+            backgroundImage: "url('/assets/image.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            position: "relative",
+            overflow: "hidden",
+          }}>
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 100%)" }} />
+            <div style={{ position: "relative", zIndex: 1, padding: "80px 60px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <span style={{ color: "rgba(255,255,255,0.45)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: "0.72rem", display: "block", marginBottom: "20px" }}>
+                Яагаад дрон авах гэж?
+              </span>
+              <h2 style={{ fontSize: "clamp(2rem, 3.5vw, 3.2rem)", letterSpacing: "-0.03em", lineHeight: 1.1, color: "#FFFFFF", fontWeight: 700, marginBottom: "52px", fontFamily: "var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', sans-serif" }}>
+                Дэлхийг өөр <br />өнцгөөс хар
+              </h2>
+              {[
+                { title: "Дурсамж", desc: "Та аялал, гэр бүл, найз нөхдийнхөө мөчүүдийг тэнгэрээс авсан чанартай бичлэг болгон үлдээж чадна." },
+                { title: "Ялгарал", desc: "Сошиал орчинд энгийн контент биш, агаараас авсан зураг, бичлэг хүмүүсийн анхаарлыг шууд татдаг." },
+                { title: "Орлого", desc: "Үл хөдлөх хөрөнгө, арга хэмжээ, аяллын контент зэрэг олон төрлийн ажил хийж орлого олох боломжтой." },
+              ].map((item) => (
+                <div key={item.title} style={{ display: "flex", gap: "20px", marginBottom: "28px" }}>
+                  <div style={{ width: "3px", borderRadius: "2px", backgroundColor: "#60A5FA", flexShrink: 0 }} />
+                  <div>
+                    <h4 style={{ fontSize: "1rem", fontWeight: 700, color: "#FFFFFF", marginBottom: "6px" }}>{item.title}</h4>
+                    <p style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.6)", lineHeight: 1.7, margin: 0 }}>{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="row g-4 justify-content-center">
-            {[
-              { 
-                icon: Camera, 
-                title: "4K HDR Camera", 
-                desc: "Мэргэжлийн түвшний гайхалтай зураг, видео бичлэг."
-              },
-              { 
-                icon: Battery, 
-                title: "46 min Flight", 
-                desc: "Нэг удаагийн цэнэглэлтээр удаан нисэх боломж."
-              },
-              { 
-                icon: Zap, 
-                title: "Smart Features", 
-                desc: "Саад тотгороос зайлсхийх AI мэдрэгчийн систем."
-              },
-              { 
-                icon: Globe, 
-                title: "Global Support", 
-                desc: "Албан ёсны баталгаа, засвар үйлчилгээний систем."
-              }
-            ].map((f, i) => (
-              <div key={i} className="col-12 col-md-6 col-lg-3">
-                <div 
-                  className="feature-card h-100 p-4 transition-all" 
-                  style={{ 
-                    background: "transparent",
-                    textAlign: "center"
-                  }}
-                >
-                  <div 
-                    className="mb-4 d-inline-flex align-items-center justify-content-center" 
-                    style={{ 
-                      width: "60px", 
-                      height: "60px", 
-                      color: "#111827"
-                    }}
-                  >
-                    <f.icon size={32} strokeWidth={1.5} />
-                  </div>
-                  <h3 className="fw-bold mb-2" style={{ fontSize: "1.1rem", color: "#111827" }}>
-                    {f.title}
-                  </h3>
-                  <p className="text-secondary mb-0" style={{ fontSize: "0.88rem", lineHeight: 1.6 }}>
-                    {f.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
+          {/* Right - Video */}
+          <div style={{ flex: 1, position: "relative", overflow: "hidden"}}>
+            <video
+              autoPlay muted loop playsInline
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+            >
+              <source src={settings.home_showcase_main || fallbackVideos.home_showcase_main} type="video/mp4" />
+            </video>
+            <div style={{ position: "absolute", bottom: "32px", left: "32px", zIndex: 1 }}>
+              <span style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.15em" }}>
+                Shot on DEER
+              </span>
+            </div>
           </div>
         </div>
       </section>

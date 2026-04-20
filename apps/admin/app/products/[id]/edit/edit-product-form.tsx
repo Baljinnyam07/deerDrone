@@ -22,14 +22,16 @@ export function EditProductForm({ categories, initialProduct }: { categories: an
     hero_note: initialProduct.hero_note || "",
     is_leasable: initialProduct.is_leasable,
   });
-  const [specs, setSpecs] = useState<{ label: string; value: string }[]>(
-    initialProduct.specs?.length > 0
-      ? initialProduct.specs.map((spec: any) => ({
+  const defaultSpecs = Array.isArray(initialProduct?.specs) && initialProduct.specs.length > 0
+    ? [...initialProduct.specs]
+        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+        .map((spec: any) => ({
           label: spec.label || "",
           value: spec.value || "",
         }))
-      : [{ label: "", value: "" }],
-  );
+    : [{ label: "", value: "" }];
+
+  const [specs, setSpecs] = useState<{ label: string; value: string }[]>(defaultSpecs);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

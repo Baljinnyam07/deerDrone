@@ -12,7 +12,8 @@ async function getProducts() {
     .select(`
       *,
       category:categories(name, slug),
-      images:product_images(url, alt, display_order)
+      images:product_images(url, alt, display_order),
+      specs:product_specs(*)
     `)
     .order("created_at", { ascending: false });
 

@@ -9,10 +9,8 @@ import type {
 
 export function formatMoney(value: number): string {
   return new Intl.NumberFormat("mn-MN", {
-    style: "currency",
-    currency: "MNT",
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(value) + "₮";
 }
 
 export function formatCompactMoney(value: number): string {

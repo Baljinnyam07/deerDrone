@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
+
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], display: "swap" });
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
 import { ChatbotWidget } from "../components/chatbot/chatbot-widget";
@@ -19,6 +22,14 @@ export const metadata: Metadata = {
   },
   description:
     "DEER Drone is a production-ready storefront for industrial drones, creator kits, service support, and delivery across Mongolia.",
+  icons: {
+    icon: [
+      { url: "/assets/brand/deer-logo.svg", type: "image/svg+xml" }
+    ],
+    apple: [
+      { url: "/assets/brand/deer-logo.svg" }
+    ]
+  },
   alternates: {
     canonical: "/",
   },
@@ -44,8 +55,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="mn">
+    <html lang="mn" className={jakarta.className}>
       <body>
+        <style dangerouslySetInnerHTML={{__html: `
+          * {
+            font-family: var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', sans-serif;
+          }
+        `}} />
         <QueryProvider>
           <SiteHeader />
           <main>{children}</main>
