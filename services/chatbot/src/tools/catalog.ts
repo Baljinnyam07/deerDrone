@@ -31,6 +31,32 @@ export async function searchProductsTool(query: string) {
   return data || [];
 }
 
+export async function getAllProductsTool() {
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, name, price, short_description, description, category_id, hero_note");
+
+  if (error) {
+    console.error("getAllProductsTool error", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function getProductsByIdsTool(ids: string[]) {
+  if (!ids || ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, name, slug, price, hero_note, short_description")
+    .in("id", ids);
+
+  if (error) {
+    console.error("getProductsByIdsTool error", error);
+    return [];
+  }
+  return data || [];
+}
+
 export async function getProductDetailsTool(slugOrName: string) {
   const { data } = await supabase
     .from("products")
@@ -77,4 +103,22 @@ export function toChatCards(items: any[]) {
     price: product.price,
     heroNote: product.hero_note || "",
   }));
+}
+
+export async function getSystemPromptTool() {
+  const { data } = await supabase
+    .from("system_settings")
+    .select("setting_value")
+    .eq("setting_key", "system_prompt")
+    .single();
+  return data?.setting_value || "";
+}
+
+export async function getMessengerConfigTool() {
+  const { data } = await supabase
+    .from("messenger_config")
+    .select("*")
+    .limit(1)
+    .single();
+  return data;
 }

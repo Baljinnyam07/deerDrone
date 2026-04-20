@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin-page-header";
-import { Video, Settings as SettingsIcon, Globe, Bell, Shield } from "lucide-react";
+import { Video, Settings as SettingsIcon, Globe, Bell, Shield, MessageSquare } from "lucide-react";
 
 const settingsCategories = [
   {
@@ -34,6 +34,14 @@ const settingsCategories = [
     icon: Shield,
     href: "/settings/security",
     status: "Soon",
+  },
+  {
+    id: "chatbot",
+    label: "Messenger болон AI",
+    desc: "Facebook холболт, хиймэл оюуны тохиргоо",
+    icon: MessageSquare,
+    href: "/settings/chatbot",
+    status: "Ready",
   },
 ];
 
