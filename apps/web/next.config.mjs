@@ -45,6 +45,12 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'cdn.cody.mn',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   outputFileTracingRoot: path.join(__dirname, '../../'),

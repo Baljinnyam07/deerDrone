@@ -4453,3 +4453,54 @@ video::-webkit-media-controls {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border-color: #7c3aed !important;
 }
+
+/* Why Drones Section - Responsive */
+.why-drones-row {
+  display: flex;
+  min-height: 600px;
+  gap: 16px;
+}
+
+.why-drones-content {
+  flex: 1;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.why-drones-content-inner {
+  position: relative;
+  z-index: 1;
+  padding: 80px 60px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.why-drones-video {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .why-drones-row {
+    flex-direction: column;
+    min-height: unset;
+  }
+
+  .why-drones-content {
+    min-height: 480px;
+  }
+
+  .why-drones-content-inner {
+    padding: 48px 28px;
+  }
+
+  .why-drones-video {
+    height: 320px;
+    flex: none;
+  }
+}

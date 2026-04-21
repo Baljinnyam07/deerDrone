@@ -1,16 +1,17 @@
 import Link from "next/link";
-import { getProducts, getSiteSettings } from "../lib/supabase/queries";
+import { getProducts, getSiteSettings, getCategories } from "../lib/supabase/queries";
 import { ArrowRight, Search, Users, Wrench, FileVideo } from "lucide-react";
-import { ProductCarousel } from "../components/product/product-carousel";
+import { CategoryCircleGrid } from "../components/category/category-circle-grid";
 
 export default async function HomePage() {
-  const [products, settings] = await Promise.all([
+  const [products, settings, categories] = await Promise.all([
     getProducts(),
-    getSiteSettings()
+    getSiteSettings(),
+    getCategories(),
   ]);
 
   const featured = products.slice(0, 6);
-  
+
   // Find the selected hero product from settings, or fallback to index 1 (or 0)
   const heroProduct = products.find(p => p.slug === settings.home_hero_product_slug) || featured[1] || featured[0];
 
@@ -20,29 +21,6 @@ export default async function HomePage() {
     home_showcase_main: "https://terra-1-g.djicdn.com/851d20f7b9f64838a34cd02351370894/OW001%20shot%20on/F81_OW001_%E2%89%A410s_DJI_home_page_Shot_on_Video_CLEAN_2400x1440_N_N.mp4",
     home_showcase_side: "https://terra-1-g.djicdn.com/851d20f7b9f64838a34cd02351370894/WA150%20SHOT%20ON/F75_WA150__DJI_home_page_Shot_on_Video_CLEAN_2400x1440_N_N.mp4",
   };
-
-  const carouselItems = [
-    ...featured.slice(0, 2),
-    ...(featured.length <= 2 ? [
-      {
-        id: "static-1",
-        name: "DEER Air 3",
-        categoryName: "Хүчирхэг хос камер",
-        shortDescription: "All in One",
-        slug: "",
-        images: [{ url: "/assets/drone-product.png" }]
-      },
-      {
-        id: "static-2",
-        name: "DEER Mini 4 Pro",
-        categoryName: "Mini to the Max",
-        shortDescription: "Хөнгөн бас хүчирхэг",
-        slug: "",
-        images: [{ url: "/assets/drone-product.png" }]
-      }
-    ] : []),
-    ...featured.slice(2, 6)
-  ];
 
   return (
     <div
@@ -106,23 +84,19 @@ export default async function HomePage() {
       </section>
 
       {/* Why Drones Section */}
-      <section style={{ overflow: "hidden", backgroundColor: "#fff", padding: " 16px 16px" }}>
-        <div style={{ display: "flex", minHeight: "600px", gap: "16px" }}>
+      <section style={{ overflow: "hidden", backgroundColor: "#fff", padding: "16px 16px" }}>
+        <div className="why-drones-row">
           {/* Left - Content */}
-          <div style={{
-            flex: 1,
-            backgroundImage: "url('/assets/image.png')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            position: "relative",
-            overflow: "hidden",
-          }}>
+          <div
+            className="why-drones-content"
+            style={{ backgroundImage: "url('/assets/image.png')" }}
+          >
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 100%)" }} />
-            <div style={{ position: "relative", zIndex: 1, padding: "80px 60px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <div className="why-drones-content-inner">
               <span style={{ color: "rgba(255,255,255,0.45)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.18em", fontSize: "0.72rem", display: "block", marginBottom: "20px" }}>
                 Яагаад дрон авах гэж?
               </span>
-              <h2 style={{ fontSize: "clamp(2rem, 3.5vw, 3.2rem)", letterSpacing: "-0.03em", lineHeight: 1.1, color: "#FFFFFF", fontWeight: 700, marginBottom: "52px", fontFamily: "var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', sans-serif" }}>
+              <h2 style={{ fontSize: "clamp(1.6rem, 5vw, 3.2rem)", letterSpacing: "-0.03em", lineHeight: 1.1, color: "#FFFFFF", fontWeight: 700, marginBottom: "36px", fontFamily: "var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', sans-serif" }}>
                 Дэлхийг өөр <br />өнцгөөс хар
               </h2>
               {[
@@ -142,7 +116,7 @@ export default async function HomePage() {
           </div>
 
           {/* Right - Video */}
-          <div style={{ flex: 1, position: "relative", overflow: "hidden"}}>
+          <div className="why-drones-video">
             <video
               autoPlay muted loop playsInline
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
@@ -159,15 +133,18 @@ export default async function HomePage() {
       </section>
 
       {/* Product Grid - DJI Style Tiles */}
-      <section className="bg-light pb-5">
+      <section style={{ backgroundColor: "#fff", paddingTop: "40px", paddingBottom: "40px" }}>
         <div className="container-fluid w-100">
-          <div className="text-center mb-5 pt-5">
-            <h2 className="fw-bold mb-3" style={{ fontSize: "clamp(2rem, 4vw, 3rem)", letterSpacing: "-0.02em" }}>
-              Бүтээгдэхүүн
+          <div className="text-center mb-4">
+            <span style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "#9ca3af", display: "block", marginBottom: "10px" }}>
+              Ангилал
+            </span>
+            <h2 style={{ fontSize: "clamp(1.6rem, 4vw, 2.4rem)", fontWeight: 700, letterSpacing: "-0.03em", color: "#111827", margin: 0, fontFamily: "var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', sans-serif" }}>
+              Онцлох ангилал
             </h2>
           </div>
 
-          <ProductCarousel products={carouselItems} />
+          <CategoryCircleGrid categories={categories} />
         </div>
       </section>
 

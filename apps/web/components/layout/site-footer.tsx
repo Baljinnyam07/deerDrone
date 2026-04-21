@@ -287,7 +287,7 @@ export function SiteFooter() {
           padding: "0 32px",
           borderTop: "1px solid #E2E8F0",
           paddingTop: "24px",
-          marginBottom: "24px",
+          marginBottom: "36px",
         }}
       >
         <p
