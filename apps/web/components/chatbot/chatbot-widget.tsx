@@ -116,11 +116,53 @@ export function ChatbotWidget() {
 
                 {message.cards?.map((card) => (
                   <div className="chat-inline-card" key={card.id}>
+                    {card.image_url && (
+                      <img
+                        src={card.image_url}
+                        alt={card.name}
+                        style={{ width: "100%", height: "120px", objectFit: "contain", borderRadius: "6px", marginBottom: "8px", background: "#f8f8f8" }}
+                      />
+                    )}
                     <strong>{card.name}</strong>
-                    <p className="muted">{card.heroNote}</p>
-                    <div className="stack-row">
-                      <span>{formatMoney(card.price)}</span>
-                      <Link href={`/products/${card.slug}`}>Дэлгэрэнгүй</Link>
+                    {card.heroNote && <p className="muted" style={{ margin: "4px 0" }}>{card.heroNote}</p>}
+                    <div style={{ marginBottom: "8px" }}>
+                      <span style={{ fontWeight: 700 }}>{card.price > 0 ? formatMoney(card.price) : "Үнэ тодрох"}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <Link
+                        href={`/products/${card.slug}`}
+                        style={{
+                          flex: 1,
+                          textAlign: "center",
+                          padding: "7px 10px",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "6px",
+                          fontSize: "0.8rem",
+                          fontWeight: 600,
+                          color: "#374151",
+                          textDecoration: "none",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Дэлгэрэнгүй
+                      </Link>
+                      <Link
+                        href={`/products/${card.slug}`}
+                        style={{
+                          flex: 1,
+                          textAlign: "center",
+                          padding: "7px 10px",
+                          background: "#111827",
+                          color: "#fff",
+                          borderRadius: "6px",
+                          fontSize: "0.8rem",
+                          fontWeight: 700,
+                          textDecoration: "none",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        🛒 Захиалах
+                      </Link>
                     </div>
                   </div>
                 ))}

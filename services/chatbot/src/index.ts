@@ -50,6 +50,7 @@ server.post("/chat", async (request, reply) => {
 
 import { handleWebhookEvent } from "./messenger.js";
 import { getMessengerConfigTool } from "./tools/catalog.js";
+import { handleCommentChange } from "./comments/webhookHandler.js";
 
 server.get("/webhook", async (request: any, reply: any) => {
   const config = await getMessengerConfigTool();
@@ -75,18 +76,38 @@ server.post("/webhook", async (request: any, reply: any) => {
 
   if (body.object === "page") {
     const promises = [];
-    
+
+    // Load config from DB — fallback to env if DB not configured
+    const dbConfig = await getMessengerConfigTool().catch(() => null);
+    const pageToken: string =
+      dbConfig?.page_access_token || process.env.PAGE_ACCESS_TOKEN || "";
+    const pageId: string =
+      dbConfig?.page_id || process.env.MESSENGER_PAGE_ID || "";
+
+    if (!pageToken) {
+      server.log.warn("PAGE_ACCESS_TOKEN not set — webhook skipped");
+      return reply.status(200).send("EVENT_RECEIVED");
+    }
+
     for (const entry of body.entry || []) {
+      // ── Messenger events (DMs, postbacks) ───────────────────────────────
       const webhookEvent = entry.messaging?.[0];
-      if (webhookEvent) {
+      if (webhookEvent && dbConfig?.is_enabled !== false) {
         promises.push(handleWebhookEvent(webhookEvent));
+      }
+
+      // ── Page feed events (comments on posts) ────────────────────────────
+      for (const change of entry.changes || []) {
+        if (change.field === "feed") {
+          promises.push(handleCommentChange(change, pageToken, pageId));
+        }
       }
     }
 
     await Promise.all(promises);
     return reply.status(200).send("EVENT_RECEIVED");
   }
-  
+
   return reply.status(404).send();
 });
 

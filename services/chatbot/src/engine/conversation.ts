@@ -245,15 +245,30 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   if (intent === "order_request") {
-    await captureLead(message, intent, "order");
     // Try to identify which product they want
     const matched = await matchProducts(message);
-    const cards = matched.length > 0 ? toChatCards(matched) : [];
-    const ackText =
-      matched.length > 0
-        ? STATIC.orderInterest(matched[0].name)
-        : STATIC.orderInterestGeneric;
-    return reply(sessionId, ackText, cards);
+    const siteUrl = process.env.SITE_URL || "https://deerdrone.mn";
+
+    if (matched.length > 0) {
+      const product = matched[0];
+      const orderUrl = `${siteUrl}/products/${product.slug}`;
+      const cards = toChatCards(matched);
+      return reply(
+        sessionId,
+        `🛒 "${product.name}" захиалахын тулд доорх холбоосоор орно уу:\n${orderUrl}`,
+        cards
+      );
+    }
+
+    // Product unclear — show catalog and let them pick
+    const featured = await getFeaturedProductsTool(4);
+    const mapped = featured.map((p: any) => ({ ...p, slug: p.slug ?? "", heroNote: p.hero_note ?? "" }));
+    const cards = toChatCards(mapped);
+    return reply(
+      sessionId,
+      "Юу бүтээгдэхүүнийг захиалах гэж байна вэ? Доорх бүтээгдэхүүнийг сонгох уу 👇",
+      cards
+    );
   }
 
   // ── Step 5: AI fallback — consultation, compare, or unknown drone topic ─

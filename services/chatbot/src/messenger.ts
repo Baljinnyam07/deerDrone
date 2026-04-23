@@ -71,6 +71,7 @@ export async function sendProductCarousel(
 ) {
   if (!token || !products.length) return;
 
+  const siteUrl = process.env.SITE_URL || "https://deerdrone.mn";
   const elements = products.slice(0, 10).map((p) => ({
     title: p.name,
     subtitle: `${formatMoney(p.price || 0)} — ${
@@ -80,9 +81,9 @@ export async function sendProductCarousel(
       p.image_url || p.image || "https://placehold.co/300x200?text=Drone",
     buttons: [
       {
-        type: "postback",
+        type: "web_url",
         title: "🛒 Захиалах",
-        payload: `ORDER_${p.id}`,
+        url: `${siteUrl}/products/${p.slug || p.id}`,
       },
       {
         type: "postback",
@@ -122,27 +123,19 @@ async function handleOrderPostback(
 ) {
   const product = await getProductById(productId);
 
-  // Create lead regardless of whether product was found
-  const interest = product
-    ? `Messenger захиалга: ${product.name} (ID: ${productId})`
-    : `Messenger захиалга: бүтээгдэхүүн ID ${productId}`;
-
-  try {
-    await captureLeadTool("Тодорхойгүй", "", interest, "order_request", "order");
-  } catch (err) {
-    console.error("Lead capture error:", err);
+  if (!product) {
+    await sendMessage(senderId, STATIC.productNotFound, token);
+    return;
   }
 
-  const ack = product
-    ? STATIC.orderInterest(product.name)
-    : STATIC.orderInterestGeneric;
+  const siteUrl = process.env.SITE_URL || "https://deerdrone.mn";
+  const orderUrl = `${siteUrl}/products/${product.slug}`;
 
-  await sendMessage(senderId, ack, token);
-
-  // Show the product card again so they have context
-  if (product) {
-    await sendProductCarousel(senderId, toChatCards([product]), token);
-  }
+  await sendMessage(
+    senderId,
+    `🛒 "${product.name}" захиалахын тулд доорх холбоосоор орно уу:\n${orderUrl}`,
+    token
+  );
 }
 
 async function handleDetailPostback(
