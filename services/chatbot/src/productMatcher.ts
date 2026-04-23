@@ -111,15 +111,21 @@ export async function getMinimalCatalogContext(
 // Normaliser
 // ---------------------------------------------------------------------------
 function normalise(items: any[]): MatchedProduct[] {
-  return items.map((p) => ({
-    id: p.id,
-    name: p.name,
-    slug: p.slug ?? "",
-    price: p.price ?? 0,
-    heroNote: p.hero_note ?? "",
-    short_description: p.short_description ?? "",
-    image_url: p.image_url ?? p.image ?? undefined,
-  }));
+  return items.map((p) => {
+    let imageUrl = p.product_images?.[0]?.url || p.image_url || p.image;
+    if (imageUrl && imageUrl.startsWith("/")) {
+      imageUrl = `https://deer-drone.vercel.app${imageUrl}`;
+    }
+    return {
+      id: p.id,
+      name: p.name,
+      slug: p.slug ?? "",
+      price: p.price ?? 0,
+      heroNote: p.hero_note ?? "",
+      short_description: p.short_description ?? "",
+      image_url: imageUrl || undefined,
+    };
+  });
 }
 
 /**

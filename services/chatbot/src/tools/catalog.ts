@@ -24,7 +24,7 @@ const supabase = createClient(supabaseUrl || "https://placeholder.supabase.co", 
 export async function searchProductsTool(query: string, limit = 6) {
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, price, hero_note, short_description")
+    .select("id, name, price, hero_note, short_description, product_images(url)")
     .ilike("name", `%${query}%`)
     .limit(limit);
 
@@ -39,7 +39,7 @@ export async function searchProductsTool(query: string, limit = 6) {
 export async function getAllProductsTool() {
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, price, short_description, description, category_id, hero_note");
+    .select("id, name, price, short_description, description, category_id, hero_note, product_images(url)");
 
   if (error) {
     console.error("getAllProductsTool error", error);
@@ -52,7 +52,7 @@ export async function getProductsByIdsTool(ids: string[]) {
   if (!ids || ids.length === 0) return [];
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, price, hero_note, short_description")
+    .select("id, name, price, hero_note, short_description, product_images(url)")
     .in("id", ids);
 
   if (error) {
@@ -65,7 +65,7 @@ export async function getProductsByIdsTool(ids: string[]) {
 export async function getProductDetailsTool(slugOrName: string) {
   const { data } = await supabase
     .from("products")
-    .select("id, name, price, hero_note, short_description, description")
+    .select("id, name, price, hero_note, short_description, description, product_images(url)")
     .ilike("name", `%${slugOrName}%`) // only check name since slug is missing 
     .limit(1)
     .single();
@@ -116,7 +116,7 @@ export async function getFeaturedProductsTool(limit = 6) {
   // Try featured flag first
   const { data: featured } = await supabase
     .from("products")
-    .select("id, name, price, hero_note, short_description")
+    .select("id, name, price, hero_note, short_description, product_images(url)")
     .eq("is_featured", true)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -126,7 +126,7 @@ export async function getFeaturedProductsTool(limit = 6) {
   // Fallback: newest products
   const { data: fallback, error } = await supabase
     .from("products")
-    .select("id, name, price, hero_note, short_description")
+    .select("id, name, price, hero_note, short_description, product_images(url)")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -138,14 +138,20 @@ export async function getFeaturedProductsTool(limit = 6) {
 }
 
 export function toChatCards(items: any[], limit = 6) {
-  return items.slice(0, limit).map((product) => ({
-    id: product.id,
-    name: product.name,
-    slug: product.slug ?? "",
-    price: product.price ?? 0,
-    heroNote: product.hero_note ?? "",
-    image_url: product.image_url ?? product.image ?? undefined,
-  }));
+  return items.slice(0, limit).map((product) => {
+    let imageUrl = product.product_images?.[0]?.url || product.image_url || product.image;
+    if (imageUrl && imageUrl.startsWith("/")) {
+      imageUrl = `https://deer-drone.vercel.app${imageUrl}`;
+    }
+    return {
+      id: product.id,
+      name: product.name,
+      slug: product.slug ?? "",
+      price: product.price ?? 0,
+      heroNote: product.hero_note ?? "",
+      image_url: imageUrl || undefined,
+    };
+  });
 }
 
 export async function getSystemPromptTool() {

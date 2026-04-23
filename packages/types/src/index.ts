@@ -152,6 +152,7 @@ export interface ChatCardProduct {
   slug: string;
   price: number;
   heroNote: string;
+  image_url?: string;
 }
 
 export interface ChatMessage {

@@ -28,6 +28,7 @@ export function LazyVideo({ src, className, style, eager = false, poster }: Lazy
 
   // Src өөрчлөгдвөл (admin settings) шинэчилнэ
   useEffect(() => {
+    // eslint-disable-next-line
     if (eager) setActiveSrc(src);
   }, [src, eager]);
 
