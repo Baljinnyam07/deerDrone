@@ -154,9 +154,9 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
         /* Content Styling */
         .help-content-card h1 {
           font-size: 3rem;
-          font-weight: 800;
+          font-weight: 600;
           margin-bottom: 3rem;
-          letter-spacing: -0.05em;
+          letter-spacing: 0.02em;
           color: #fff;
         }
 
