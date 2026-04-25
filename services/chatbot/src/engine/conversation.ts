@@ -25,13 +25,13 @@ import {
   matchProducts,
   getMinimalCatalogContext,
   getProductsByIds,
-  toChatCards,
 } from "../productMatcher.js";
 import {
   captureLeadTool,
   getAllProductsTool,
   getFeaturedProductsTool,
   getSystemPromptTool,
+  toChatCards,
 } from "../tools/catalog.js";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";

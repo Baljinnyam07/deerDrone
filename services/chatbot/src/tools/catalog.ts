@@ -144,7 +144,7 @@ export function toChatCards(items: any[], limit = 6) {
       imageUrl = `https://deer-drone.vercel.app${imageUrl}`;
     }
     // Facebook Messenger does not support WebP. Convert via proxy.
-    if (imageUrl && imageUrl.includes(".webp")) {
+    if (imageUrl && imageUrl.includes(".webp") && !imageUrl.includes("wsrv.nl")) {
       imageUrl = `https://wsrv.nl/?url=${encodeURIComponent(imageUrl)}&output=jpg`;
     }
     return {
