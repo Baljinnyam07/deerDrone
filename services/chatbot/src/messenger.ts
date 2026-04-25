@@ -62,6 +62,33 @@ export async function sendMessage(senderId: string, text: string, token: string)
 }
 
 // ---------------------------------------------------------------------------
+// Image sender
+// ---------------------------------------------------------------------------
+export async function sendImage(senderId: string, imageUrl: string, token: string) {
+  if (!token || !imageUrl) return;
+  try {
+    await fetch(`${BASE_URL}/messages?access_token=${token}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipient: { id: senderId },
+        message: {
+          attachment: {
+            type: "image",
+            payload: {
+              url: imageUrl,
+              is_reusable: true,
+            },
+          },
+        },
+      }),
+    });
+  } catch (err) {
+    console.error("sendImage error:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Product carousel sender
 // ---------------------------------------------------------------------------
 export async function sendProductCarousel(
@@ -223,6 +250,9 @@ export async function handleWebhookEvent(event: any) {
 
       if (response.reply) {
         await sendMessage(senderId, response.reply, token);
+      }
+      if (response.image) {
+        await sendImage(senderId, response.image, token);
       }
       if (response.cards && response.cards.length > 0) {
         await sendProductCarousel(senderId, response.cards, token);

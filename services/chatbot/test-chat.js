@@ -1,6 +1,6 @@
 // Using global fetch (Node 20+)
 
-const CHAT_URL = 'https://chatbot-phi-neon-55.vercel.app/chat';
+const CHAT_URL = 'http://localhost:8787/chat';
 
 async function testChat(message) {
   console.log(`👤 User: ${message}`);

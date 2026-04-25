@@ -46,6 +46,10 @@ function askQuestion() {
       if (resp.lead) {
         console.log(`\n   [Систем: Хүсэлт Lead санд бүртгэгдлээ (Interest: ${resp.lead.interest})]`);
       }
+      
+      if (resp.image) {
+        console.log(`\n   [Зураг илгээгдлээ: ${resp.image}]`);
+      }
       console.log("\n------------------------------------------------");
     } catch (err) {
       console.error("Алдаа гарлаа:", err);

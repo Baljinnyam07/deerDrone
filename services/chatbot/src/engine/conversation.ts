@@ -33,13 +33,29 @@ import {
   getFeaturedProductsTool,
   getSystemPromptTool,
 } from "../tools/catalog.js";
+import { z } from "zod";
+import { Redis } from "@upstash/redis";
 
 // ---------------------------------------------------------------------------
-// OpenAI client (lazy — only created when key is present)
+// OpenAI & Redis clients
 // ---------------------------------------------------------------------------
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
+
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
+
+// ---------------------------------------------------------------------------
+// Zod Schema for AI Output
+// ---------------------------------------------------------------------------
+const AiResponseSchema = z.object({
+  message: z.string().optional(),
+  response: z.string().optional(),
+  reply: z.string().optional(),
+  suggested_product_ids: z.array(z.union([z.string(), z.object({ id: z.string() })])).optional(),
+}).catchall(z.any());
 
 // ---------------------------------------------------------------------------
 // Conversation history — capped at MAX_TURNS * 2 messages (user + assistant)
@@ -50,20 +66,29 @@ const conversationHistory = new Map<
   Array<{ role: "assistant" | "user"; content: string }>
 >();
 
-function getHistory(sessionId: string) {
+async function getHistory(sessionId: string): Promise<Array<{ role: "assistant" | "user"; content: string }>> {
+  if (redis) {
+    const history = await redis.get<Array<{ role: "assistant" | "user"; content: string }>>(`history_${sessionId}`);
+    return history || [];
+  }
   return conversationHistory.get(sessionId) ?? [];
 }
 
-function addToHistory(
+async function addToHistory(
   sessionId: string,
   role: "assistant" | "user",
   content: string
 ) {
-  const history = getHistory(sessionId);
+  const history = await getHistory(sessionId);
   history.push({ role, content });
-  // Keep only last MAX_TURNS * 2 messages
   if (history.length > MAX_TURNS * 2) history.splice(0, 2);
-  conversationHistory.set(sessionId, history);
+  
+  if (redis) {
+    // Keep history for 24 hours
+    await redis.set(`history_${sessionId}`, history, { ex: 60 * 60 * 24 });
+  } else {
+    conversationHistory.set(sessionId, history);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -104,9 +129,10 @@ async function callAI(
       contextProducts.length > 0
         ? JSON.stringify(contextProducts)
         : "[]";
-    const prompt = basePrompt.replace("{productsContext}", productsContext);
+    let prompt = basePrompt.replace("{productsContext}", productsContext);
+    prompt += `\n\nЧУХАЛ: Та зөвхөн дараах JSON форматаар хариулах ёстой: {"message": "таны хариулт...", "suggested_product_ids": ["id1", "id2"]}. Өөр ямар ч бүтэц ашиглаж болохгүй!`;
 
-    const history = getHistory(sessionId);
+    const history = await getHistory(sessionId);
     const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
       { role: "system", content: prompt },
       ...history,
@@ -124,28 +150,26 @@ async function callAI(
     const raw = completion.choices[0]?.message?.content ?? "{}";
     console.log("🤖 AI raw:", raw);
 
-    let result: any = {};
+    let parsed: z.infer<typeof AiResponseSchema>;
     try {
-      result = JSON.parse(raw);
-    } catch {
+      const json = JSON.parse(raw);
+      parsed = AiResponseSchema.parse(json);
+    } catch (error) {
+      console.error("AI Output Parse Error:", error);
       return { reply: STATIC.fallback, cards: [] };
     }
 
     let reply =
-      result.message ||
-      result.response ||
-      result.reply;
-
-    if (!reply) {
-      const firstStr = Object.values(result).find(v => typeof v === 'string');
-      reply = firstStr ? String(firstStr) : STATIC.fallback;
-    }
+      parsed.message ||
+      parsed.response ||
+      parsed.reply ||
+      STATIC.fallback;
 
     // Resolve any AI-suggested product IDs to cards
-    const suggestedIds: string[] = Array.isArray(result.suggested_product_ids)
-      ? result.suggested_product_ids
-          .map((x: any) => (typeof x === "string" ? x : x?.id))
-          .filter(Boolean)
+    const suggestedIds: string[] = Array.isArray(parsed.suggested_product_ids)
+      ? parsed.suggested_product_ids
+          .map((x) => (typeof x === "string" ? x : (x as any)?.id))
+          .filter((id): id is string => Boolean(id))
           .slice(0, 3)
       : [];
 
@@ -201,9 +225,18 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
 
   // ── Step 3: Lead capture paths (ZERO AI) ──────────────────────────────
 
+  if (intent === "loan_info") {
+    return reply(sessionId, STATIC.loanInfo);
+  }
+
   if (intent === "loan_request") {
     await captureLead(message, intent, "loan");
-    return reply(sessionId, STATIC.loanAck);
+    const siteUrl = process.env.SITE_URL || "https://deerdrone.mn";
+    return {
+      sessionId,
+      reply: STATIC.loanAck,
+      image: `${siteUrl}/1732662059344.png`
+    };
   }
 
   if (intent === "lease_request") {
@@ -276,7 +309,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   if (
     intent === "technical_consultation" ||
     intent === "compare_products" ||
-    (intent === "unknown" && looksLikeDroneRelated(message))
+    intent === "unknown"
   ) {
     // Get minimal context: try to match specific products first (1-3),
     // fall back to small catalog summary (max 8)
@@ -294,8 +327,8 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     );
 
     // Only store consultation messages in history (not static responses)
-    addToHistory(sessionId, "user", message);
-    addToHistory(sessionId, "assistant", aiReply);
+    await addToHistory(sessionId, "user", message);
+    await addToHistory(sessionId, "assistant", aiReply);
 
     return {
       sessionId,

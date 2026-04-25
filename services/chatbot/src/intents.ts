@@ -15,6 +15,7 @@ export type Intent =
   | "compare_products"
   | "delivery"
   | "lease_request"
+  | "loan_info"
   | "loan_request"
   | "rental_request"
   | "quote_request"
@@ -72,15 +73,29 @@ const OFF_TOPIC = [
   /шигтэй\s*яриа/i,
 ];
 
+const LOAN_INFO = [
+  /зээлээр\s*авч\s*болох\s*уу/i,
+  /zeeleer\s*awj\s*boloh\s*uu/i,
+  /зээл\s*байдаг\s*уу/i,
+  /zeel\s*baidag\s*uu/i,
+  /зээл\s*байгаа\s*юу/i,
+  /zeel\s*baigaa\s*yu/i,
+  /зээл\s*гардаг\s*уу/i,
+  /zeel\s*gardag\s*uu/i,
+];
+
 
 
 const LOAN = [
   /зээл/i,
+  /zeel/i,
   /зээлээр\s*авч\s*болох/i,
+  /zeeleer/i,
   /зээлдэх/i,
   /loan/i,
   /credit/i,
   /хэсэгчлэн\s*төлөх/i,
+  /danjuulah/i,
   /дансжуулах/i,
 ];
 
@@ -121,10 +136,14 @@ const BULK = [
 
 const HUMAN_HANDOFF = [
   /оператор/i,
+  /operator/i,
   /ажилтан/i,
+  /ajiltan/i,
   /менежер/i,
+  /manager/i,
   /хүнтэй\s*яриа/i,
   /холбогдох/i,
+  /holbogd/i,
   /утсаар\s*ярих/i,
   /live\s*agent/i,
   /staff/i,
@@ -259,6 +278,7 @@ export function classifyIntent(message: string): Intent {
   if (matches(text, OFF_TOPIC)) return "off_topic";
 
   // Finance / handoff routes (high priority — must capture leads)
+  if (matches(text, LOAN_INFO)) return "loan_info";
   if (matches(text, LOAN)) return "loan_request";
   if (matches(text, LEASE)) return "lease_request";
   if (matches(text, RENTAL)) return "rental_request";

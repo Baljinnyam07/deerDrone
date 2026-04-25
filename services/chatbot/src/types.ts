@@ -32,4 +32,5 @@ export interface ChatResponse {
   reply: string;
   cards?: ChatCardProduct[];
   lead?: Partial<ChatLead>;
+  image?: string;
 }

@@ -34,23 +34,23 @@ const SIMILAR_DM = "Танд санал болгох бүтээгдэхүүнү�
 // ---------------------------------------------------------------------------
 
 export async function dispatchCommentDM(
-  recipientId: string,
+  commentId: string,
   intent: CommentIntent,
   commentText: string,
   pageToken: string
 ): Promise<void> {
+  let replyText = "";
+
   switch (intent) {
     case "info_request":
-    case "product_interest": {
-      const products = await getFeaturedProductsTool(6);
-      await sendText(recipientId, INTRO_DM, pageToken);
-      await sendCarousel(recipientId, products, pageToken);
+    case "product_interest":
+    case "recommend": {
+      replyText = `Сайн байна уу! 👋 Та манай дронуудын дэлгэрэнгүй мэдээлэл болон үнийг эндээс харах боломжтой: ${SITE_URL}`;
       break;
     }
 
     case "financing": {
-      await sendText(recipientId, FINANCING_DM, pageToken);
-      await sendFinancingActions(recipientId, pageToken);
+      replyText = FINANCING_DM + `\n\nДэлгэрэнгүй мэдээлэл авах бол энд дарж орно уу: ${SITE_URL}`;
       // Silent lead capture
       await captureLeadTool(
         "Тодорхойгүй", "",
@@ -60,15 +60,8 @@ export async function dispatchCommentDM(
       break;
     }
 
-    case "recommend": {
-      const products = await getFeaturedProductsTool(4);
-      await sendText(recipientId, SIMILAR_DM, pageToken);
-      await sendCarousel(recipientId, products, pageToken);
-      break;
-    }
-
     case "human_support": {
-      await sendText(recipientId, HANDOFF_DM, pageToken);
+      replyText = HANDOFF_DM;
       await captureLeadTool(
         "Тодорхойгүй", "",
         `Facebook тусламж: ${commentText.slice(0, 100)}`,
@@ -78,97 +71,19 @@ export async function dispatchCommentDM(
     }
 
     default: {
-      // low_confidence → show products, soft approach
-      const products = await getFeaturedProductsTool(4);
-      await sendCarousel(recipientId, products, pageToken);
+      replyText = `Сайн байна уу! 👋 Дэлгэрэнгүй мэдээллийг эндээс харна уу: ${SITE_URL}`;
     }
   }
+
+  await graphPost(pageToken, {
+    recipient: { comment_id: commentId },
+    message: { text: replyText },
+  });
 }
 
 // ---------------------------------------------------------------------------
 // Low-level senders
 // ---------------------------------------------------------------------------
-
-async function sendText(
-  recipientId: string,
-  text: string,
-  token: string
-): Promise<void> {
-  await graphPost(token, {
-    recipient: { id: recipientId },
-    message: { text },
-  });
-}
-
-async function sendCarousel(
-  recipientId: string,
-  products: any[],
-  token: string
-): Promise<void> {
-  if (!products.length) return;
-
-  const elements = products.slice(0, 10).map((p) => ({
-    title: p.name,
-    subtitle: `${formatMoney(p.price || 0)} — ${p.hero_note || p.short_description || ""}`.slice(0, 80),
-    image_url: p.image_url || "https://placehold.co/300x200?text=Drone",
-    buttons: [
-      {
-        type: "web_url",
-        title: "🛒 Захиалах",
-        url: `${SITE_URL}/products/${p.slug || p.id}`,
-      },
-      {
-        type: "postback",
-        title: "📋 Дэлгэрэнгүй",
-        payload: `DETAIL_${p.id}`,
-      },
-      {
-        type: "postback",
-        title: "💰 Зээлээр авах",
-        payload: `FINANCE_${p.id}`,
-      },
-    ],
-  }));
-
-  await graphPost(token, {
-    recipient: { id: recipientId },
-    message: {
-      attachment: {
-        type: "template",
-        payload: { template_type: "generic", elements },
-      },
-    },
-  });
-}
-
-async function sendFinancingActions(
-  recipientId: string,
-  token: string
-): Promise<void> {
-  await graphPost(token, {
-    recipient: { id: recipientId },
-    message: {
-      text: "Та дараагийн алхамаа сонгоно уу:",
-      quick_replies: [
-        {
-          content_type: "text",
-          title: "🏦 Зээлийн байгууллага",
-          payload: "FINANCE_INSTITUTION",
-        },
-        {
-          content_type: "text",
-          title: "👤 Ажилтантай ярих",
-          payload: "LEAD_FORM_START",
-        },
-        {
-          content_type: "text",
-          title: "📞 8815-7242 Утасдах",
-          payload: "CALL_US",
-        },
-      ],
-    },
-  });
-}
 
 async function graphPost(token: string, body: object): Promise<void> {
   try {

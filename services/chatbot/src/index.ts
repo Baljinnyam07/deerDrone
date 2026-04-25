@@ -104,7 +104,7 @@ server.post("/webhook", async (request: any, reply: any) => {
       }
     }
 
-    await Promise.all(promises);
+    await Promise.allSettled(promises);
     return reply.status(200).send("EVENT_RECEIVED");
   }
 
