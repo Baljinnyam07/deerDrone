@@ -105,7 +105,7 @@ export async function sendProductCarousel(
       p.heroNote || p.short_description || "Дэлгэрэнгүй мэдээлэл"
     }`,
     image_url:
-      p.image_url || p.image || "https://placehold.co/300x200?text=Drone",
+      p.image_url || p.image || "https://placehold.co/300x200.png?text=Drone",
     buttons: [
       {
         type: "web_url",
