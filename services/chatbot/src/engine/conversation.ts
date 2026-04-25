@@ -226,7 +226,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   // ── Step 3: Lead capture paths (ZERO AI) ──────────────────────────────
 
   if (intent === "loan_info") {
-    const baseUrl = "https://chatbot-phi-neon-55.vercel.app"
+    const baseUrl = process.env.SITE_URL || "https://deerdrone.mn";
     const rawImg = `${baseUrl}/aaaaaaa-01.jpg`;
     const proxyImg = `https://wsrv.nl/?url=${encodeURIComponent(rawImg)}&w=1000&output=jpg`;
 
@@ -239,7 +239,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
 
   if (intent === "loan_request") {
     await captureLead(message, intent, "loan");
-    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : (process.env.SITE_URL || "https://deerdrone.mn");
+    const baseUrl = process.env.SITE_URL || "https://deerdrone.mn";
     const rawImg = `${baseUrl}/aaaaaaa-01.jpg`;
     const proxyImg = `https://wsrv.nl/?url=${encodeURIComponent(rawImg)}&w=1000&output=jpg`;
 
