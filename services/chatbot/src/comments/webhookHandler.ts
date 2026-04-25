@@ -44,18 +44,13 @@ export async function handleCommentChange(
   if (val?.item !== "comment" || val?.verb !== "add") return;
 
   const commentId:   string = val.comment_id ?? "";
-  const senderId:    string = val.from?.id   ?? val.sender_id ?? "";
+  const senderId:    string = val.from?.id   ?? val.sender_id ?? "unknown_sender";
   const commentText: string = val.message    ?? "";
 
-  if (!commentId || !senderId || !commentText.trim()) return;
+  if (!commentId || !commentText.trim()) return;
 
   // Skip the Page's own comments (prevents echo loop)
   if (senderId === pageId) return;
-
-  // Skip if this is a reply to a comment (not a top-level post comment)
-  // parent_id for top-level is just the post_id (no underscore after post id)
-  const parentId: string = val.parent_id ?? "";
-  if (parentId && parentId !== val.post_id) return;
 
   // Deduplication
   if (redis) {
