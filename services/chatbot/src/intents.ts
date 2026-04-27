@@ -171,10 +171,13 @@ const DELIVERY = [
 const ADDRESS = [
   /хаяг/i,
   /hayag/i,
+  /hayg/i,
   /хаана\s*байдаг/i,
+  /haana\s*we/i,
   /location/i,
   /address/i,
   /байршил/i,
+  /bairshil/i,
   /дүүрэг/i,
   /plaza/i,
   /плаза/i,

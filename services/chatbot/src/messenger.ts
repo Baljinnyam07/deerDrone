@@ -9,6 +9,14 @@
  */
 
 import { runConversation } from "./engine/conversation.js";
+import { Redis } from "@upstash/redis";
+
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
+
+// Fallback in-memory pause state
+const botPausedState = new Map<string, number>();
 import {
   getMessengerConfigTool,
   captureLeadTool,
@@ -275,10 +283,43 @@ export async function handleWebhookEvent(event: any) {
     return;
   }
 
-  // ── Text message handling ───────────────────────────────────────────────
+
+
+// ── Text message handling ───────────────────────────────────────────────
+  if (event.message?.is_echo) {
+    // Page admin replied -> Pause bot for 2 hours
+    const recipientId = event.message.recipient?.id;
+    if (recipientId) {
+      console.log(`[messenger] Admin replied. Pausing bot for ${recipientId}`);
+      if (redis) {
+        await redis.set(`bot_paused_${recipientId}`, "1", { ex: 2 * 3600 });
+      } else {
+        botPausedState.set(recipientId, Date.now() + 2 * 3600 * 1000);
+      }
+    }
+    return;
+  }
+
   if (event.message?.text && !event.message.is_echo) {
     const text: string = event.message.text;
     console.log("TEXT_MESSAGE", { senderId, text: text.slice(0, 80) });
+
+    // Check if bot is paused
+    if (redis) {
+      const isPaused = await redis.get(`bot_paused_${senderId}`);
+      if (isPaused) {
+        console.log(`[messenger] Bot is paused for ${senderId}. Ignoring message.`);
+        return;
+      }
+    } else {
+      const unpauseTime = botPausedState.get(senderId);
+      if (unpauseTime && Date.now() < unpauseTime) {
+        console.log(`[messenger] Bot is paused (mem) for ${senderId}. Ignoring message.`);
+        return;
+      } else if (unpauseTime) {
+        botPausedState.delete(senderId);
+      }
+    }
 
     await sendTyping(senderId, token);
 

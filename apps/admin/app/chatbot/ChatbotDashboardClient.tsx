@@ -6,6 +6,7 @@ import {
   Settings, Inbox, Search, Filter, Phone, Bot, Eye, EyeOff, 
   ChevronRight, Copy, Check, MoreVertical, X, Clock, Target, Trash2, Edit, Send
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { updateLeadStatus, deleteLead, updateMessengerConfig, getConversationHistory, sendMessengerReply, updateLeadNotes } from "./actions";
 
 interface ChatbotDashboardClientProps {
@@ -32,6 +33,7 @@ const INTENT_COLORS: Record<string, { bg: string, text: string }> = {
 
 export function ChatbotDashboardClient({ leads: initialLeads, messengerConfig, totalTokens }: ChatbotDashboardClientProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"messenger" | "comments" | "settings">("messenger");
   const [leads, setLeads] = useState(initialLeads);
   const [selectedLead, setSelectedLead] = useState<any | null>(null);
@@ -62,7 +64,34 @@ export function ChatbotDashboardClient({ leads: initialLeads, messengerConfig, t
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+    
+    // Poll for new leads every 15 seconds
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [router]);
+
+  // Handle incoming new leads from server
+  useEffect(() => {
+    if (initialLeads.length > leads.length) {
+      const newLeads = initialLeads.filter(il => !leads.find(l => l.id === il.id));
+      newLeads.forEach(nl => {
+        if (nl.intent === "human_handoff" || nl.intent === "human_support" || nl.intent === "loan_request") {
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification("Шинэ Lead орж ирлээ!", {
+              body: `${nl.name || "Хэрэглэгч"} тусламж эсвэл зээл хүсэж байна.`,
+            });
+          }
+        }
+      });
+    }
+    // Update local state with latest server data
+    setLeads(initialLeads);
+  }, [initialLeads]);
   
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -372,6 +401,17 @@ export function ChatbotDashboardClient({ leads: initialLeads, messengerConfig, t
                     >
                       <Trash2 size={18} />
                     </button>
+                    {selectedLead.session_id && messengerConfig?.page_id && (
+                      <a 
+                        href={`https://business.facebook.com/latest/inbox/messenger?asset_id=${messengerConfig.page_id}&selected_item_id=${selectedLead.session_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ padding: "0.5rem", borderRadius: "8px", border: "1px solid #CBD5E1", backgroundColor: "#F8FAFC", color: "#2563EB", cursor: "pointer", display: "flex", alignItems: "center", textDecoration: "none" }}
+                        title="Facebook Inbox дээр нээх"
+                      >
+                        <MessageSquare size={18} />
+                      </a>
+                    )}
                   </div>
 
                   {/* Info Cards */}
