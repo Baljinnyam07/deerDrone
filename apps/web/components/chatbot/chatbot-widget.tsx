@@ -54,12 +54,26 @@ export function ChatbotWidget() {
       <AnimatePresence>
         {open && (
           <motion.div
+            className="cb-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            onClick={() => setOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
             className="cb-panel"
             initial={{ opacity: 0, y: 12, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.97 }}
             transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
           >
+            <div className="cb-drag-handle" />
             {/* Header */}
             <div className="cb-header">
               <div className="cb-header-dot" />
@@ -149,6 +163,7 @@ export function ChatbotWidget() {
       </AnimatePresence>
 
       {/* FAB */}
+      {!open && 
       <motion.button
         className="cb-fab"
         onClick={() => setOpen(o => !o)}
@@ -156,19 +171,17 @@ export function ChatbotWidget() {
         whileTap={{ scale: 0.93 }}
       >
         <AnimatePresence mode="wait">
-          {open
-            ? <motion.span key="x" initial={{ rotate: -45, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 45, opacity: 0 }} transition={{ duration: 0.12 }}>
-                <svg width="18" height="18" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-              </motion.span>
-            : <motion.span key="chat" initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={{ duration: 0.12 }} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                <span style={{ fontSize: "0.82rem", fontWeight: 600 }}>Зөвлөх</span>
-              </motion.span>
-          }
+          
+          <motion.span key="chat" initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={{ duration: 0.12 }} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <svg width="18" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span style={{ fontSize: "0.82rem", fontWeight: 600 }}>Зөвлөх</span>
+          </motion.span>
+          
         </AnimatePresence>
       </motion.button>
+      }
     </>
   );
 }
