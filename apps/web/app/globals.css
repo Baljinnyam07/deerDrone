@@ -1415,7 +1415,10 @@ main {
     border-radius: 2px;
     margin: 10px auto 2px;
     flex-shrink: 0;
+    touch-action: none;
+    cursor: grab;
   }
+  .cb-drag-handle:active { cursor: grabbing; }
 }
 
 /* Panel */
@@ -1700,9 +1703,11 @@ main {
     display: none;
   }
   .cb-panel {
-    bottom: 0; right: 0; left: 0;
-    width: 100%;
-    border-radius: 16px 16px 0 0;
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    border-radius: 20px;
     max-height: 88dvh;
   }
 }

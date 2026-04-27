@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import type { ChatMessage, ChatResponse } from "@deer-drone/types";
 import { formatMoney } from "@deer-drone/utils";
 
@@ -24,6 +24,7 @@ export function ChatbotWidget() {
   const [pending, startT] = useTransition();
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dragControls = useDragControls();
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 250); }, [open]);
@@ -72,8 +73,19 @@ export function ChatbotWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.97 }}
             transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+            drag="y"
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.4 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 80 || info.velocity.y > 400) setOpen(false);
+            }}
           >
-            <div className="cb-drag-handle" />
+            <div
+              className="cb-drag-handle"
+              onPointerDown={e => { e.preventDefault(); dragControls.start(e); }}
+            />
             {/* Header */}
             <div className="cb-header">
               <div className="cb-header-dot" />
@@ -163,23 +175,17 @@ export function ChatbotWidget() {
       </AnimatePresence>
 
       {/* FAB */}
-      {!open && 
+      {!open &&
       <motion.button
         className="cb-fab"
         onClick={() => setOpen(o => !o)}
         type="button"
         whileTap={{ scale: 0.93 }}
       >
-        <AnimatePresence mode="wait">
-          
-          <motion.span key="chat" initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.7, opacity: 0 }} transition={{ duration: 0.12 }} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <svg width="18" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span style={{ fontSize: "0.82rem", fontWeight: 600 }}>Зөвлөх</span>
-          </motion.span>
-          
-        </AnimatePresence>
+        <svg width="18" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span style={{ fontSize: "0.82rem", fontWeight: 600 }}>Зөвлөх</span>
       </motion.button>
       }
     </>
