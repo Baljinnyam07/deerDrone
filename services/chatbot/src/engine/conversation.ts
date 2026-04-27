@@ -57,6 +57,13 @@ const AiResponseSchema = z.object({
   suggested_product_ids: z.array(z.union([z.string(), z.object({ id: z.string() })])).optional(),
 }).catchall(z.any());
 
+const CATEGORY_QUICK_REPLIES = [
+  { title: "Дрон", payload: "Дрон" },
+  { title: "Камер", payload: "Камер" },
+  { title: "Гар төхөөрөмж", payload: "Гар төхөөрөмж" },
+  { title: "Дагалдах хэрэгсэл", payload: "Дагалдах хэрэгсэл" }
+];
+
 // ---------------------------------------------------------------------------
 // Conversation history — capped at MAX_TURNS * 2 messages (user + assistant)
 // ---------------------------------------------------------------------------
@@ -95,12 +102,13 @@ async function addToHistory(
 // Lead capture helper
 // ---------------------------------------------------------------------------
 async function captureLead(
+  sessionId: string,
   interest: string,
   intent: Intent,
   category?: string
 ) {
   try {
-    await captureLeadTool("Тодорхойгүй", "", interest, intent, category);
+    await captureLeadTool("Тодорхойгүй", "", interest, intent, category, sessionId);
   } catch (err) {
     console.error("captureLead error:", err);
   }
@@ -211,7 +219,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     const featured = await getFeaturedProductsTool(6);
     const mapped = featured.map((p: any) => ({ ...p, heroNote: p.hero_note }));
     const cards = toChatCards(mapped);
-    return reply(sessionId, STATIC.greeting, cards);
+    return reply(sessionId, STATIC.greeting, cards, CATEGORY_QUICK_REPLIES);
   }
 
   if (intent === "delivery") {
@@ -219,7 +227,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   if (intent === "human_handoff") {
-    await captureLead(message, intent);
+    await captureLead(sessionId, message, intent);
     return reply(sessionId, STATIC.humanHandoff);
   }
 
@@ -238,7 +246,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   if (intent === "loan_request") {
-    await captureLead(message, intent, "loan");
+    await captureLead(sessionId, message, intent, "loan");
     const baseUrl = process.env.SITE_URL || "https://deerdrone.mn";
     const rawImg = `${baseUrl}/aaaaaaa-01.jpg`;
     const proxyImg = `https://wsrv.nl/?url=${encodeURIComponent(rawImg)}&w=1000&output=jpg`;
@@ -251,22 +259,22 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   if (intent === "lease_request") {
-    await captureLead(message, intent, "lease");
+    await captureLead(sessionId, message, intent, "lease");
     return reply(sessionId, STATIC.leaseAck);
   }
 
   if (intent === "rental_request") {
-    await captureLead(message, intent, "rental");
+    await captureLead(sessionId, message, intent, "rental");
     return reply(sessionId, STATIC.rentalAck);
   }
 
   if (intent === "quote_request") {
-    await captureLead(message, intent, "quote");
+    await captureLead(sessionId, message, intent, "quote");
     return reply(sessionId, STATIC.quoteAck);
   }
 
   if (intent === "bulk_order") {
-    await captureLead(message, intent, "bulk_order");
+    await captureLead(sessionId, message, intent, "bulk_order");
     return reply(sessionId, STATIC.bulkOrderAck);
   }
 
@@ -277,15 +285,15 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
 
     if (matched.length > 0) {
       const cards = toChatCards(matched);
-      return reply(sessionId, STATIC.productsIntro, cards);
+      return reply(sessionId, STATIC.productsIntro, cards, CATEGORY_QUICK_REPLIES);
     }
 
     // No keyword match → show featured products up to 6
     const featured = await getFeaturedProductsTool(6);
-    if (featured.length === 0) return reply(sessionId, STATIC.noProducts);
+    if (featured.length === 0) return reply(sessionId, STATIC.noProducts, undefined, CATEGORY_QUICK_REPLIES);
     const mapped = featured.map((p: any) => ({ ...p, heroNote: p.hero_note }));
     const cards = toChatCards(mapped);
-    return reply(sessionId, STATIC.productsIntro, cards);
+    return reply(sessionId, STATIC.productsIntro, cards, CATEGORY_QUICK_REPLIES);
   }
 
   if (intent === "order_request") {
@@ -358,12 +366,14 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
 function reply(
   sessionId: string,
   text: string,
-  cards?: any[]
+  cards?: any[],
+  quickReplies?: { title: string; payload: string }[]
 ): ChatResponse {
   return {
     sessionId,
     reply: text,
     cards: cards && cards.length > 0 ? cards : undefined,
+    quickReplies
   };
 }
 

@@ -40,7 +40,7 @@ const settingsCategories = [
     label: "Messenger болон AI",
     desc: "Facebook холболт, хиймэл оюуны тохиргоо",
     icon: MessageSquare,
-    href: "/settings/chatbot",
+    href: "/chatbot",
     status: "Ready",
   },
 ];

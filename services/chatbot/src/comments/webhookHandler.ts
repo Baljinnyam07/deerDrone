@@ -29,6 +29,13 @@ const processedComments = new Set<string>();         // Fallback in-memory
 const userCooldowns     = new Map<string, number>(); // Fallback in-memory
 const COOLDOWN_SEC      = 60 * 60;                   // 1 hour
 
+// Санах ой дүүрэхээс сэргийлж 24 цаг тутамд in-memory датаг цэвэрлэх
+setInterval(() => {
+  processedComments.clear();
+  userCooldowns.clear();
+  console.log("[webhookHandler] In-memory cache cleared to prevent memory leak.");
+}, 24 * 60 * 60 * 1000);
+
 // ---------------------------------------------------------------------------
 // Main handler
 // ---------------------------------------------------------------------------

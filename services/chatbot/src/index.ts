@@ -118,7 +118,8 @@ export default async (req: any, res: any) => {
 };
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  server.listen({ port: 8787, host: "0.0.0.0" }, (err, address) => {
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8787;
+  server.listen({ port, host: "0.0.0.0" }, (err, address) => {
     if (err) {
       console.error(err);
       process.exit(1);

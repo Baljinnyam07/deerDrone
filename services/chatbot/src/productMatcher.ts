@@ -17,6 +17,7 @@ export interface MatchedProduct {
   price: number;
   heroNote: string;
   short_description?: string;
+  description?: string;
   image_url?: string;
 }
 
@@ -127,6 +128,7 @@ function normalise(items: any[]): MatchedProduct[] {
       price: p.price ?? 0,
       heroNote: p.hero_note ?? "",
       short_description: p.short_description ?? "",
+      description: p.description ?? "",
       image_url: imageUrl || undefined,
     };
   });

@@ -52,7 +52,7 @@ export async function getProductsByIdsTool(ids: string[]) {
   if (!ids || ids.length === 0) return [];
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+    .select("id, name, slug, price, hero_note, short_description, description, product_images(url)")
     .in("id", ids);
 
   if (error) {
@@ -84,7 +84,8 @@ export async function captureLeadTool(
   phone: string,
   interest: string,
   intent?: string,
-  category?: string
+  category?: string,
+  session_id?: string
 ) {
   const { data, error } = await supabase
     .from("leads")
@@ -96,6 +97,7 @@ export async function captureLeadTool(
       source_page: "chatbot",
       ...(intent ? { intent } : {}),
       ...(category ? { category } : {}),
+      ...(session_id ? { session_id } : {})
     })
     .select()
     .single();

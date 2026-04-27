@@ -4,8 +4,7 @@
  */
 
 import type { CommentIntent } from "./classifier.js";
-import { getFeaturedProductsTool, captureLeadTool } from "../tools/catalog.js";
-import { formatMoney } from "../utils.js";
+import { captureLeadTool } from "../tools/catalog.js";
 
 const BASE = "https://graph.facebook.com/v20.0/me";
 const SITE_URL = process.env.SITE_URL || "https://deerdrone.mn";
@@ -26,7 +25,7 @@ const HANDOFF_DM =
   "Манай ажилтан удахгүй холбоо барих болно.\n" +
   "☎ 8815-7242";
 
-const INTRO_DM   = "Манай бүтээгдэхүүнүүдийг харна уу 👇";
+const INTRO_DM = "Манай бүтээгдэхүүнүүдийг харна уу 👇";
 const SIMILAR_DM = "Танд санал болгох бүтээгдэхүүнүүд 👇";
 
 // ---------------------------------------------------------------------------
@@ -43,14 +42,18 @@ export async function dispatchCommentDM(
 
   switch (intent) {
     case "info_request":
-    case "product_interest":
+    case "product_interest": {
+      replyText = `Сайн байна уу! 👋 ${INTRO_DM}\n\n${SITE_URL}`;
+      break;
+    }
+
     case "recommend": {
-      replyText = `Сайн байна уу! 👋 Та манай дронуудын дэлгэрэнгүй мэдээлэл болон үнийг эндээс харах боломжтой: ${SITE_URL}`;
+      replyText = `Сайн байна уу! 👋 ${SIMILAR_DM}\n\n${SITE_URL}`;
       break;
     }
 
     case "financing": {
-      replyText = FINANCING_DM + `\n\nДэлгэрэнгүй мэдээлэл авах бол энд дарж орно уу: ${SITE_URL}`;
+      replyText = FINANCING_DM + `\n\nМанай вэбсайтаас дэлгэрэнгүй мэдээлэл авах бол энд дарж орно уу: ${SITE_URL}`;
       // Silent lead capture
       await captureLeadTool(
         "Тодорхойгүй", "",

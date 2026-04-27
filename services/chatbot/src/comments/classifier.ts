@@ -61,11 +61,12 @@ const PATTERNS: Record<Exclude<CommentIntent, "low_confidence" | "spam">, RegExp
     /ажилтан|ajiltan/i,
     /оператор|operator/i,
     /staff|agent/i,
-    /холбогдъё|holbogdii|холбогдох/i,
-    /утасдах|utasdah/i,
+    /холбогд|holbogd/i,
+    /утас|utas/i,
     /хүнтэй\s*ярих|huntei\s*yarih/i,
-    /тусламж\s*хэрэгтэй/i,
+    /тусламж/i,
     /борлуулалт/i,
+    /\b[789]\d{7}\b/, // Утасны дугаар үлдээсэн бол холбогдох хүсэлт гэж үзнэ
   ],
 };
 
@@ -76,9 +77,13 @@ const PATTERNS: Record<Exclude<CommentIntent, "low_confidence" | "spam">, RegExp
 function isSpam(text: string): boolean {
   const t = text.trim();
   if (t.length < 1) return true;
+  
+  // 8 оронтой Монгол утасны дугаар агуулсан бол спам биш
+  const digitCount = t.replace(/\D/g, '').length;
+  if (digitCount === 8) return false;
+
   if (!/\p{L}/u.test(t)) return true;          // no letters at all
   if (/^(.)\1{4,}$/.test(t)) return true;       // aaaaa or 11111
-  if (/^[\W\d]+$/.test(t)) return true;          // only symbols/numbers
   return false;
 }
 

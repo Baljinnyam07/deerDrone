@@ -42,17 +42,29 @@ export async function sendTyping(senderId: string, token: string, on = true) {
 // ---------------------------------------------------------------------------
 // Text message sender (with safe chunking)
 // ---------------------------------------------------------------------------
-export async function sendMessage(senderId: string, text: string, token: string) {
+export async function sendMessage(senderId: string, text: string, token: string, quickReplies?: { title: string; payload: string }[]) {
   if (!token) return;
   const chunks = splitMessage(text, 1900);
-  for (const chunk of chunks) {
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const isLast = i === chunks.length - 1;
+
+    const qr = (isLast && quickReplies && quickReplies.length > 0) ? quickReplies.map(qr => ({
+      content_type: "text",
+      title: qr.title.substring(0, 20), // FB quick reply title limit is 20
+      payload: qr.payload
+    })) : undefined;
+
     try {
       await fetch(`${BASE_URL}/messages?access_token=${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           recipient: { id: senderId },
-          message: { text: chunk },
+          message: { 
+            text: chunk,
+            ...(qr ? { quick_replies: qr } : {})
+          },
         }),
       });
     } catch (err) {
@@ -155,6 +167,16 @@ async function handleOrderPostback(
     return;
   }
 
+  // Хэрэглэгч захиалах товч дарсныг Lead үүсгэж бүртгэж авах
+  await captureLeadTool(
+    "Тодорхойгүй (Messenger)",
+    "",
+    `Захиалах товч дарсан: ${product.name}`,
+    "order_intent",
+    "messenger",
+    senderId
+  ).catch(console.error);
+
   const siteUrl = process.env.SITE_URL || "https://deerdrone.mn";
   const orderUrl = `${siteUrl}/products/${product.slug}`;
 
@@ -177,13 +199,28 @@ async function handleDetailPostback(
     return;
   }
 
-  // Build a compact detail message (static template)
+  // Үзүүлэлтүүдийг жагсаалт хэлбэрээр харуулах
+  let specsList = "";
+  const desc = product.description || product.short_description || "";
+  if (desc) {
+    const hasBullets = desc.includes("•") || desc.includes("- ");
+    if (hasBullets) {
+      specsList = desc; 
+    } else {
+      const sentences = desc.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+      specsList = sentences.slice(0, 5).map(s => `• ${s}`).join("\n");
+    }
+  }
+
+  const siteUrl = process.env.SITE_URL || "https://deerdrone.mn";
+  const orderUrl = `${siteUrl}/products/${product.slug}`;
+
   const detail =
-    `📦 ${product.name}\n` +
-    `💰 Үнэ: ${formatMoney(product.price)}\n` +
-    (product.heroNote ? `✨ ${product.heroNote}\n` : "") +
-    (product.short_description ? `📝 ${product.short_description}\n` : "") +
-    `\nДэлгэрэнгүй мэдэх эсвэл захиалах бол доорх товчийг дарна уу.`;
+    `📦 *${product.name}*\n` +
+    `💰 Үнэ: ${formatMoney(product.price)}\n\n` +
+    (product.heroNote ? `✨ ${product.heroNote}\n\n` : "") +
+    (specsList ? `📋 Үзүүлэлт ба давуу тал:\n${specsList}\n\n` : "") +
+    `🛒 Захиалах эсвэл илүү дэлгэрэнгүй харах бол доорх линкээр орно уу 👇\n${orderUrl}`;
 
   await sendMessage(senderId, detail, token);
   // Send single-item carousel so they can ORDER or ask for more DETAIL
@@ -249,7 +286,7 @@ export async function handleWebhookEvent(event: any) {
       const response = await runConversation({ sessionId: senderId, message: text });
 
       if (response.reply) {
-        await sendMessage(senderId, response.reply, token);
+        await sendMessage(senderId, response.reply, token, response.quickReplies);
       }
       if (response.image) {
         await sendImage(senderId, response.image, token);
