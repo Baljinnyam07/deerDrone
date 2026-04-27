@@ -32,6 +32,7 @@ import {
   getFeaturedProductsTool,
   getSystemPromptTool,
   toChatCards,
+  incrementTokenUsage,
 } from "../tools/catalog.js";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
@@ -158,6 +159,10 @@ async function callAI(
     const raw = completion.choices[0]?.message?.content ?? "{}";
     console.log("🤖 AI raw:", raw);
 
+    if (completion.usage?.total_tokens) {
+      incrementTokenUsage(completion.usage.total_tokens).catch(console.error);
+    }
+
     let parsed: z.infer<typeof AiResponseSchema>;
     try {
       const json = JSON.parse(raw);
@@ -229,6 +234,34 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   if (intent === "human_handoff") {
     await captureLead(sessionId, message, intent);
     return reply(sessionId, STATIC.humanHandoff);
+  }
+
+  if (intent === "address") {
+    return reply(sessionId, STATIC.address);
+  }
+
+  if (intent === "repair") {
+    return reply(sessionId, STATIC.repairInfo);
+  }
+
+  if (intent === "wind_resistance") {
+    return reply(sessionId, STATIC.windResistance);
+  }
+
+  if (intent === "vat_info") {
+    return reply(sessionId, STATIC.vatInfo);
+  }
+
+  if (intent === "accessories_info") {
+    return reply(sessionId, STATIC.accessoriesInfo);
+  }
+
+  if (intent === "beginner_recommendation") {
+    return reply(sessionId, STATIC.beginnerRecommendation);
+  }
+
+  if (intent === "easy_to_control") {
+    return reply(sessionId, STATIC.easyToControl);
   }
 
   // ── Step 3: Lead capture paths (ZERO AI) ──────────────────────────────

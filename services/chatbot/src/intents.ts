@@ -21,6 +21,13 @@ export type Intent =
   | "quote_request"
   | "bulk_order"
   | "human_handoff"
+  | "address"
+  | "repair"
+  | "wind_resistance"
+  | "vat_info"
+  | "accessories_info"
+  | "beginner_recommendation"
+  | "easy_to_control"
   | "unknown";
 
 // ---------------------------------------------------------------------------
@@ -161,6 +168,19 @@ const DELIVERY = [
   /хүлэ?эн\s*авах/i,
 ];
 
+const ADDRESS = [
+  /хаяг/i,
+  /hayag/i,
+  /хаана\s*байдаг/i,
+  /location/i,
+  /address/i,
+  /байршил/i,
+  /дүүрэг/i,
+  /plaza/i,
+  /плаза/i,
+  /очих/i,
+];
+
 const COMPARE = [
   /харьцуул/i,
   /compare/i,
@@ -179,6 +199,64 @@ const COMPARE = [
   /хоёрыг/i,
 ];
 
+const REPAIR = [
+  /засвар/i,
+  /zaswar/i,
+  /zasbar/i,
+  /эвдэр/i,
+  /эвдэрсэн/i,
+  /засах/i,
+  /zasah/i,
+  /сэлбэг/i,
+  /selbeg/i,
+];
+
+const WIND_RESISTANCE = [
+  /салхи/i,
+  /salhi/i,
+  /салхины/i,
+  /тэсвэр/i,
+  /teswer/i,
+];
+
+const VAT_INFO = [
+  /нөат/i,
+  /noat/i,
+  /ebarimt/i,
+  /ибаримт/i,
+  /ебаримт/i,
+  /баталгаа/i,
+  /batalgaa/i,
+];
+
+const ACCESSORIES_INFO = [
+  /батарей/i,
+  /batarei/i,
+  /battery/i,
+  /дагалдах/i,
+  /dagaldah/i,
+];
+
+const BEGINNER_RECOMMENDATION = [
+  /эхлэн\s*суралцагч/i,
+  /эхлэгч/i,
+  /ehlegch/i,
+  /шинээр\s*авах/i,
+  /анх\s*удаа/i,
+  /анхлан/i,
+  /anhlan/i,
+];
+
+const EASY_TO_CONTROL = [
+  /удирд[а-я]*\s*(хялбар|амар)/i,
+  /ud[ir]+d[a-z]*\s*(hylbar|hyalbar|amar)/i,
+  /нисгэхэд\s*(хялбар|амар)/i,
+  /сурахад\s*(хялбар|амар)/i,
+  /хэр\s*хэцүү/i,
+  /хэцүү\s*юу/i,
+  /hetsuu\s*yu/i,
+];
+
 const TECHNICAL = [
   /rth\b/i,
   /rtk\b/i,
@@ -186,8 +264,6 @@ const TECHNICAL = [
   /payload/i,
   /камер/i,
   /сенсор/i,
-  /батарей/i,
-  /battery/i,
   /нислэгийн\s*цаг/i,
   /нислэгийн\s*зай/i,
   /мэргэжлийн\s*зөвлөг/i,
@@ -292,6 +368,13 @@ export function classifyIntent(message: string): Intent {
   if (matches(text, HUMAN_HANDOFF)) return "human_handoff";
 
   if (matches(text, DELIVERY)) return "delivery";
+  if (matches(text, ADDRESS)) return "address";
+  if (matches(text, REPAIR)) return "repair";
+  if (matches(text, WIND_RESISTANCE)) return "wind_resistance";
+  if (matches(text, VAT_INFO)) return "vat_info";
+  if (matches(text, ACCESSORIES_INFO)) return "accessories_info";
+  if (matches(text, BEGINNER_RECOMMENDATION)) return "beginner_recommendation";
+  if (matches(text, EASY_TO_CONTROL)) return "easy_to_control";
   if (matches(text, COMPARE)) return "compare_products";
   if (matches(text, TECHNICAL)) return "technical_consultation";
   if (matches(text, ORDER)) return "order_request";

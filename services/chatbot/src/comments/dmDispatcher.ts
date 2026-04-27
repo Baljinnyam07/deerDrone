@@ -5,6 +5,7 @@
 
 import type { CommentIntent } from "./classifier.js";
 import { captureLeadTool } from "../tools/catalog.js";
+import { STATIC } from "../constants/staticResponses.js";
 
 const BASE = "https://graph.facebook.com/v20.0/me";
 const SITE_URL = process.env.SITE_URL || "https://deerdrone.mn";
@@ -13,12 +14,7 @@ const SITE_URL = process.env.SITE_URL || "https://deerdrone.mn";
 // Static DM templates
 // ---------------------------------------------------------------------------
 
-const FINANCING_DM =
-  "💰 Зээлийн нөхцөл:\n\n" +
-  "• Хас банк: 0% хүүтэй, 12 сар хүртэл\n" +
-  "• ТБД: 6–24 сарын хугацаатай\n" +
-  "• Манай дэлгүүр: 3–6 сарын хуваалт\n\n" +
-  "Дараагийн алхамаа сонгоно уу 👇";
+const FINANCING_DM = STATIC.loanAck;
 
 const HANDOFF_DM =
   "✅ Таны хүсэлтийг хүлээн авлаа.\n\n" +
@@ -53,13 +49,27 @@ export async function dispatchCommentDM(
     }
 
     case "financing": {
-      replyText = FINANCING_DM + `\n\nМанай вэбсайтаас дэлгэрэнгүй мэдээлэл авах бол энд дарж орно уу: ${SITE_URL}`;
+      replyText = FINANCING_DM;
       // Silent lead capture
       await captureLeadTool(
         "Тодорхойгүй", "",
         `Facebook зээл: ${commentText.slice(0, 100)}`,
         "financing", "fb_comment"
       ).catch(console.error);
+
+      // Send image first, then text
+      const rawImg = `${SITE_URL}/aaaaaaa-01.jpg`;
+      const proxyImg = `https://wsrv.nl/?url=${encodeURIComponent(rawImg)}&w=1000&output=jpg`;
+      
+      await graphPost(pageToken, {
+        recipient: { comment_id: commentId },
+        message: {
+          attachment: {
+            type: "image",
+            payload: { url: proxyImg, is_reusable: true }
+          }
+        }
+      });
       break;
     }
 

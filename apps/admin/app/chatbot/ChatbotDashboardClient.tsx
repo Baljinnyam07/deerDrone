@@ -11,6 +11,7 @@ import { updateLeadStatus, deleteLead, updateMessengerConfig, getConversationHis
 interface ChatbotDashboardClientProps {
   leads: any[];
   messengerConfig: any;
+  totalTokens: number;
 }
 
 const STATUS_COLORS: Record<string, { bg: string, text: string }> = {
@@ -29,7 +30,7 @@ const INTENT_COLORS: Record<string, { bg: string, text: string }> = {
   default: { bg: "#F3F4F6", text: "#374151" },
 };
 
-export function ChatbotDashboardClient({ leads: initialLeads, messengerConfig }: ChatbotDashboardClientProps) {
+export function ChatbotDashboardClient({ leads: initialLeads, messengerConfig, totalTokens }: ChatbotDashboardClientProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"messenger" | "comments" | "settings">("messenger");
   const [leads, setLeads] = useState(initialLeads);

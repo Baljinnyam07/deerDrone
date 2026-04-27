@@ -177,3 +177,19 @@ export async function getMessengerConfigTool() {
     .single();
   return data;
 }
+
+export async function incrementTokenUsage(tokens: number) {
+  try {
+    const { data } = await supabase.from('system_settings').select('setting_value').eq('setting_key', 'total_tokens_used').single();
+    const current = data && data.setting_value ? parseInt(data.setting_value) : 0;
+    const next = current + tokens;
+    
+    await supabase.from('system_settings').upsert({
+      setting_key: 'total_tokens_used',
+      setting_value: next.toString(),
+      description: 'Нийт ашигласан AI токен'
+    }, { onConflict: 'setting_key' });
+  } catch (err) {
+    console.error("incrementTokenUsage error", err);
+  }
+}

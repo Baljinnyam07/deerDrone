@@ -22,9 +22,20 @@ async function getMessengerConfig() {
   return data || { id: 1, is_enabled: true };
 }
 
+async function getSystemTokenUsage() {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("system_settings")
+    .select("setting_value")
+    .eq("setting_key", "total_tokens_used")
+    .single();
+  return data?.setting_value ? parseInt(data.setting_value) : 0;
+}
+
 export default async function ChatbotPage() {
   const leads = await getLeads();
   const messengerConfig = await getMessengerConfig();
+  const totalTokens = await getSystemTokenUsage();
 
   return (
     <section>
@@ -35,7 +46,7 @@ export default async function ChatbotPage() {
       />
 
       <div style={{ marginTop: "2rem" }}>
-        <ChatbotDashboardClient leads={leads} messengerConfig={messengerConfig} />
+        <ChatbotDashboardClient leads={leads} messengerConfig={messengerConfig} totalTokens={totalTokens} />
       </div>
     </section>
   );
