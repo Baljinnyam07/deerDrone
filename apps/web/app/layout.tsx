@@ -6,6 +6,7 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], display: "swap" });
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
 import { ChatbotWidget } from "../components/chatbot/chatbot-widget";
+import { NavProgress } from "../components/layout/nav-progress";
 import { SiteFooter } from "../components/layout/site-footer";
 import { SiteHeader } from "../components/layout/site-header";
 import { ToastProvider } from "../components/layout/toast-provider";
@@ -63,6 +64,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
           }
         `}} />
         <QueryProvider>
+          <NavProgress />
           <SiteHeader />
           <main>{children}</main>
           <SiteFooter />

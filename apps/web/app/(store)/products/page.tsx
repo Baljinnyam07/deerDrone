@@ -1,7 +1,9 @@
 // products/page.tsx
 
-import { getProducts } from "../../../lib/supabase/queries";
-import { PremiumProductCard } from "../../../components";
+import { Suspense } from "react";
+import { ProductsSection } from "../../../components/product/products-section";
+import { SkeletonCard } from "../../../components/ui/skeleton-card";
+import { type SortOption } from "../../../lib/products-config";
 import Image from "next/image";
 
 type ProductsSearchParams = Promise<{
@@ -11,7 +13,7 @@ type ProductsSearchParams = Promise<{
   q?: string;
   query?: string;
   search?: string;
-  sort?: any;
+  sort?: string;
 }>;
 
 const CATEGORY_BANNERS: Record<
@@ -86,15 +88,12 @@ export default async function ProductsPage({
   const activeCategory = params.category || params.cat || "all";
   const activeBrand = params.brand;
   const searchQuery = params.q || params.query || params.search;
-  const sort = params.sort || "popular";
+  const VALID_SORTS: SortOption[] = ["newest", "price_asc", "price_desc", "name_asc"];
+  const sort: SortOption | undefined = VALID_SORTS.includes(params.sort as SortOption)
+    ? (params.sort as SortOption)
+    : undefined;
 
-  const products = await getProducts({
-    categorySlug: activeCategory === "all" ? undefined : activeCategory,
-    brand: activeBrand,
-    search: searchQuery,
-    sort,
-  });
-
+  const categorySlug = activeCategory === "all" ? undefined : activeCategory;
   const banner = CATEGORY_BANNERS[activeCategory] ?? CATEGORY_BANNERS.all;
 
   return (
@@ -139,30 +138,23 @@ export default async function ProductsPage({
       </section>
 
       <section className="p-grid-wrap">
-
-        {products.length > 0 ? (
-          <div className="p-grid">
-            {products.map((product, idx) => (
-              <div
-                key={product.id}
-                className="p-card-shell p-card-anim"
-                style={{ animationDelay: `${(idx % 12) * 0.04}s` }}
-              >
-                <PremiumProductCard
-                  product={product}
-                  badge={idx === 0 ? "new" : idx === 1 ? "best-seller" : undefined}
-                  discount={idx === 2 ? 15 : undefined}
-                  rating={Number((4.2 + (idx % 5) * 0.16).toFixed(1))}
-                  reviewCount={20 + (idx % 8) * 19}
-                />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-empty">
-            <p>Үр дүн олдсонгүй</p>
-          </div>
-        )}
+        <Suspense
+          key={`${categorySlug ?? "all"}-${activeBrand ?? ""}-${searchQuery ?? ""}-${sort}`}
+          fallback={
+            <div className="p-grid">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="p-card-shell"><SkeletonCard /></div>
+              ))}
+            </div>
+          }
+        >
+          <ProductsSection
+            categorySlug={categorySlug}
+            brand={activeBrand}
+            search={searchQuery}
+            sort={sort}
+          />
+        </Suspense>
       </section>
 
       <style>{`

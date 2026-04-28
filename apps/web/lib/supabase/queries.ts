@@ -2,13 +2,16 @@ import { createPublicClient } from "./server";
 import { unstable_cache } from "next/cache";
 import type { Product } from "@deer-drone/types";
 import { mapProductRecord } from "./catalog";
+import type { SortOption } from "../products-config";
 
 export const getProducts = unstable_cache(
   async (options: {
     categorySlug?: string;
     brand?: string;
     search?: string;
-    sort?: "newest" | "price_asc" | "price_desc" | "name_asc";
+    sort?: SortOption;
+    limit?: number;
+    offset?: number;
   } = {}): Promise<Product[]> => {
     const supabase = await createPublicClient();
 
@@ -54,6 +57,11 @@ export const getProducts = unstable_cache(
         break;
       default:
         query = query.order("created_at", { ascending: false });
+    }
+
+    if (options.limit !== undefined) {
+      const from = options.offset ?? 0;
+      query = query.range(from, from + options.limit - 1);
     }
 
     const { data, error } = await query;

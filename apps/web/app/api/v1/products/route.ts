@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCatalogProducts } from "../../../../lib/supabase/catalog";
+import { getProducts } from "../../../../lib/supabase/queries";
 
 export async function GET(request: NextRequest) {
-  const query = request.nextUrl.searchParams.get("q") ?? undefined;
-  const category =
-    request.nextUrl.searchParams.get("category") ??
-    request.nextUrl.searchParams.get("cat") ??
-    undefined;
-  const items = await getCatalogProducts({ category, query });
+  const p = request.nextUrl.searchParams;
 
-  return NextResponse.json({
-    items,
-    total: items.length,
-  });
+  const categorySlug = p.get("category") ?? p.get("cat") ?? undefined;
+  const brand        = p.get("brand") ?? undefined;
+  const search       = p.get("q") ?? p.get("query") ?? p.get("search") ?? undefined;
+  const sort         = (p.get("sort") as any) ?? undefined;
+  const limit        = p.get("limit")  ? Number(p.get("limit"))  : 10;
+  const offset       = p.get("offset") ? Number(p.get("offset")) : 0;
+
+  const items = await getProducts({ categorySlug, brand, search, sort, limit, offset });
+
+  return NextResponse.json({ items, total: items.length });
 }
