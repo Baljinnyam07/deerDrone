@@ -45,36 +45,36 @@ export function CreateProductForm({ categories }: { categories: any[] }) {
   }
 
   async function uploadImage(file: File): Promise<string> {
-    // 1. Get signed upload URL from our API
-    const res = await fetch("/api/uploads/product-image", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-      }),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.error || "Зураг хуулах холбоос авахад алдаа гарлаа.");
+    // 1. Get Authentication Parameters from our API
+    const authRes = await fetch("/api/imagekit/auth");
+    if (!authRes.ok) {
+      throw new Error("ImageKit нэвтрэх эрх авахад алдаа гарлаа.");
     }
+    const authParams = await authRes.json();
 
-    const { url, signedUrl } = await res.json();
+    // 2. Prepare FormData for ImageKit
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("fileName", file.name);
+    formData.append("publicKey", process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!);
+    formData.append("signature", authParams.signature);
+    formData.append("expire", authParams.expire.toString());
+    formData.append("token", authParams.token);
+    formData.append("folder", "/products/");
 
-    // 2. Upload directly to Supabase via Signed URL
-    const uploadRes = await fetch(signedUrl, {
-      method: "PUT",
-      body: file,
-      headers: { "Content-Type": file.type },
+    // 3. Upload directly to ImageKit
+    const uploadRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+      method: "POST",
+      body: formData,
     });
 
     if (!uploadRes.ok) {
-      throw new Error("Зураг хуулах явцад алдаа гарлаа (Direct upload failed).");
+      const errorData = await uploadRes.json().catch(() => ({}));
+      throw new Error(errorData.message || "Зураг хуулах явцад алдаа гарлаа (ImageKit upload failed).");
     }
 
-    return url as string;
+    const result = await uploadRes.json();
+    return result.url as string;
   }
 
   async function handleSubmit(event: React.FormEvent) {

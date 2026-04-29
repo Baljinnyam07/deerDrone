@@ -510,7 +510,7 @@ export default function CartPage() {
                   {/* Image */}
                   <Link href={item.slug ? `/products/${item.slug}` : "/products"} className="cart-item-img" style={{ position: "relative" }}>
                     <Image 
-                      src={item.image} 
+                      src={(item.image || "").replace(/ik\.imagekit\.io(.*)\.png$/, "ik.imagekit.io$1")} 
                       alt={item.name} 
                       fill
                       style={{ objectFit: "cover" }}

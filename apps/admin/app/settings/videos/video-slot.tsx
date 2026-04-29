@@ -19,38 +19,68 @@ export function VideoSlot({ slotKey, label, description, initialUrl }: VideoSlot
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Limit to 60MB (Supabase free tier max is usually 50MB per file, but let's be safe)
-    if (file.size > 60 * 1024 * 1024) {
-      setError("Файлын хэмжээ хэтэрхий том байна (Max: 60MB)");
+    // Limit to 100MB for ImageKit (Free tier is generous, but let's be reasonable)
+    if (file.size > 100 * 1024 * 1024) {
+      setError("Файлын хэмжээ хэтэрхий том байна (Max: 100MB)");
       return;
     }
 
-    if (!file.type.includes("video/mp4")) {
-      setError("Зөвхөн .mp4 файл оруулна уу");
+    if (!file.type.includes("video/mp4") && !file.type.includes("video/quicktime")) {
+      setError("Зөвхөн .mp4 эсвэл .mov файл оруулна уу");
       return;
     }
 
     setError(null);
     setUploading(true);
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("key", slotKey);
-
     try {
-      const res = await fetch("/api/settings/videos", {
+      // 1. Get ImageKit Auth Parameters
+      const authRes = await fetch("/api/imagekit/auth");
+      if (!authRes.ok) throw new Error("ImageKit auth failed");
+      const authParams = await authRes.json();
+
+      // 2. Upload to ImageKit
+      const formData = new FormData();
+      formData.append("file", file);
+      const extension = file.name.split(".").pop();
+      formData.append("fileName", `video_${slotKey}_${Date.now()}.${extension}`);
+      formData.append("publicKey", process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!);
+      formData.append("signature", authParams.signature);
+      formData.append("expire", authParams.expire.toString());
+      formData.append("token", authParams.token);
+      formData.append("folder", "/videos/");
+
+      const ikRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
         method: "POST",
         body: formData,
       });
 
+      if (!ikRes.ok) {
+        const errorData = await ikRes.json().catch(() => ({}));
+        throw new Error(errorData.message || "ImageKit upload failed");
+      }
+
+      const ikData = await ikRes.json();
+      const videoUrl = ikData.url;
+
+      // 3. Update our Database with the ImageKit URL
+      const res = await fetch("/api/settings/videos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          url: videoUrl,
+          key: slotKey 
+        }),
+      });
+
       const data = await res.json();
       if (data.success) {
-        setUrl(data.url);
+        setUrl(videoUrl);
       } else {
-        setError(data.error || "Алдаа гарлаа");
+        setError(data.error || "Бааз шинэчлэхэд алдаа гарлаа");
       }
-    } catch (err) {
-      setError("Upload хийхэд алдаа гарлаа");
+    } catch (err: any) {
+      setError(err.message || "Upload хийхэд алдаа гарлаа");
     } finally {
       setUploading(false);
     }

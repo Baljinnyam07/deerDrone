@@ -1,10 +1,15 @@
 /* ============================================
-   DEER DRONE â€” Premium Minimal Production Design
+   DEER DRONE — Premium Minimal Production Design
    ============================================ */
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap");
+/* Typography */
+:root {
+  --font-body: var(--font-inter), "Inter", -apple-system, sans-serif;
+  --font-display: var(--font-sora), "Sora", "Inter", sans-serif;
+  --font-ui: var(--font-inter), "Inter", -apple-system, sans-serif;
+}
 
-/* â”€â”€ DJI-style Single-Bar Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* — DJI-style Single-Bar Header ————————————— */
 
 .dji-header-bar {
   display: flex;
@@ -4784,4 +4789,43 @@ video::-webkit-media-controls {
     height: 320px;
     flex: none;
   }
+}
+
+/* ============================================
+   Account Page Premium Styles
+   ============================================ */
+
+@media (max-width: 991px) {
+  .account-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.sidebar-link {
+  transition: all 200ms ease;
+}
+
+.sidebar-link:hover {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  transform: translateX(4px);
+}
+
+.sidebar-link-danger {
+  transition: all 200ms ease;
+}
+
+.sidebar-link-danger:hover {
+  background-color: #fef2f2 !important;
+  transform: translateX(4px);
+}
+
+.order-card-new {
+  transition: all 300ms ease;
+}
+
+.order-card-new:hover {
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06) !important;
+  transform: translateY(-2px);
 }

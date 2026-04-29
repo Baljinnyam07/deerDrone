@@ -1,8 +1,19 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Sora } from "next/font/google";
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], display: "swap" });
+const inter = Inter({ 
+  subsets: ["latin"], 
+  variable: "--font-inter",
+  display: "swap" 
+});
+
+const sora = Sora({ 
+  subsets: ["latin"], 
+  variable: "--font-sora",
+  display: "swap" 
+});
+
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
 import { ChatbotWidget } from "../components/chatbot/chatbot-widget";
@@ -56,13 +67,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="mn" className={jakarta.className}>
+    <html lang="mn" className={`${inter.variable} ${sora.variable}`}>
       <body>
-        <style dangerouslySetInnerHTML={{__html: `
-          * {
-            font-family: var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', sans-serif;
-          }
-        `}} />
         <QueryProvider>
           <NavProgress />
           <SiteHeader />

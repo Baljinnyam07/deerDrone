@@ -7,7 +7,7 @@ import { Minus, Plus, Truck, ShieldCheck, Share2, ChevronRight } from "lucide-re
 import type { Product } from "@deer-drone/types";
 import { formatMoney } from "@deer-drone/utils";
 import { useStore } from "../../../../store/useStore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MinimalProductCarousel } from "../../../../components/product/minimal-product-carousel";
 import { createClient } from "../../../../lib/supabase/client";
 
@@ -23,6 +23,16 @@ export default function ProductDetailView({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("info");
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    async function getUser() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    }
+    getUser();
+  }, []);
 
   const images =
     product.images?.length > 0
@@ -43,9 +53,10 @@ export default function ProductDetailView({
   }, {}) ?? {};
 
   async function addCurrentProductToCart() {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { window.location.href = "/api/auth/facebook?redirect=/cart"; return; }
+    if (!user) {
+      window.dispatchEvent(new CustomEvent('open-login-modal'));
+      return;
+    }
     for (let i = 0; i < quantity; i++) {
       addToCart({ id: product.id, slug: product.slug, name: product.name, price: product.price, image: imageUrl });
     }
@@ -53,9 +64,10 @@ export default function ProductDetailView({
   }
 
   async function handleBuyNow() {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { window.location.href = "/api/auth/facebook?redirect=/cart"; return; }
+    if (!user) {
+      window.dispatchEvent(new CustomEvent('open-login-modal'));
+      return;
+    }
     for (let i = 0; i < quantity; i++) {
       addToCart({ id: product.id, slug: product.slug, name: product.name, price: product.price, image: imageUrl });
     }
@@ -102,10 +114,11 @@ export default function ProductDetailView({
 
             {/* Main image */}
             <div className="pd-main-image">
-              <img
+              <Image
                 src={imageUrl}
                 alt={product.name}
-                style={{ width: "100%", height: "100%", objectFit: "contain", transition: "opacity 200ms" }}
+                fill
+                style={{ objectFit: "contain", transition: "opacity 200ms" }}
               />
               {/* Stock badge on image */}
               {!inStock && (
@@ -166,14 +179,16 @@ export default function ProductDetailView({
             </div>
 
             {/* CTA buttons */}
-            <div className="pd-cta">
-              <button
-                className="pd-btn-secondary"
-                disabled={!inStock}
-                onClick={() => void addCurrentProductToCart()}
-              >
-                Сагсанд хийх
-              </button>
+            <div className="pd-cta" style={{ gridTemplateColumns: user ? "1fr 1fr" : "1fr" }}>
+              {user && (
+                <button
+                  className="pd-btn-secondary"
+                  disabled={!inStock}
+                  onClick={() => void addCurrentProductToCart()}
+                >
+                  Сагсанд хийх
+                </button>
+              )}
               <button
                 className="pd-btn-primary"
                 disabled={!inStock}

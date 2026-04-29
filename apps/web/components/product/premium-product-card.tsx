@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Product } from "@deer-drone/types";
@@ -29,12 +30,20 @@ export function PremiumProductCard({
 
   const imageUrl = product.images?.[0]?.url || "/assets/drone-product.png";
 
-  async function addCurrentProductToCart() {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+  const [user, setUser] = useState<any>(null);
 
+  useEffect(() => {
+    async function getUser() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    }
+    getUser();
+  }, []);
+
+  async function addCurrentProductToCart() {
     if (!user) {
-      window.location.href = "/api/auth/facebook?redirect=/cart";
+      window.dispatchEvent(new CustomEvent('open-login-modal'));
       return;
     }
 
@@ -75,13 +84,15 @@ export function PremiumProductCard({
           >
             <Eye size={16} />
           </button>
-          <button
-            className="action-circle action-circle-cart"
-            title="Сагслах"
-            onClick={() => void addCurrentProductToCart()}
-          >
-            <ShoppingCart size={16} />
-          </button>
+          {user && (
+            <button
+              className="action-circle action-circle-cart"
+              title="Сагслах"
+              onClick={() => void addCurrentProductToCart()}
+            >
+              <ShoppingCart size={16} />
+            </button>
+          )}
         </div>
 
         {/* Product Image */}

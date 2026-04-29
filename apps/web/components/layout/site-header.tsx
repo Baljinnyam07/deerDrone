@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, Search, ShoppingCart, User, X } from "lucide-react";
+import { Menu, Search, ShoppingCart, User, X, LogOut, Settings, Package, ShoppingBag, ArrowRight, CreditCard } from "lucide-react";
 import Image from "next/image";
 import { useStore } from "../../store/useStore";
 import { SearchOverlay } from "./search-overlay";
@@ -68,7 +68,15 @@ export function SiteHeader() {
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [activeDropdown, setActiveDropdown] = useState<"user" | "cart" | null>(null);
   const cartItems = useStore((state) => state.cartItems);
+
+  // Global event listener for login popup
+  useEffect(() => {
+    const handleOpenLogin = () => setIsLoginPopupOpen(true);
+    window.addEventListener('open-login-modal', handleOpenLogin);
+    return () => window.removeEventListener('open-login-modal', handleOpenLogin);
+  }, []);
 
   const isHomePage = pathname === "/";
   const shouldShowDarkHeader = isScrolled || !isHomePage || isHeaderHovered || !!hoveredItem;
@@ -106,7 +114,38 @@ export function SiteHeader() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = () => setActiveDropdown(null);
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, []);
+
   const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+  const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+  const handleGoogleLogin = () => {
+    const width = 500;
+    const height = 650;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    
+    const url = `/api/auth/google?redirect=${encodeURIComponent("/auth/success")}`;
+    
+    const popup = window.open(
+      url,
+      "google-login",
+      `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no`
+    );
+    
+    if (popup) {
+      const interval = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(interval);
+          window.location.reload();
+        }
+      }, 500);
+    }
+  };
 
   return (
     <>
@@ -138,17 +177,17 @@ export function SiteHeader() {
           {/* Desktop Navigation */}
           <nav style={{ display: isDesktop ? "flex" : "none", alignItems: "center", gap: "40px", position: "absolute", left: "50%", transform: "translateX(-50%)", height: "100%" }}>
             {menuItems.map((item) => (
-              <div 
-                key={item.id} 
+              <div
+                key={item.id}
                 onMouseEnter={() => setHoveredItem(item.id)}
                 style={{ height: "100%", display: "flex", alignItems: "center" }}
               >
-                <Link 
-                  href={item.href} 
-                  style={{ 
-                    textDecoration: "none", 
-                    fontWeight: 700, 
-                    fontSize: "0.95rem", 
+                <Link
+                  href={item.href}
+                  style={{
+                    textDecoration: "none",
+                    fontWeight: 700,
+                    fontSize: "0.95rem",
                     color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A",
                     transition: "all 200ms",
                     opacity: hoveredItem === item.id ? 0.6 : 1
@@ -163,24 +202,235 @@ export function SiteHeader() {
           {/* Icons & Actions */}
           <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
             <button onClick={() => setIsSearchOpen(true)} style={{ background: "none", border: "none", padding: "8px", cursor: "pointer", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}><Search size={22} strokeWidth={1.5} /></button>
-            {/* {user ? (
-              <Link href="/account" style={{ padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}>
-                <User size={22} strokeWidth={1.5} />
-              </Link>
-            ) : (
-              <button 
-                onClick={() => setIsLoginPopupOpen(true)} 
+            
+            {/* User Icon & Dropdown - Desktop Only */}
+            <div style={{ position: "relative", display: isDesktop ? "block" : "none" }} onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => {
+                  if (user) {
+                    setActiveDropdown(activeDropdown === "user" ? null : "user");
+                  } else {
+                    setIsLoginPopupOpen(true);
+                  }
+                }}
                 style={{ background: "none", border: "none", padding: "8px", cursor: "pointer", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}
               >
                 <User size={22} strokeWidth={1.5} />
               </button>
-            )} */}
-            {/* {user && ( */}
-              <Link href="/cart" style={{ position: "relative", padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}>
-                <ShoppingCart size={22} strokeWidth={1.5} />
-                {mounted && cartItemCount > 0 && <span style={{ position: "absolute", top: "0", right: "0", backgroundColor: "#2563EB", color: "#FFFFFF", borderRadius: "10px", padding: "2px 6px", fontSize: "0.65rem", fontWeight: 700 }}>{cartItemCount}</span>}
-              </Link>
-            {/* )} */}
+              {/* ... AnimatePresence for user dropdown ... */}
+
+              <AnimatePresence>
+                {activeDropdown === "user" && user && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 15, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.96 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      right: 0,
+                      marginTop: "12px",
+                      width: "280px",
+                      backgroundColor: "rgba(255, 255, 255, 0.95)",
+                      backdropFilter: "blur(20px)",
+                      WebkitBackdropFilter: "blur(20px)",
+                      borderRadius: "24px",
+                      boxShadow: "0 20px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)",
+                      padding: "12px",
+                      zIndex: 1100,
+                      overflow: "hidden"
+                    }}
+                  >
+                    <div style={{ padding: "16px 20px", background: "linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)", borderRadius: "16px", marginBottom: "8px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{ width: "40px", height: "40px", borderRadius: "12px", backgroundColor: "#0F172A", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFFFFF", fontWeight: 700, fontSize: "1.1rem", fontFamily: "var(--font-display)" }}>
+                          {user.email?.[0].toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>{user.email?.split("@")[0]}</p>
+                          <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748B", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "var(--font-body)" }}>{user.email}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <div style={{ height: "1px", backgroundColor: "#F1F5F9", margin: "8px 12px" }} />
+                      
+                      <button 
+                        onClick={async () => {
+                          const { createClient } = await import("../../lib/supabase/client");
+                          const supabase = createClient();
+                          await supabase.auth.signOut();
+                          setActiveDropdown(null);
+                          window.location.reload();
+                        }}
+                        style={{ 
+                          width: "100%", 
+                          textAlign: "left", 
+                          background: "none", 
+                          border: "none", 
+                          display: "flex", 
+                          alignItems: "center", 
+                          gap: "12px", 
+                          padding: "12px 16px", 
+                          cursor: "pointer", 
+                          color: "#EF4444", 
+                          fontSize: "0.9rem", 
+                          fontWeight: 700, 
+                          borderRadius: "12px", 
+                          transition: "all 200ms ease",
+                          fontFamily: "var(--font-body)"
+                        }} 
+                        className="dropdown-item-danger"
+                      >
+                        <LogOut size={18} strokeWidth={2} />
+                        Системээс гарах
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Cart Icon & Dropdown - Desktop Only */}
+            {user && (
+              <div style={{ position: "relative", display: isDesktop ? "block" : "none" }} onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => setActiveDropdown(activeDropdown === "cart" ? null : "cart")}
+                  style={{ background: "none", border: "none", padding: "8px", cursor: "pointer", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}
+                >
+                  <div style={{ position: "relative" }}>
+                    <ShoppingCart size={22} strokeWidth={1.5} />
+                    {mounted && cartItemCount > 0 && (
+                      <span style={{ position: "absolute", top: "-8px", right: "-8px", backgroundColor: "#2563EB", color: "#FFFFFF", borderRadius: "10px", padding: "2px 6px", fontSize: "0.65rem", fontWeight: 700 }}>
+                        {cartItemCount}
+                      </span>
+                    )}
+                  </div>
+                </button>
+
+                <AnimatePresence>
+                  {activeDropdown === "cart" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 15, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.96 }}
+                      transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        right: 0,
+                        marginTop: "12px",
+                        width: "380px",
+                        backgroundColor: "rgba(255, 255, 255, 0.95)",
+                        backdropFilter: "blur(20px)",
+                        WebkitBackdropFilter: "blur(20px)",
+                        borderRadius: "28px",
+                        boxShadow: "0 20px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)",
+                        padding: "24px",
+                        zIndex: 1100
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <ShoppingBag size={20} strokeWidth={2.5} color="#0F172A" />
+                          <h4 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: "#0F172A", letterSpacing: "-0.01em", fontFamily: "var(--font-display)" }}>Миний сагс</h4>
+                        </div>
+                        <span style={{ fontSize: "0.75rem", fontWeight: 700, backgroundColor: "#F1F5F9", color: "#64748B", padding: "4px 10px", borderRadius: "10px", fontFamily: "var(--font-body)" }}>{cartItemCount} бараа</span>
+                      </div>
+                      
+                      {cartItems.length > 0 ? (
+                        <>
+                          <div style={{ maxHeight: "320px", overflowY: "auto", marginBottom: "24px", display: "flex", flexDirection: "column", gap: "16px", paddingRight: "4px" }} className="custom-scrollbar">
+                            {cartItems.map((item) => (
+                              <div key={item.id} style={{ display: "flex", gap: "16px", alignItems: "center", position: "relative" }}>
+                                <div style={{ width: "64px", height: "64px", borderRadius: "14px", backgroundColor: "#F8FAFC", border: "1px solid #F1F5F9", overflow: "hidden", flexShrink: 0, position: "relative" }}>
+                                  <Image src={(item.image || "/assets/placeholder.png").replace(/ik\.imagekit\.io(.*)\.png$/, "ik.imagekit.io$1")} alt={item.name} fill style={{ objectFit: "cover" }} />
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ margin: "0 0 4px", fontSize: "0.9rem", fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "var(--font-display)", letterSpacing: "-0.01em" }}>{item.name}</p>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <span style={{ fontSize: "0.8rem", color: "#64748B", backgroundColor: "#F1F5F9", padding: "2px 6px", borderRadius: "6px", fontWeight: 600, fontFamily: "var(--font-body)" }}>{item.quantity}ш</span>
+                                    <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "#2563EB", fontFamily: "var(--font-body)" }}>{item.price.toLocaleString()}₮</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div style={{ backgroundColor: "#F8FAFC", borderRadius: "20px", padding: "16px", marginBottom: "20px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span style={{ fontSize: "0.9rem", fontWeight: 600, color: "#64748B", fontFamily: "var(--font-body)" }}>Нийт дүн:</span>
+                              <span style={{ fontSize: "1.2rem", fontWeight: 800, color: "#0F172A", fontFamily: "var(--font-display)" }}>{cartTotal.toLocaleString()}₮</span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: "flex", gap: "12px" }}>
+                            <Link 
+                              href="/cart" 
+                              onClick={() => setActiveDropdown(null)}
+                              style={{ 
+                                flex: 1, 
+                                textAlign: "center", 
+                                padding: "14px", 
+                                backgroundColor: "#FFFFFF", 
+                                color: "#0F172A", 
+                                border: "1.5px solid #E2E8F0",
+                                textDecoration: "none", 
+                                fontSize: "0.9rem", 
+                                fontWeight: 700, 
+                                borderRadius: "14px",
+                                transition: "all 200ms",
+                                fontFamily: "var(--font-body)"
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.backgroundColor = "#F8FAFC"}
+                              onMouseLeave={e => e.currentTarget.style.backgroundColor = "#FFFFFF"}
+                            >
+                              Сагс харах
+                            </Link>
+                            <Link 
+                              href="/checkout" 
+                              onClick={() => setActiveDropdown(null)}
+                              style={{ 
+                                flex: 1, 
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: "8px",
+                                padding: "14px", 
+                                backgroundColor: "#0F172A", 
+                                color: "#FFFFFF", 
+                                textDecoration: "none", 
+                                fontSize: "0.9rem", 
+                                fontWeight: 700, 
+                                borderRadius: "14px",
+                                transition: "all 200ms",
+                                boxShadow: "0 4px 12px rgba(15, 23, 42, 0.2)",
+                                fontFamily: "var(--font-body)"
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.transform = "translateY(-1px)"}
+                              onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
+                            >
+                              Төлөх <ArrowRight size={16} />
+                            </Link>
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{ padding: "40px 0", textAlign: "center" }}>
+                          <div style={{ width: "64px", height: "64px", backgroundColor: "#F8FAFC", borderRadius: "20px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                            <ShoppingBag size={32} color="#CBD5E1" strokeWidth={1.5} />
+                          </div>
+                          <p style={{ margin: "0 0 8px", color: "#0F172A", fontWeight: 700 }}>Сагс хоосон байна</p>
+                          <p style={{ margin: 0, color: "#94A3B8", fontSize: "0.85rem" }}>Таалагдсан бараагаа сагсандаа нэмээрэй</p>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
             <button onClick={() => setIsMenuOpen(true)} style={{ display: isDesktop ? "none" : "flex", background: "none", border: "none", padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}><Menu size={24} /></button>
           </div>
         </div>
@@ -189,80 +439,80 @@ export function SiteHeader() {
 
       {/* Hover Category Bar */}
       <AnimatePresence>
-          {hoveredItem && isDesktop && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "46px", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-              style={{
-                position: "fixed",
-                top: isScrolled ? "64px" : "80px",
-                left: 0,
-                right: 0,
-                backgroundColor: "rgba(255, 255, 255, 0.5)",
-                backdropFilter: "blur(30px)",
-                WebkitBackdropFilter: "blur(30px)",
-                zIndex: 1049,
-                boxShadow: "0 10px 30px rgba(0,0,0,0.03)"
-              }}
-              onMouseEnter={() => setHoveredItem(hoveredItem)}
-              onMouseLeave={() => setHoveredItem(null)}
-            >
-              <div style={{ maxWidth: "1440px", margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "center", gap: "32px", height: "100%" }}>
-                {menuItems.find(i => i.id === hoveredItem)?.children.map((link, idx) => (
-                  <Link 
-                    key={idx} 
-                    href={link.href} 
-                    onClick={(e) => {
-                      if (link.label === "Холбоо барих") {
-                        e.preventDefault();
-                        setIsContactOpen(true);
-                        setHoveredItem(null);
-                      }
-                    }}
-                    style={{ 
-                      textDecoration: "none", 
-                      fontSize: "0.85rem", 
-                      fontWeight: 650, 
-                      color: "#475569",
-                      padding: "0 4px",
-                      transition: "color 200ms"
-                    }}
-                    className="category-nav-link"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {hoveredItem && isDesktop && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "46px", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+            style={{
+              position: "fixed",
+              top: isScrolled ? "64px" : "80px",
+              left: 0,
+              right: 0,
+              backgroundColor: "rgba(255, 255, 255, 0.5)",
+              backdropFilter: "blur(30px)",
+              WebkitBackdropFilter: "blur(30px)",
+              zIndex: 1049,
+              boxShadow: "0 10px 30px rgba(0,0,0,0.03)"
+            }}
+            onMouseEnter={() => setHoveredItem(hoveredItem)}
+            onMouseLeave={() => setHoveredItem(null)}
+          >
+            <div style={{ maxWidth: "1440px", margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "center", gap: "32px", height: "100%" }}>
+              {menuItems.find(i => i.id === hoveredItem)?.children.map((link, idx) => (
+                <Link
+                  key={idx}
+                  href={link.href}
+                  onClick={(e) => {
+                    if (link.label === "Холбоо барих") {
+                      e.preventDefault();
+                      setIsContactOpen(true);
+                      setHoveredItem(null);
+                    }
+                  }}
+                  style={{
+                    textDecoration: "none",
+                    fontSize: "0.85rem",
+                    fontWeight: 650,
+                    color: "#475569",
+                    padding: "0 4px",
+                    transition: "color 200ms"
+                  }}
+                  className="category-nav-link"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Side Contact Drawer (Exact same as Footer) */}
-      <div 
+      <div
         onClick={() => setIsContactOpen(false)}
-        style={{ 
-          position: "fixed", 
-          inset: 0, 
-          backgroundColor: "rgba(0,0,0,0.5)", 
-          zIndex: 9998, 
+        style={{
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          zIndex: 9998,
           display: isContactOpen ? "block" : "none",
           transition: "opacity 0.3s ease",
           opacity: isContactOpen ? 1 : 0
         }}
       />
-      <div 
-        style={{ 
-          position: "fixed", 
-          top: 0, 
-          right: 0, 
-          height: "100%", 
-          width: "100%", 
-          maxWidth: "400px", 
-          backgroundColor: "#FFFFFF", 
-          zIndex: 9999, 
-          visibility: isContactOpen ? "visible" : "hidden", 
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          right: 0,
+          height: "100%",
+          width: "100%",
+          maxWidth: "400px",
+          backgroundColor: "#FFFFFF",
+          zIndex: 9999,
+          visibility: isContactOpen ? "visible" : "hidden",
           transform: isContactOpen ? "translateX(0)" : "translateX(100%)",
           transition: "transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), visibility 0.4s",
           boxShadow: isContactOpen ? "-15px 0 40px rgba(0,0,0,0.08)" : "none",
@@ -277,12 +527,12 @@ export function SiteHeader() {
             <X size={20} />
           </button>
         </div>
-        
+
         <div style={{ padding: "24px", overflowY: "auto", flex: 1 }}>
           <div style={{ marginBottom: "32px" }}>
             <h6 style={{ fontWeight: 700, marginBottom: "8px", color: "#1d1d1f", fontSize: "1.05rem" }}>Хаяг:</h6>
             <p style={{ color: "#64748B", fontSize: "0.95rem", lineHeight: "1.6", margin: 0 }}>
-              Улаанбаатар хот, Хан-Уул дүүрэг, 15-р хороо<br/>
+              Улаанбаатар хот, Хан-Уул дүүрэг, 15-р хороо<br />
               Их наяд Плаза, Зүүн өндөр, 3-р давхар, 305 тоот
             </p>
           </div>
@@ -313,13 +563,13 @@ export function SiteHeader() {
           </div>
 
           <div style={{ borderRadius: "12px", overflow: "hidden", width: "100%", marginTop: "40px", height: "220px", border: "1px solid #f0f0f0" }}>
-            <iframe 
-               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2675.297745778844!2d106.91572977636655!3d47.89196396843467!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x5d9693abebca4e81%3A0xe5aebd5fbc7cd10f!2sIkh%20Naytad%20Plaza!5e0!3m2!1smn!2smn!4v1699999999999!5m2!1smn!2smn"
-              width="100%" 
-              height="100%" 
-              style={{ border: 0 }} 
-              allowFullScreen={false} 
-              loading="lazy" 
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2675.297745778844!2d106.91572977636655!3d47.89196396843467!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x5d9693abebca4e81%3A0xe5aebd5fbc7cd10f!2sIkh%20Naytad%20Plaza!5e0!3m2!1smn!2smn!4v1699999999999!5m2!1smn!2smn"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen={false}
+              loading="lazy"
               referrerPolicy="no-referrer-when-downgrade">
             </iframe>
           </div>
@@ -354,7 +604,7 @@ export function SiteHeader() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.96, opacity: 0, y: 16 }}
               transition={{ type: "spring", damping: 28, stiffness: 320 }}
-              style={{ position: "relative", width: "100%", maxWidth: "400px", backgroundColor: "#FFFFFF", borderRadius: "24px", overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.2)" }}
+              style={{ position: "relative", width: "100%", maxWidth: "400px", borderRadius: "24px", overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.2)" }}
             >
               {/* Header gradient band */}
               <div style={{ background: "linear-gradient(135deg, #0F172A 0%, #1E3A5F 100%)", padding: "32px 24px 28px", textAlign: "center", position: "relative" }}>
@@ -372,9 +622,6 @@ export function SiteHeader() {
                 <h3 style={{ margin: "0 0 6px", fontSize: "1.3rem", fontWeight: 700, color: "#ffffff", letterSpacing: "-0.01em" }}>
                   DEER Drone-д тавтай морил
                 </h3>
-                <p style={{ margin: 0, fontSize: "0.88rem", color: "rgba(255,255,255,0.65)" }}>
-                  Нэвтэрч бүх үйлчилгээг ашиглаарай
-                </p>
               </div>
 
               {/* Benefits */}
@@ -393,34 +640,32 @@ export function SiteHeader() {
                 ))}
               </div> */}
 
-              {/* Divider */}
-              <div style={{ margin: "16px 24px", height: "1px", backgroundColor: "#F1F5F9" }} />
-
               {/* Action area */}
-              <div style={{ padding: "0 24px 24px", display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div style={{ padding: "0 24px 24px", backgroundColor: "#F1F5F9", display: "flex", flexDirection: "column", gap: "10px" }}>
                 {/* Google */}
-                <Link
-                  href={`/api/auth/google?redirect=${encodeURIComponent(pathname === "/login" ? "/account" : pathname)}`}
+                <button
+                  onClick={handleGoogleLogin}
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
                     width: "100%", padding: "13px",
+                    marginTop: "24px",
                     backgroundColor: "#ffffff", color: "#0F172A",
                     border: "1.5px solid #E2E8F0",
                     borderRadius: "12px", fontSize: "0.95rem", fontWeight: 600,
-                    textDecoration: "none", transition: "border-color 150ms, box-shadow 150ms, transform 120ms",
+                    cursor: "pointer", transition: "border-color 150ms, box-shadow 150ms, transform 120ms",
                     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
                   }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "#94A3B8"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "translateY(0)"; }}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 24 24">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                   </svg>
                   Google-ээр нэвтрэх
-                </Link>
+                </button>
 
                 {/* Facebook */}
                 <Link
@@ -457,48 +702,137 @@ export function SiteHeader() {
 
       <style jsx>{`
         :global(.category-nav-link:hover) { color: #0F172A !important; }
+        :global(.dropdown-item:hover) { 
+          background-color: #F8FAFC !important; 
+          color: #0F172A !important; 
+          transform: translateX(4px);
+        }
+        :global(.dropdown-item-danger:hover) { 
+          background-color: #FEF2F2 !important; 
+          transform: translateX(4px);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #E2E8F0;
+          border-radius: 10px;
+        }
       `}</style>
 
       {/* Mobile Drawer */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div animate={{ opacity: 1 }} exit={{ opacity: 0 }} initial={{ opacity: 0 }} style={{ position: "fixed", inset: 0, zIndex: 2000 }}>
-             <div onClick={() => setIsMenuOpen(false)} style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.5)" }} />
-             <motion.div animate={{ x: 0 }} initial={{ x: "-100%" }} transition={{ type: "spring", damping: 25 }} style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "300px", backgroundColor: "#FFFFFF", padding: "30px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "40px" }}>
-                   <Image alt="Logo" src="/assets/brand/deer-logo.svg" width={100} height={28} />
-                   <button onClick={() => setIsMenuOpen(false)} style={{ background: "none", border: "none" }}><X size={24} /></button>
+            <div onClick={() => setIsMenuOpen(false)} style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.5)" }} />
+            <motion.div animate={{ x: 0 }} initial={{ x: "-100%" }} transition={{ type: "spring", damping: 25 }} style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "300px", backgroundColor: "#FFFFFF", padding: "30px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "40px" }}>
+                <Image alt="Logo" src="/assets/brand/deer-logo.svg" width={100} height={28} />
+                <button onClick={() => setIsMenuOpen(false)} style={{ background: "none", border: "none" }}><X size={24} /></button>
+              </div>
+              {menuItems.map(item => (
+                <div key={item.id} style={{ marginBottom: "20px" }}>
+                  <div onClick={() => setOpenMobileSection(openMobileSection === item.id ? null : item.id)} style={{ fontSize: "1.1rem", fontWeight: 700, display: "flex", justifyContent: "space-between", cursor: "pointer" }}>
+                    {item.label} <span>{item.children.length > 0 ? "+" : ""}</span>
+                  </div>
+                  {openMobileSection === item.id && (
+                    <div style={{ paddingLeft: "15px", marginTop: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {item.children.map((c, idx) => (
+                        <Link
+                          key={idx}
+                          href={c.href}
+                          onClick={(e) => {
+                            if (c.label === "Холбоо барих") {
+                              e.preventDefault();
+                              setIsContactOpen(true);
+                              setIsMenuOpen(false);
+                            } else {
+                              setIsMenuOpen(false);
+                            }
+                          }}
+                          style={{ color: "#64748b", textDecoration: "none" }}
+                        >
+                          {c.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {menuItems.map(item => (
-                   <div key={item.id} style={{ marginBottom: "20px" }}>
-                      <div onClick={() => setOpenMobileSection(openMobileSection === item.id ? null : item.id)} style={{ fontSize: "1.1rem", fontWeight: 700, display: "flex", justifyContent: "space-between", cursor: "pointer" }}>
-                         {item.label} <span>{item.children.length > 0 ? "+" : ""}</span>
-                      </div>
-                      {openMobileSection === item.id && (
-                        <div style={{ paddingLeft: "15px", marginTop: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                           {item.children.map((c, idx) => (
-                             <Link 
-                               key={idx} 
-                               href={c.href} 
-                               onClick={(e) => {
-                                 if (c.label === "Холбоо барих") {
-                                   e.preventDefault();
-                                   setIsContactOpen(true);
-                                   setIsMenuOpen(false);
-                                 } else {
-                                   setIsMenuOpen(false);
-                                 }
-                               }} 
-                               style={{ color: "#64748b", textDecoration: "none" }}
-                             >
-                               {c.label}
-                             </Link>
-                           ))}
-                        </div>
+              ))}
+
+              <div style={{ marginTop: "40px", paddingTop: "30px", borderTop: "1px solid #F1F5F9" }}>
+                {user && (
+                  <Link
+                    href="/cart"
+                    onClick={() => setIsMenuOpen(false)}
+                    style={{ display: "flex", alignItems: "center", gap: "12px", textDecoration: "none", color: "#0F172A", marginBottom: "24px" }}
+                  >
+                    <div style={{ position: "relative" }}>
+                      <ShoppingCart size={22} strokeWidth={1.5} />
+                      {mounted && cartItemCount > 0 && (
+                        <span style={{ position: "absolute", top: "-8px", right: "-8px", backgroundColor: "#2563EB", color: "#FFFFFF", borderRadius: "10px", padding: "2px 6px", fontSize: "0.65rem", fontWeight: 700 }}>
+                          {cartItemCount}
+                        </span>
                       )}
-                   </div>
-                ))}
-             </motion.div>
+                    </div>
+                    <span style={{ fontWeight: 700, fontSize: "1.1rem" }}>Миний сагс</span>
+                  </Link>
+                )}
+
+                {user ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#0F172A" }}>
+                      <User size={22} strokeWidth={1.5} />
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span style={{ fontWeight: 700, fontSize: "1.1rem", fontFamily: "var(--font-display)" }}>Миний бүртгэл</span>
+                        <span style={{ fontSize: "0.8rem", color: "#64748B", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "200px", fontFamily: "var(--font-body)" }}>{user.email}</span>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      onClick={async () => {
+                        const { createClient } = await import("../../lib/supabase/client");
+                        const supabase = createClient();
+                        await supabase.auth.signOut();
+                        setIsMenuOpen(false);
+                        window.location.reload();
+                      }}
+                      style={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        gap: "12px", 
+                        background: "#FEF2F2", 
+                        border: "none", 
+                        padding: "12px 16px", 
+                        borderRadius: "12px",
+                        cursor: "pointer", 
+                        color: "#EF4444", 
+                        fontWeight: 700, 
+                        fontSize: "1rem",
+                        fontFamily: "var(--font-body)"
+                      }}
+                    >
+                      <LogOut size={20} strokeWidth={2} />
+                      Гарах
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsLoginPopupOpen(true);
+                    }}
+                    style={{ display: "flex", alignItems: "center", gap: "12px", background: "none", border: "none", padding: 0, cursor: "pointer", color: "#0F172A", textAlign: "left", fontFamily: "var(--font-display)" }}
+                  >
+                    <User size={22} strokeWidth={1.5} />
+                    <span style={{ fontWeight: 700, fontSize: "1.1rem" }}>Нэвтрэх / Бүртгүүлэх</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

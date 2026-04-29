@@ -19,5 +19,8 @@
     "eslint-config-next": "^16.2.2",
     "turbo": "^2.5.0",
     "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "imagekit": "^6.0.0"
   }
 }

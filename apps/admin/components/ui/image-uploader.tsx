@@ -29,40 +29,38 @@ export function ImageUploader({ images, onChange, maxImages = 10 }: ImageUploade
 
     try {
       const uploadPromises = files.map(async (file) => {
-        // 1. Get signed upload URL from our API
-        const res = await fetch("/api/uploads/product-image", {
+        // 1. Get ImageKit Auth Parameters
+        const authRes = await fetch("/api/imagekit/auth");
+        if (!authRes.ok) throw new Error("ImageKit auth failed");
+        const authParams = await authRes.json();
+
+        // 2. Prepare FormData for ImageKit
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("fileName", file.name);
+        formData.append("publicKey", process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY!);
+        formData.append("signature", authParams.signature);
+        formData.append("expire", authParams.expire.toString());
+        formData.append("token", authParams.token);
+        formData.append("folder", "/products/");
+
+        // 3. Upload directly to ImageKit
+        const uploadRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileType: file.type,
-            fileSize: file.size,
-          }),
-        });
-
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.error || "Зураг хуулах холбоос авахад алдаа гарлаа.");
-        }
-
-        const { url, signedUrl, path } = await res.json();
-
-        // 2. Upload directly to Supabase via Signed URL
-        const uploadRes = await fetch(signedUrl, {
-          method: "PUT",
-          body: file,
-          headers: { "Content-Type": file.type },
+          body: formData,
         });
 
         if (!uploadRes.ok) {
-          throw new Error("Зураг хуулах явцад алдаа гарлаа (Direct upload failed).");
+          const errorData = await uploadRes.json().catch(() => ({}));
+          throw new Error(errorData.message || "ImageKit upload failed");
         }
 
-        return { url, path };
+        const ikData = await uploadRes.json();
+        return { url: ikData.url };
       });
 
       const uploadedImages = await Promise.all(uploadPromises);
-      
+
       const newImages = [...images, ...uploadedImages.map((img: any, idx: number) => ({
         url: img.url,
         path: img.path,
@@ -97,7 +95,7 @@ export function ImageUploader({ images, onChange, maxImages = 10 }: ImageUploade
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              style={{position:"relative"}}
+              style={{ position: "relative" }}
               className="image-preview-card"
             >
               <img src={img.url} alt={`Preview ${index}`} className="image-preview-img" />

@@ -513,9 +513,11 @@ export function CheckoutForm() {
                 <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {result.payment.deeplinks.map(dl => (
                     <a key={dl.name} href={dl.link} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
                         background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8,
-                        fontSize: "0.82rem", fontWeight: 600, color: "#0F172A", textDecoration: "none" }}>
+                        fontSize: "0.82rem", fontWeight: 600, color: "#0F172A", textDecoration: "none"
+                      }}>
                       {dl.logo && <Image src={dl.logo} alt={dl.name} width={18} height={18} unoptimized style={{ borderRadius: 4 }} />}
                       {dl.name}
                     </a>

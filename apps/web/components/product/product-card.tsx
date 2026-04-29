@@ -9,9 +9,22 @@ interface ProductCardProps {
   product: Product;
 }
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import { createClient } from "../../lib/supabase/client";
 
 export function ProductCard({ product }: ProductCardProps) {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    async function getUser() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    }
+    getUser();
+  }, []);
+
   const isNew = parseInt(product.id, 10) > 5;
   const hasDiscount = product.comparePrice && product.comparePrice > product.price;
   const discountPercent = hasDiscount
@@ -81,7 +94,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </h5>
 
           {/* Description */}
-          <p className="text-secondary small mb-3" style={{ lineHeight: 1.5, minHeight: "3em", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          <p className="text-secondary small mb-3" style={{ lineHeight: 1.5, minHeight: "3em", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "vertical", overflowX: "hidden" }}>
             {product.shortDescription}
           </p>
 
@@ -108,12 +121,14 @@ export function ProductCard({ product }: ProductCardProps) {
               )}
             </div>
 
-            <div
-              className="rounded-3 d-flex align-items-center justify-content-center product-cart-icon"
-              style={{ width: "40px", height: "40px", backgroundColor: "#7c3aed" }}
-            >
-              <ShoppingCart size={20} className="text-white" />
-            </div>
+            {user && (
+              <div
+                className="rounded-3 d-flex align-items-center justify-content-center product-cart-icon"
+                style={{ width: "40px", height: "40px", backgroundColor: "#7c3aed" }}
+              >
+                <ShoppingCart size={20} className="text-white" />
+              </div>
+            )}
           </div>
         </div>
       </div>
