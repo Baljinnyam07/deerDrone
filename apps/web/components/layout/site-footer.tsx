@@ -33,9 +33,8 @@ export function SiteFooter() {
     <footer
       style={{
         backgroundColor: "#FFFFFF",
-        paddingTop: "60px",
+        paddingTop: "40px",
         paddingBottom: "24px",
-        marginTop: "80px",
       }}
     >
       <div

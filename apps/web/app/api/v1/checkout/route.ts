@@ -3,6 +3,7 @@ import type { CheckoutPayload } from "@deer-drone/types";
 import { getDeliveryQuote, validateCheckoutPayload } from "@deer-drone/utils";
 import { createClient } from "../../../../lib/supabase/server";
 import { createServiceClient } from "../../../../lib/supabase/service";
+import { createQPayInvoice } from "../../../../lib/qpay";
 
 type OrderItemRow = {
   line_total: number;
@@ -18,18 +19,6 @@ type ProductRow = {
   price: number;
   stock_qty: number;
 };
-
-function buildQrSvg(label: string): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320">
-    <rect width="320" height="320" rx="24" fill="#07111f" />
-    <rect x="26" y="26" width="268" height="268" rx="20" fill="#ffffff" />
-    <text x="160" y="140" text-anchor="middle" font-size="28" font-weight="bold" font-family="Arial" fill="#07111f">QPay</text>
-    <text x="160" y="175" text-anchor="middle" font-size="14" font-family="Arial" fill="#555">${label}</text>
-    <text x="160" y="210" text-anchor="middle" font-size="11" font-family="Arial" fill="#999">Scan to pay</text>
-  </svg>`;
-
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
-}
 
 async function restoreReservedStock(
   supabase: ReturnType<typeof createServiceClient>,
@@ -182,20 +171,34 @@ export async function POST(request: Request) {
       );
     }
 
-    const payment =
-      payload.paymentMethod === "qpay"
-        ? {
-            method: "qpay" as const,
-            invoiceUrl: `https://sandbox.qpay.mn/invoice/${order.order_number}`,
-            qrCode: buildQrSvg(order.order_number),
-            expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-          }
-        : {
-            method: "bank_transfer" as const,
-            accountName: "DEER Technology LLC",
-            accountNumber: "5001234567",
-            reference: order.order_number,
-          };
+    let payment: Record<string, unknown>;
+
+    if (payload.paymentMethod === "qpay") {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+      const callbackUrl = `${siteUrl}/api/v1/qpay/callback?order_id=${order.id}`;
+
+      const invoice = await createQPayInvoice({
+        orderId: order.id,
+        amount: total,
+        description: `DEER Drone захиалга #${order.order_number}`,
+        callbackUrl,
+      });
+
+      payment = {
+        method: "qpay",
+        invoiceId: invoice.invoice_id,
+        qrCode: `data:image/png;base64,${invoice.qr_image}`,
+        deeplinks: invoice.urls,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      };
+    } else {
+      payment = {
+        method: "bank_transfer",
+        accountName: "DEER Technology LLC",
+        accountNumber: "5001234567",
+        reference: order.order_number,
+      };
+    }
 
     return NextResponse.json(
       {

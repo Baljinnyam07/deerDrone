@@ -1424,11 +1424,11 @@ main {
 /* Panel */
 .cb-panel {
   position: fixed;
-  bottom: 24px;
+  bottom: 62px;
   right: 24px;
   z-index: 9998;
   width: min(380px, calc(100vw - 32px));
-  max-height: 580px;
+  max-height: 560px;
   display: flex;
   flex-direction: column;
   background: #fff;
@@ -1703,12 +1703,12 @@ main {
     display: none;
   }
   .cb-panel {
-    bottom: 12px;
+    bottom: 82px;
     right: 12px;
     left: 12px;
     width: auto;
-    border-radius: 20px;
-    max-height: 88dvh;
+    border-radius: 16px;
+    max-height: 70dvh;
   }
 }
 

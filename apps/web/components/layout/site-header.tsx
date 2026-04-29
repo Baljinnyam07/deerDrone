@@ -163,7 +163,7 @@ export function SiteHeader() {
           {/* Icons & Actions */}
           <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
             <button onClick={() => setIsSearchOpen(true)} style={{ background: "none", border: "none", padding: "8px", cursor: "pointer", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}><Search size={22} strokeWidth={1.5} /></button>
-            {user ? (
+            {/* {user ? (
               <Link href="/account" style={{ padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}>
                 <User size={22} strokeWidth={1.5} />
               </Link>
@@ -174,13 +174,13 @@ export function SiteHeader() {
               >
                 <User size={22} strokeWidth={1.5} />
               </button>
-            )}
-            {user && (
+            )} */}
+            {/* {user && ( */}
               <Link href="/cart" style={{ position: "relative", padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}>
                 <ShoppingCart size={22} strokeWidth={1.5} />
                 {mounted && cartItemCount > 0 && <span style={{ position: "absolute", top: "0", right: "0", backgroundColor: "#2563EB", color: "#FFFFFF", borderRadius: "10px", padding: "2px 6px", fontSize: "0.65rem", fontWeight: 700 }}>{cartItemCount}</span>}
               </Link>
-            )}
+            {/* )} */}
             <button onClick={() => setIsMenuOpen(true)} style={{ display: isDesktop ? "none" : "flex", background: "none", border: "none", padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}><Menu size={24} /></button>
           </div>
         </div>

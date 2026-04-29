@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import type { CheckoutPayload } from "@deer-drone/types";
 import { formatMoney } from "@deer-drone/utils";
 import Link from "next/link";
@@ -28,8 +28,9 @@ interface OrderResult {
   order: { id: string; orderNumber: string; status: string; total: number; createdAt: string };
   payment: {
     method: string;
-    invoiceUrl?: string;
+    invoiceId?: string;
     qrCode?: string;
+    deeplinks?: { name: string; description: string; logo: string; link: string }[];
     expiresAt?: string;
     accountName?: string;
     accountNumber?: string;
@@ -50,7 +51,7 @@ const CSS = `
   .co-page {
     background: #fff;
     min-height: 100vh;
-    padding-bottom: 80px;
+    padding-bottom: 40px;
     overflow-x: hidden;
     width: 100%;
   }
@@ -280,19 +281,33 @@ const CSS = `
     gap: 8px; padding: 13px 28px;
     border-radius: 8px; font-weight: 600; font-size: 1rem;
     cursor: pointer; border: none; transition: all 200ms;
+    text-decoration: none;
   }
   .co-btn-back {
-    background: #F8FAFC; color: #2563EB; border: 1.5px solid #E2E8F0;
+    background: #F8FAFC; color: #64748B; border: 1.5px solid #E2E8F0;
   }
-  .co-btn-back:hover { background: #EEF2FF; border-color: #2563EB; }
+  .co-btn-back:hover { background: #F1F5F9; border-color: #CBD5E1; color: #0F172A; }
   .co-btn-next {
     background: #2563EB; color: #fff; margin-left: auto;
   }
   .co-btn-next:hover:not(:disabled) { background: #1D4ED8; transform: translateY(-1px); }
-  .co-btn-next:disabled { opacity: 0.5; cursor: not-allowed; }
-  .co-btn-submit { background: #2563EB; color: #fff; margin-left: auto; }
-  .co-btn-submit:hover:not(:disabled) { background: #1D4ED8; transform: translateY(-1px); }
+  .co-btn-next:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .co-btn-submit { background: #10B981; color: #fff; margin-left: auto; }
+  .co-btn-submit:hover:not(:disabled) { background: #059669; transform: translateY(-1px); }
   .co-btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Field error ── */
+  .co-field-error {
+    color: #EF4444; font-size: 0.8rem;
+    margin-top: 6px; display: flex; align-items: center; gap: 4px;
+  }
+  .co-input.err, .co-select.err, .co-textarea.err {
+    border-color: #FCA5A5; background: #FFF5F5;
+  }
+
+  /* ── Clickable done step ── */
+  .co-step-icon.done { cursor: pointer; }
+  .co-step-icon.done:hover { background: #059669; border-color: #059669; }
 
   /* ── Error ── */
   .co-error {
@@ -329,7 +344,7 @@ const CSS = `
     .co-form-title { font-size: 1.3rem; }
     .co-form-subtitle { font-size: 0.88rem; margin-bottom: 20px; }
 
-    .co-actions { flex-direction: column-reverse; }
+    .co-actions { flex; column-reverse; }
     .co-btn-back, .co-btn-next, .co-btn-submit {
       width: 100%; padding: 14px;
       margin-left: 0;
@@ -345,7 +360,7 @@ const CSS = `
   }
 `;
 
-function StepIndicator({ currentStep }: { currentStep: number }) {
+function StepIndicator({ currentStep, onStepClick }: { currentStep: number; onStepClick: (i: number) => void }) {
   return (
     <div style={{ display: "flex", alignItems: "flex-start", width: "100%", marginBottom: 40 }}>
       {steps.map((step, index) => {
@@ -354,20 +369,22 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
         const isDone = index < currentStep;
         return (
           <div key={step.id} style={{ display: "flex", alignItems: "flex-start", flex: index < steps.length - 1 ? 1 : 0 }}>
-            {/* Icon + Label stacked */}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 48 }}>
-              <div className={`co-step-icon${isDone ? " done" : isActive ? " active" : ""}`}>
+              <div
+                className={`co-step-icon${isDone ? " done" : isActive ? " active" : ""}`}
+                onClick={() => isDone && onStepClick(index)}
+                title={isDone ? `${step.title} руу буцах` : undefined}
+              >
                 <Icon size={18} />
               </div>
               <span className={`co-step-label${isDone ? " done" : isActive ? " active" : ""}`}>
                 {step.title}
               </span>
             </div>
-            {/* Connector line between steps */}
             {index < steps.length - 1 && (
               <div
                 className={`co-step-line${isDone ? " done" : ""}`}
-                style={{ marginTop: 24 /* half of icon height 48px */ }}
+                style={{ marginTop: 24 }}
               />
             )}
           </div>
@@ -390,6 +407,8 @@ export function CheckoutForm() {
   const [mounted] = useState(true);
   const [copied, setCopied] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [showErrors, setShowErrors] = useState(false);
+  const dirRef = useRef(1);
 
   function updateField<K extends keyof CheckoutPayload>(k: K, v: CheckoutPayload[K]) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -398,14 +417,30 @@ export function CheckoutForm() {
     setForm((cur) => ({ ...cur, shippingAddress: { ...cur.shippingAddress, [f]: v } }));
   }
 
-  const validateStep = () => {
-    if (currentStep === 0) return !!(form.contactName.trim() && form.contactPhone.trim());
-    if (currentStep === 1) return !!(form.shippingAddress.line1.trim() && form.shippingAddress.city.trim());
+  const validateStep = (step = currentStep) => {
+    if (step === 0) return !!(form.contactName.trim() && form.contactPhone.trim());
+    if (step === 1) return !!(form.shippingAddress.line1.trim() && form.shippingAddress.city.trim());
     return true;
   };
 
-  const handleNext = () => { if (validateStep() && currentStep < steps.length - 1) setCurrentStep(s => s + 1); };
-  const handlePrev = () => { if (currentStep > 0) setCurrentStep(s => s - 1); };
+  const handleNext = () => {
+    if (!validateStep()) { setShowErrors(true); return; }
+    setShowErrors(false);
+    dirRef.current = 1;
+    setCurrentStep(s => s + 1);
+  };
+  const handlePrev = () => {
+    setShowErrors(false);
+    dirRef.current = -1;
+    setCurrentStep(s => s - 1);
+  };
+  const goToStep = (idx: number) => {
+    if (idx < currentStep) {
+      setShowErrors(false);
+      dirRef.current = -1;
+      setCurrentStep(idx);
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -474,6 +509,19 @@ export function CheckoutForm() {
               <p style={{ fontSize: "0.85rem", color: "#64748B", lineHeight: 1.6 }}>
                 Банкны мобайл аппаар QR уншуулж төлбөрөө хийнэ үү.
               </p>
+              {result.payment.deeplinks && result.payment.deeplinks.length > 0 && (
+                <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {result.payment.deeplinks.map(dl => (
+                    <a key={dl.name} href={dl.link} target="_blank" rel="noopener noreferrer"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
+                        background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8,
+                        fontSize: "0.82rem", fontWeight: 600, color: "#0F172A", textDecoration: "none" }}>
+                      {dl.logo && <Image src={dl.logo} alt={dl.name} width={18} height={18} unoptimized style={{ borderRadius: 4 }} />}
+                      {dl.name}
+                    </a>
+                  ))}
+                </div>
+              )}
               {result.payment.expiresAt && (
                 <div style={{ marginTop: 12, padding: "10px 14px", background: "#EEF2FF", borderRadius: 6, fontSize: "0.82rem", color: "#3730A3" }}>
                   Хүчинтэй хугацаа: {new Date(result.payment.expiresAt).toLocaleTimeString("mn-MN")} хүртэл
@@ -567,15 +615,17 @@ export function CheckoutForm() {
     <div className="co-page">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="co-wrap">
-        <StepIndicator currentStep={currentStep} />
+        <StepIndicator currentStep={currentStep} onStepClick={goToStep} />
         <div className="co-grid">
           {/* Form column */}
           <div>
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentStep}
-                initial={{ x: 16, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -16, opacity: 0 }} transition={{ duration: 0.25 }}
+                initial={{ x: dirRef.current * 28, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: dirRef.current * -28, opacity: 0 }}
+                transition={{ duration: 0.22 }}
               >
                 <form onSubmit={handleSubmit}>
 
@@ -586,13 +636,25 @@ export function CheckoutForm() {
                       <p className="co-form-subtitle">Захиалгын мэдэгдэл илгээх холбоо барих мэдээлэл</p>
                       <div className="co-field">
                         <label className="co-label">Овог нэр <span className="co-req">*</span></label>
-                        <input className="co-input" type="text" placeholder="Жишээ: Батболд Нариндаа"
-                          value={form.contactName} onChange={e => updateField("contactName", e.target.value)} required />
+                        <input
+                          className={`co-input${showErrors && !form.contactName.trim() ? " err" : ""}`}
+                          type="text" placeholder="Жишээ: Батболд Нариндаа"
+                          value={form.contactName}
+                          onChange={e => { updateField("contactName", e.target.value); setShowErrors(false); }} />
+                        {showErrors && !form.contactName.trim() && (
+                          <p className="co-field-error"><AlertCircle size={12} /> Овог нэрийг оруулна уу</p>
+                        )}
                       </div>
                       <div className="co-field">
                         <label className="co-label">Утасны дугаар <span className="co-req">*</span></label>
-                        <input className="co-input" type="tel" placeholder="99XX-XXXX эсвэл +976..."
-                          value={form.contactPhone} onChange={e => updateField("contactPhone", e.target.value)} required />
+                        <input
+                          className={`co-input${showErrors && !form.contactPhone.trim() ? " err" : ""}`}
+                          type="tel" placeholder="99XX-XXXX эсвэл +976..."
+                          value={form.contactPhone}
+                          onChange={e => { updateField("contactPhone", e.target.value); setShowErrors(false); }} />
+                        {showErrors && !form.contactPhone.trim() && (
+                          <p className="co-field-error"><AlertCircle size={12} /> Утасны дугаар оруулна уу</p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -612,13 +674,25 @@ export function CheckoutForm() {
                       </div>
                       <div className="co-field">
                         <label className="co-label">Хот / Аймаг <span className="co-req">*</span></label>
-                        <input className="co-input" type="text" placeholder="Жишээ: Улаанбаатар"
-                          value={form.shippingAddress.city} onChange={e => updateAddress("city", e.target.value)} required />
+                        <input
+                          className={`co-input${showErrors && !form.shippingAddress.city.trim() ? " err" : ""}`}
+                          type="text" placeholder="Жишээ: Улаанбаатар"
+                          value={form.shippingAddress.city}
+                          onChange={e => { updateAddress("city", e.target.value); setShowErrors(false); }} />
+                        {showErrors && !form.shippingAddress.city.trim() && (
+                          <p className="co-field-error"><AlertCircle size={12} /> Хот / аймгийг оруулна уу</p>
+                        )}
                       </div>
                       <div className="co-field">
                         <label className="co-label">Дэлгэрэнгүй хаяг <span className="co-req">*</span></label>
-                        <textarea className="co-textarea" placeholder="Байр, орц, тоот, давхар..."
-                          value={form.shippingAddress.line1} onChange={e => updateAddress("line1", e.target.value)} required />
+                        <textarea
+                          className={`co-textarea${showErrors && !form.shippingAddress.line1.trim() ? " err" : ""}`}
+                          placeholder="Байр, орц, тоот, давхар..."
+                          value={form.shippingAddress.line1}
+                          onChange={e => { updateAddress("line1", e.target.value); setShowErrors(false); }} />
+                        {showErrors && !form.shippingAddress.line1.trim() && (
+                          <p className="co-field-error"><AlertCircle size={12} /> Дэлгэрэнгүй хаягийг оруулна уу</p>
+                        )}
                       </div>
                       <div className="co-field">
                         <label className="co-label">Нэмэлт тэмдэглэл</label>
@@ -697,15 +771,18 @@ export function CheckoutForm() {
                   )}
 
                   <div className="co-actions">
-                    {currentStep > 0 && (
+                    {currentStep === 0 ? (
+                      <Link href="/cart" className="co-btn-back">
+                        <ArrowLeft size={16} /> Сагс руу буцах
+                      </Link>
+                    ) : (
                       <button type="button" className="co-btn-back" onClick={handlePrev}>
                         <ArrowLeft size={16} /> Буцах
                       </button>
                     )}
                     {currentStep < steps.length - 1 ? (
-                      <button type="button" className="co-btn-next"
-                        onClick={handleNext} disabled={!validateStep()}>
-                        Дараагийн <ArrowRight size={16} />
+                      <button type="button" className="co-btn-next" onClick={handleNext}>
+                        Үргэлжлүүлэх <ArrowRight size={16} />
                       </button>
                     ) : (
                       <button type="submit" className="co-btn-submit"

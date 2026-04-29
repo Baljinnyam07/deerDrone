@@ -61,7 +61,7 @@ const CSS = `
     gap: 12px; margin-bottom: 6px; flex-wrap: wrap;
   }
   .cart-title {
-    font-size: 1.8rem; font-weight: 800;
+    font-size: 1.8rem; font-weight: 700;
     letter-spacing: -0.02em; color: #0F172A; margin: 0;
   }
   .cart-badge {
@@ -130,11 +130,12 @@ const CSS = `
   }
   .cart-remove {
     display: inline-flex; align-items: center; gap: 5px;
-    font-size: 0.8rem; color: #94A3B8;
-    background: none; border: none; cursor: pointer;
-    padding: 4px 0; transition: color 200ms;
+    font-size: 0.8rem; color: #EF4444;
+    background: #FFF1F0; border: 1px solid #FEE2E2;
+    border-radius: 6px; cursor: pointer;
+    padding: 5px 10px; transition: all 200ms;
   }
-  .cart-remove:hover { color: #EF4444; }
+  .cart-remove:hover { background: #FEE2E2; color: #DC2626; border-color: #FCA5A5; }
 
   /* Qty control */
   .cart-qty {
@@ -179,18 +180,21 @@ const CSS = `
     padding-top: 20px; flex-wrap: wrap; gap: 12px;
   }
   .cart-continue {
-    display: inline-flex; align-items: center; gap: 6px;
+    display: inline-flex; align-items: center; gap: 8px;
     color: #2563EB; text-decoration: none;
     font-weight: 600; font-size: 0.9rem;
-    transition: opacity 200ms;
+    border: 1.5px solid #2563EB; border-radius: 8px;
+    padding: 6px 16px; background: #EEF2FF;
+    transition: all 200ms;
   }
-  .cart-continue:hover { opacity: 0.7; }
+  .cart-continue:hover { background: #DBEAFE; }
   .cart-clear {
-    background: none; border: none;
+    background: none; border: 1.5px solid #EF4444;
     color: #EF4444; font-weight: 600; font-size: 0.9rem;
-    cursor: pointer; transition: opacity 200ms;
+    cursor: pointer; border-radius: 8px;
+    padding: 6px 16px; transition: all 200ms;
   }
-  .cart-clear:hover { opacity: 0.7; }
+  .cart-clear:hover { background: #FFF1F0; }
 
   /* ── Sidebar ── */
   .cart-summary {
@@ -340,6 +344,9 @@ const CSS = `
 
   /* ─── MOBILE ≤ 640px ─── */
   @media (max-width: 640px) {
+    .cb-fab { bottom: 90px !important; }
+    .cb-panel { bottom: 148px !important; }
+
     .cart-wrap { padding: 20px 14px 100px; }
     .cart-title { font-size: 1.4rem; }
 
