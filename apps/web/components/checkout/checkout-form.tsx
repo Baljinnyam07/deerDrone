@@ -317,6 +317,101 @@ const CSS = `
     color: #991B1B; font-size: 0.9rem;
   }
 
+  /* ── QPay Success Card ── */
+  .co-qpay-card {
+    background: #ffffff;
+    border: 1px solid #E2E8F0;
+    border-radius: 20px;
+    padding: 36px 24px;
+    margin: 32px auto;
+    text-align: center;
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+    max-width: 100%;
+  }
+  .co-qpay-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 5px;
+    background: linear-gradient(90deg, #2563EB, #60A5FA);
+  }
+  .co-qpay-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .co-qpay-header h3 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #0F172A;
+    letter-spacing: -0.02em;
+  }
+  .co-qpay-qr-wrap {
+    background: #fff;
+    padding: 16px;
+    border-radius: 20px;
+    border: 2px solid #F1F5F9;
+    display: inline-block;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    margin-bottom: 24px;
+    transition: transform 300ms ease;
+  }
+  .co-qpay-qr-wrap:hover {
+    transform: scale(1.02);
+  }
+  .co-qpay-desc {
+    font-size: 0.95rem;
+    color: #475569;
+    margin-bottom: 20px;
+    font-weight: 500;
+  }
+  .co-qpay-banks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .co-qpay-bank-btn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #0F172A;
+    text-decoration: none;
+    transition: all 200ms ease;
+  }
+  .co-qpay-bank-btn:hover {
+    background: #fff;
+    border-color: #3B82F6;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.1);
+    transform: translateY(-2px);
+  }
+  .co-qpay-bank-btn img {
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .co-qpay-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #EEF2FF;
+    color: #3730A3;
+    padding: 10px 20px;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 28px;
+  }
+
   /* ─────── TABLET ≤ 1024px ─────── */
   @media (max-width: 1024px) {
     .co-grid {
@@ -357,6 +452,15 @@ const CSS = `
 
     .co-success-btns { flex-direction: column; }
     .co-success-btns a { justify-content: center; }
+
+    .co-qpay-banks {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .co-qpay-bank-btn {
+      padding: 10px;
+      font-size: 0.78rem;
+    }
   }
 `;
 
@@ -409,6 +513,29 @@ export function CheckoutForm() {
   const [currentStep, setCurrentStep] = useState(0);
   const [showErrors, setShowErrors] = useState(false);
   const [dir, setDir] = useState(1);
+
+  const [isPaid, setIsPaid] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+  const [paymentCheckError, setPaymentCheckError] = useState("");
+
+  const checkPayment = async () => {
+    if (!result?.order?.id) return;
+    setCheckingPayment(true);
+    setPaymentCheckError("");
+    try {
+      const res = await fetch(`/api/v1/qpay/callback?order_id=${result.order.id}`, { method: "POST" });
+      const data = await res.json();
+      if (data.paid) {
+        setIsPaid(true);
+      } else {
+        setPaymentCheckError("Төлбөр хараахан хийгдээгүй эсвэл баталгаажаагүй байна.");
+      }
+    } catch (err) {
+      setPaymentCheckError("Шалгах үед алдаа гарлаа. Дахин оролдоно уу.");
+    } finally {
+      setCheckingPayment(false);
+    }
+  };
 
   function updateField<K extends keyof CheckoutPayload>(k: K, v: CheckoutPayload[K]) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -476,58 +603,86 @@ export function CheckoutForm() {
       <div className="co-page">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className="co-success">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }} className="co-success-icon"
-          >
-            <CheckCircle2 size={44} style={{ color: "#16A34A" }} />
-          </motion.div>
 
-          <motion.h1 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
-            className="co-success-title">Захиалга амжилттай!</motion.h1>
-
-          <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
-            style={{ color: "#64748B", fontSize: "0.95rem", lineHeight: 1.6, marginBottom: 8 }}>
-            Таны <strong>{result.order.orderNumber}</strong> дугаартай захиалга хүлээн авагдлаа.
-          </motion.p>
-          <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
-            style={{ color: "#64748B", fontSize: "0.95rem", marginBottom: 32 }}>
-            Нийт дүн: <strong style={{ color: "#2563EB", fontSize: "1.2rem" }}>{formatMoney(result.order.total)}</strong>
-          </motion.p>
 
           {result.payment.method === "qpay" && result.payment.qrCode && (
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}
-              style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: 24, marginBottom: 24, textAlign: "left" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                <QrCode size={22} style={{ color: "#2563EB" }} />
-                <h3 style={{ fontWeight: 700, fontSize: "1.1rem" }}>QPay Төлбөр</h3>
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="co-qpay-card">
+              <div className="co-qpay-header">
+                <QrCode size={26} style={{ color: "#2563EB" }} />
+                <h3>QPay Төлбөр</h3>
               </div>
-              <div style={{ background: "#fff", borderRadius: 8, padding: 16, textAlign: "center", marginBottom: 16 }}>
-                <Image src={result.payment.qrCode} alt="QPay QR" width={250} height={250}
-                  style={{ maxWidth: "100%", height: "auto" }} unoptimized />
-              </div>
-              <p style={{ fontSize: "0.85rem", color: "#64748B", lineHeight: 1.6 }}>
-                Банкны мобайл аппаар QR уншуулж төлбөрөө хийнэ үү.
-              </p>
-              {result.payment.deeplinks && result.payment.deeplinks.length > 0 && (
-                <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {result.payment.deeplinks.map(dl => (
-                    <a key={dl.name} href={dl.link} target="_blank" rel="noopener noreferrer"
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
-                        background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8,
-                        fontSize: "0.82rem", fontWeight: 600, color: "#0F172A", textDecoration: "none"
-                      }}>
-                      {dl.logo && <Image src={dl.logo} alt={dl.name} width={18} height={18} unoptimized style={{ borderRadius: 4 }} />}
-                      {dl.name}
-                    </a>
-                  ))}
+
+              <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
+                style={{ color: "#64748B", fontSize: "0.95rem", lineHeight: 1.6, marginBottom: 8 }}>
+                Таны <strong>{result.order.orderNumber}</strong> дугаартай захиалга хүлээн авагдлаа.
+              </motion.p>
+              <motion.p initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
+                style={{ color: "#64748B", fontSize: "0.95rem", marginBottom: 32 }}>
+                Нийт дүн: <strong style={{ color: "#2563EB", fontSize: "1.2rem" }}>{formatMoney(result.order.total)}</strong>
+              </motion.p>
+              {isPaid ? (
+                <div style={{ padding: "32px 16px", color: "#059669" }}>
+                  <CheckCircle2 size={56} style={{ margin: "0 auto 16px" }} />
+                  <h4 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: 8, color: "#0F172A" }}>
+                    Төлбөр амжилттай хийгдлээ
+                  </h4>
+                  <p style={{ fontSize: "0.95rem", color: "#64748B" }}>
+                    Таны захиалга баталгаажсан бөгөөд удахгүй хүргэлтэд гарах болно. Баярлалаа!
+                  </p>
                 </div>
-              )}
-              {result.payment.expiresAt && (
-                <div style={{ marginTop: 12, padding: "10px 14px", background: "#EEF2FF", borderRadius: 6, fontSize: "0.82rem", color: "#3730A3" }}>
-                  Хүчинтэй хугацаа: {new Date(result.payment.expiresAt).toLocaleTimeString("mn-MN")} хүртэл
-                </div>
+              ) : (
+                <>
+
+                  <div className="co-qpay-qr-wrap">
+                    <Image src={result.payment.qrCode} alt="QPay QR" width={260} height={260}
+                      style={{ maxWidth: "100%", height: "auto" }} unoptimized />
+                  </div>
+                  <p className="co-qpay-desc">
+                    Банкны мобайл аппаараа доорх QR кодыг уншуулж төлбөрөө хийнэ үү.
+                  </p>
+
+
+                  {result.payment.deeplinks && result.payment.deeplinks.length > 0 && (
+                    <div className="co-qpay-banks">
+                      {result.payment.deeplinks.map(dl => (
+                        <a key={dl.name} href={dl.link} target="_blank" rel="noopener noreferrer" className="co-qpay-bank-btn">
+                          {dl.logo && <Image src={dl.logo} alt={dl.name} width={20} height={20} unoptimized />}
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dl.name}</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {result.payment.expiresAt && (
+                    <div className="co-qpay-timer">
+                      Хүчинтэй хугацаа: {new Date(result.payment.expiresAt).toLocaleTimeString("mn-MN")} хүртэл
+                    </div>
+                  )}
+
+                  <AnimatePresence>
+                    {paymentCheckError && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                        className="co-error" style={{ textAlign: "left", marginTop: 24, marginBottom: -8 }}>
+                        <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <span>{paymentCheckError}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <button
+                    onClick={checkPayment}
+                    disabled={checkingPayment}
+                    style={{
+                      width: "100%", marginTop: 24, padding: "14px",
+                      background: "#2563EB", color: "#fff", borderRadius: 12,
+                      fontSize: "1rem", fontWeight: 600, border: "none", cursor: checkingPayment ? "not-allowed" : "pointer",
+                      display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
+                      opacity: checkingPayment ? 0.7 : 1, transition: "background 200ms"
+                    }}
+                  >
+                    {checkingPayment ? "Шалгаж байна..." : "Төлбөр шалгах"}
+                  </button>
+                </>
               )}
             </motion.div>
           )}
@@ -563,12 +718,6 @@ export function CheckoutForm() {
               </p>
             </motion.div>
           )}
-
-          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }}
-            className="co-success-btns">
-            <Link href="/" className="co-btn-outline"><Home size={16} /> Нүүр хуудас</Link>
-            <Link href="/products" className="co-btn-primary">Дэлгүүр үргэлжлүүлэх <ArrowRight size={16} /></Link>
-          </motion.div>
         </div>
       </div>
     );
@@ -708,10 +857,8 @@ export function CheckoutForm() {
                   {currentStep === 2 && (
                     <div>
                       <h1 className="co-form-title">Төлбөрийн хэлбэр</h1>
-                      <p className="co-form-subtitle">Төлбөрийн аргаа сонгоно уу</p>
                       {[
                         { id: "qpay", icon: <QrCode size={28} />, name: "QPay", desc: "QR кодоор мобайл банкаар төлөх" },
-                        { id: "bank_transfer", icon: <Building2 size={28} />, name: "Дансаар шилжүүлэх", desc: "Банкны данс рүү шилжүүлэх" },
                       ].map(opt => (
                         <label key={opt.id}
                           className={`co-pay-option${form.paymentMethod === opt.id ? " selected" : ""}`}>
