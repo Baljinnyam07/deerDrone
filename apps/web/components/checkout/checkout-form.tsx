@@ -408,7 +408,7 @@ export function CheckoutForm() {
   const [copied, setCopied] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [showErrors, setShowErrors] = useState(false);
-  const dirRef = useRef(1);
+  const [dir, setDir] = useState(1);
 
   function updateField<K extends keyof CheckoutPayload>(k: K, v: CheckoutPayload[K]) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -426,18 +426,18 @@ export function CheckoutForm() {
   const handleNext = () => {
     if (!validateStep()) { setShowErrors(true); return; }
     setShowErrors(false);
-    dirRef.current = 1;
+    setDir(1);
     setCurrentStep(s => s + 1);
   };
   const handlePrev = () => {
     setShowErrors(false);
-    dirRef.current = -1;
+    setDir(-1);
     setCurrentStep(s => s - 1);
   };
   const goToStep = (idx: number) => {
     if (idx < currentStep) {
       setShowErrors(false);
-      dirRef.current = -1;
+      setDir(-1);
       setCurrentStep(idx);
     }
   };
@@ -624,9 +624,9 @@ export function CheckoutForm() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentStep}
-                initial={{ x: dirRef.current * 28, opacity: 0 }}
+                initial={{ x: dir * 28, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                exit={{ x: dirRef.current * -28, opacity: 0 }}
+                exit={{ x: dir * -28, opacity: 0 }}
                 transition={{ duration: 0.22 }}
               >
                 <form onSubmit={handleSubmit}>

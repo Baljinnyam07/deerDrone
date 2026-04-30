@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import Image from "next/image";
 
 const FacebookIcon = ({ size = 20 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
@@ -82,9 +83,11 @@ function LoginContent() {
               border: "1px solid #E0E7FF",
             }}
           >
-            <img
+            <Image
               alt="DEER"
               src="/assets/brand/deer-logo.svg"
+              width={40}
+              height={40}
               style={{ width: "40px", height: "auto", filter: "hue-rotate(200deg) brightness(1.2)" }}
             />
           </motion.div>

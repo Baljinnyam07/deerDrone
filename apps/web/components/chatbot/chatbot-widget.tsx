@@ -5,6 +5,7 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import type { ChatMessage, ChatResponse } from "@deer-drone/types";
 import { formatMoney } from "@deer-drone/utils";
+import Image from "next/image";
 
 const SESSION_ID = `w-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -109,9 +110,13 @@ export function ChatbotWidget() {
                       {m.cards.map(c => (
                         <div className="cb-card" key={c.id}>
                           <div className="cb-card-img">
-                            <img
+                            <Image
                               src={c.image_url ?? "/assets/drone-product.png"}
                               alt={c.name}
+                              width={200}
+                              height={200}
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              unoptimized
                               onError={e => { e.currentTarget.src = "/assets/drone-product.png"; }}
                             />
                           </div>
