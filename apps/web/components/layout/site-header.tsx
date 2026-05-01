@@ -102,6 +102,11 @@ export function SiteHeader() {
   }, []);
 
   useEffect(() => {
+    setHoveredItem(null);
+    setIsHeaderHovered(false);
+  }, [pathname]);
+
+  useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
@@ -153,6 +158,7 @@ export function SiteHeader() {
         onMouseEnter={() => setIsHeaderHovered(true)}
         onMouseLeave={() => {
           setIsHeaderHovered(false);
+          setHoveredItem(null);
         }}
         style={{
           position: "fixed",
