@@ -13,12 +13,9 @@ export interface CartItem {
 }
 
 interface UserState {
-  addFavorite: (id: string) => void;
   addToCart: (item: Omit<CartItem, "quantity">) => void;
   cartItems: CartItem[];
   clearCart: () => void;
-  favorites: string[];
-  removeFavorite: (id: string) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
 }
@@ -26,14 +23,7 @@ interface UserState {
 export const useStore = create<UserState>()(
   persist(
     (set) => ({
-      favorites: [],
       cartItems: [],
-      addFavorite: (id) =>
-        set((state) => ({ favorites: [...state.favorites, id] })),
-      removeFavorite: (id) =>
-        set((state) => ({
-          favorites: state.favorites.filter((favId) => favId !== id),
-        })),
       addToCart: (newItem) =>
         set((state) => {
           const existingItem = state.cartItems.find((item) => item.id === newItem.id);
@@ -73,7 +63,6 @@ export const useStore = create<UserState>()(
       name: "deer-drone-store",
       partialize: (state) => ({
         cartItems: state.cartItems,
-        favorites: state.favorites,
       }),
     },
   ),

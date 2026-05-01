@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
-  Trash2, Plus, Minus, ShoppingCart, Heart, X,
+  Trash2, Plus, Minus, ShoppingCart, X,
   ChevronUp, Ticket, CreditCard, AlertTriangle, ArrowLeft,
 } from "lucide-react";
 import { useStore } from "../../../store/useStore";
@@ -199,7 +199,6 @@ const CSS = `
     transition: all 200ms;
   }
   .cart-action-btn:hover { border-color: #CBD5E1; background: #F8FAFC; color: #0F172A; }
-  .cart-action-btn.fav-active { color: #EF4444; border-color: #FCA5A5; background: #FFF1F0; }
   .cart-action-btn.remove:hover { border-color: #FCA5A5; background: #FFF1F0; color: #EF4444; }
 
   /* Delivery warning */
@@ -439,12 +438,11 @@ const CSS = `
 `;
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity, clearCart, favorites, addFavorite, removeFavorite } = useStore();
+  const { cartItems, removeFromCart, updateQuantity, clearCart } = useStore();
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const subtotal = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
-  const loyaltyEarn = Math.floor(subtotal * 0.01);
   const total = subtotal;
 
   const handleRemove = async (id: string) => {
@@ -452,11 +450,6 @@ export default function CartPage() {
     await new Promise(r => setTimeout(r, 280));
     removeFromCart(id);
     setRemovingItems(p => { const n = new Set(p); n.delete(id); return n; });
-  };
-
-  const toggleFavorite = (id: string) => {
-    if (favorites.includes(id)) removeFavorite(id);
-    else addFavorite(id);
   };
 
   if (cartItems.length === 0) {
@@ -594,13 +587,6 @@ export default function CartPage() {
                       {formatMoney(item.price * item.quantity)}
                     </motion.div>
                     <div className="cart-item-actions">
-                      <button
-                        className={`cart-action-btn ${favorites.includes(item.id) ? "fav-active" : ""}`}
-                        title="Хадгалах"
-                        onClick={() => toggleFavorite(item.id)}
-                      >
-                        <Heart size={15} fill={favorites.includes(item.id) ? "currentColor" : "none"} />
-                      </button>
                       <button className="cart-action-btn remove" title="Устгах" onClick={() => handleRemove(item.id)}>
                         <X size={15} />
                       </button>

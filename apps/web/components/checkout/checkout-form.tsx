@@ -553,6 +553,7 @@ export function CheckoutForm() {
       const data = await res.json();
       if (data.paid) {
         setIsPaid(true);
+        clearCart();
       } else {
         setPaymentCheckError("Төлбөр хараахан хийгдээгүй эсвэл баталгаажаагүй байна.");
       }
@@ -613,7 +614,7 @@ export function CheckoutForm() {
         const data = await res.json();
         if (!res.ok) { setError(data.error || "Алдаа гарлаа."); return; }
         setResult(data as OrderResult);
-        clearCart();
+        if ((data as OrderResult).payment?.method !== "qpay") clearCart();
       } catch {
         setError("Сүлжээний алдаа. Холболтоо шалгаад дахин оролдоно уу.");
       }
@@ -719,7 +720,7 @@ export function CheckoutForm() {
                         transition: "background 200ms",
                       }}
                     >
-                      Сагс руу буцах
+                      Буцах
                     </button>
                   </div>
                 </>

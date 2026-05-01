@@ -46,6 +46,7 @@ export function PremiumProductCard({
       window.dispatchEvent(new CustomEvent('open-login-modal'));
       return;
     }
+    if (product.stockQty !== undefined && product.stockQty <= 0) return;
 
     addToCart({
       id: product.id,
@@ -87,7 +88,8 @@ export function PremiumProductCard({
           {user && (
             <button
               className="action-circle action-circle-cart"
-              title="Сагслах"
+              title={product.stockQty === 0 ? "Нөөц дууссан" : "Сагслах"}
+              disabled={product.stockQty === 0}
               onClick={() => void addCurrentProductToCart()}
             >
               <ShoppingCart size={16} />
