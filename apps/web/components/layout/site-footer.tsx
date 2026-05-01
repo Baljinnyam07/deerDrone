@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Mail, Phone, MapPin } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 type FooterLink = { label: string; href: string; action?: string; };
 
@@ -27,7 +28,10 @@ const footerSections: { title: string; links: FooterLink[] }[] = [
 ];
 
 export function SiteFooter() {
+  const pathname = usePathname();
   const [isContactOpen, setIsContactOpen] = useState(false);
+
+  if (pathname === "/cart" || pathname === "/checkout") return null;
 
   return (
     <footer
@@ -300,6 +304,13 @@ export function SiteFooter() {
           © {new Date().getFullYear()} DEER Drone. Бүх эрхийг хуулиар
           хамгаалагдсан.
         </p>
+        <p style={{
+            fontSize: "0.85rem",
+            color: "#94A3B8",
+            textAlign: "center",
+            margin: 0,
+          }}>Designed & built by Baljka × Ihaw</p>
+
       </div>
 
       {/* Smooth Animated Contact Drawer */}

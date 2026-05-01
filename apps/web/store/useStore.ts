@@ -8,6 +8,8 @@ export interface CartItem {
   price: number;
   quantity: number;
   slug?: string;
+  brand?: string;
+  stockQty?: number;
 }
 
 interface UserState {

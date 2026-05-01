@@ -206,7 +206,7 @@ export function SiteHeader() {
           </nav>
 
           {/* Icons & Actions */}
-          <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: isDesktop ? "24px" : "16px" }}>
             <button onClick={() => setIsSearchOpen(true)} style={{ background: "none", border: "none", padding: "8px", cursor: "pointer", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}><Search size={22} strokeWidth={1.5} /></button>
             
             {/* User Icon & Dropdown - Desktop Only */}
@@ -300,8 +300,8 @@ export function SiteHeader() {
             </div>
 
             {/* Cart Icon & Dropdown - Desktop Only */}
-            {user && (
-              <div style={{ position: "relative", display: isDesktop ? "block" : "none" }} onClick={(e) => e.stopPropagation()}>
+            {isDesktop && mounted && user && (
+              <div style={{ position: "relative" }} onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setActiveDropdown(activeDropdown === "cart" ? null : "cart")}
                   style={{ background: "none", border: "none", padding: "8px", cursor: "pointer", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}
@@ -435,6 +435,21 @@ export function SiteHeader() {
                   )}
                 </AnimatePresence>
               </div>
+            )}
+
+            {/* Cart Icon - Mobile Only */}
+            {!isDesktop && mounted && user && (
+              <Link
+                href="/cart"
+                style={{ display: "flex", position: "relative", padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}
+              >
+                <ShoppingCart size={22} strokeWidth={1.5} />
+                {cartItemCount > 0 && (
+                  <span style={{ position: "absolute", top: "2px", right: "2px", backgroundColor: "#2563EB", color: "#FFFFFF", borderRadius: "10px", padding: "1px 5px", fontSize: "0.6rem", fontWeight: 700, lineHeight: 1.4 }}>
+                    {cartItemCount}
+                  </span>
+                )}
+              </Link>
             )}
 
             <button onClick={() => setIsMenuOpen(true)} style={{ display: isDesktop ? "none" : "flex", background: "none", border: "none", padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}><Menu size={24} /></button>

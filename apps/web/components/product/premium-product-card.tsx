@@ -53,9 +53,9 @@ export function PremiumProductCard({
       name: product.name,
       price: product.price,
       image: imageUrl,
+      brand: product.brand,
+      stockQty: product.stockQty,
     });
-
-    router.push("/cart");
   }
 
   return (

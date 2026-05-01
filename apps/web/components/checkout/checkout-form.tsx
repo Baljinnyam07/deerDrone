@@ -453,14 +453,40 @@ const CSS = `
     .co-success-btns { flex-direction: column; }
     .co-success-btns a { justify-content: center; }
 
+    .co-qpay-card {
+      padding: 20px 14px;
+      border-radius: 16px;
+      margin: 12px 0;
+    }
+    .co-qpay-header h3 { font-size: 1.1rem; }
+    .co-qpay-qr-wrap { padding: 10px; margin-bottom: 16px; }
+    .co-qpay-desc { font-size: 0.82rem; margin-bottom: 12px; }
     .co-qpay-banks {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 8px;
+      margin-top: 14px;
     }
     .co-qpay-bank-btn {
-      padding: 10px;
-      font-size: 0.78rem;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 6px;
+      font-size: 0.68rem;
+      text-align: center;
+      min-height: 68px;
     }
+    .co-qpay-bank-btn span {
+      white-space: normal !important;
+      overflow: hidden !important;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-height: 1.25;
+      word-break: keep-all;
+    }
+    .co-qpay-bank-btn img { width: 28px !important; height: 28px !important; border-radius: 8px; }
+    .co-qpay-timer { font-size: 0.78rem; padding: 8px 14px; margin-top: 16px; }
   }
 `;
 
@@ -669,19 +695,33 @@ export function CheckoutForm() {
                     )}
                   </AnimatePresence>
 
-                  <button
-                    onClick={checkPayment}
-                    disabled={checkingPayment}
-                    style={{
-                      width: "100%", marginTop: 24, padding: "14px",
-                      background: "#2563EB", color: "#fff", borderRadius: 12,
-                      fontSize: "1rem", fontWeight: 600, border: "none", cursor: checkingPayment ? "not-allowed" : "pointer",
-                      display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
-                      opacity: checkingPayment ? 0.7 : 1, transition: "background 200ms"
-                    }}
-                  >
-                    {checkingPayment ? "Шалгаж байна..." : "Төлбөр шалгах"}
-                  </button>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 24 }}>
+                    <button
+                      onClick={checkPayment}
+                      disabled={checkingPayment}
+                      style={{
+                        width: "100%", padding: "14px",
+                        background: "#2563EB", color: "#fff", borderRadius: 12,
+                        fontSize: "1rem", fontWeight: 600, border: "none", cursor: checkingPayment ? "not-allowed" : "pointer",
+                        display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
+                        opacity: checkingPayment ? 0.7 : 1, transition: "background 200ms",
+                      }}
+                    >
+                      {checkingPayment ? "Шалгаж байна..." : "Төлбөр шалгах"}
+                    </button>
+                    <button
+                      onClick={() => window.history.back()}
+                      style={{
+                        width: "100%", padding: "14px",
+                        background: "#F1F5F9", color: "#64748B", borderRadius: 12,
+                        fontSize: "0.95rem", fontWeight: 600, border: "none", cursor: "pointer",
+                        display: "flex", justifyContent: "center", alignItems: "center",
+                        transition: "background 200ms",
+                      }}
+                    >
+                      Сагс руу буцах
+                    </button>
+                  </div>
                 </>
               )}
             </motion.div>

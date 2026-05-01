@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import {
-  Trash2, Plus, Minus, ArrowRight, ShoppingCart,
-  CreditCard, Truck, Shield, Gift, Sparkles, CheckCircle2,
+  Trash2, Plus, Minus, ShoppingCart, Heart, X,
+  ChevronUp, Ticket, CreditCard, AlertTriangle, ArrowLeft,
 } from "lucide-react";
 import { useStore } from "../../../store/useStore";
 import { formatMoney } from "@deer-drone/utils";
-import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 
@@ -15,559 +15,646 @@ const CSS = `
   *, *::before, *::after { box-sizing: border-box; }
 
   .cart-page {
-    background: #fff;
+    background: #F8FAFC;
     min-height: 100vh;
-    padding-bottom: 80px;
-    overflow-x: hidden;
-    margin-top: 40px;
+    padding-bottom: 100px;
+    margin-top: 30px;
   }
 
-  /* ── Free shipping banner ── */
-  .cart-banner {
-    padding: 14px 16px;
-    color: #fff;
+  /* Breadcrumb */
+  .cart-breadcrumb {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 24px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: #94A3B8;
+    flex-wrap: wrap;
   }
-  .cart-banner-inner {
-    max-width: 1200px; margin: 0 auto;
-  }
-  .cart-banner-text {
-    display: flex; align-items: center; gap: 10px;
-    font-weight: 600; font-size: 0.9rem; margin-bottom: 10px;
-  }
-  .cart-banner-bar {
-    height: 5px; background: rgba(255,255,255,0.3);
-    border-radius: 99px; overflow: hidden;
-  }
-  .cart-banner-fill {
-    height: 100%; background: #fff;
-    border-radius: 99px; transition: width 500ms ease;
-  }
-  .cart-free-badge {
-    background: #DCFCE7; color: #16A34A;
-    padding: 12px 16px;
-    display: flex; align-items: center; justify-content: center;
-    gap: 8px; font-weight: 600; font-size: 0.9rem;
+  .cart-breadcrumb-item { white-space: nowrap; }
+  .cart-breadcrumb-item.active { color: #0F172A; font-weight: 600; }
+  .cart-breadcrumb-sep { color: #CBD5E1; font-size: 0.7rem; }
+
+  /* Main layout */
+  .cart-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 24px 0;
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 28px;
+    align-items: start;
   }
 
-  /* ── Page wrap ── */
-  .cart-wrap {
-    max-width: 1200px; margin: 0 auto;
-    padding: 32px 16px 0;
-  }
-
-  /* ── Page header ── */
-  .cart-header {
-    display: flex; align-items: center;
-    gap: 12px; margin-bottom: 6px; flex-wrap: wrap;
+  /* Section header */
+  .cart-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
   }
   .cart-title {
-    font-size: 1.8rem; font-weight: 700;
-    letter-spacing: -0.02em; color: #0F172A; margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0;
   }
-  .cart-badge {
-    background: #EEF2FF; color: #2563EB;
-    font-size: 0.82rem; font-weight: 600;
-    padding: 4px 14px; border-radius: 99px;
-    white-space: nowrap;
-  }
-  .cart-subtitle {
-    font-size: 0.9rem; color: #64748B;
-    margin: 0 0 28px 0;
-  }
-
-  /* ── Grid ── */
-  .cart-grid {
-    display: block;
-    width: 100%;
-  }
-
-  .checkout-btn-small {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 10px 20px;
-    background: #2563EB; color: #fff;
-    border-radius: 8px; font-weight: 600; font-size: 0.95rem;
-    text-decoration: none;
+  .cart-clear-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    background: #fff;
+    color: #64748B;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
     transition: all 200ms;
   }
-  .checkout-btn-small:hover { background: #1D4ED8; }
+  .cart-clear-btn:hover {
+    border-color: #EF4444;
+    color: #EF4444;
+    background: #FFF1F0;
+  }
 
-  /* ── Item list ── */
+  /* Items card */
+  .cart-items-card {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #E2E8F0;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  /* Single cart item */
   .cart-item {
     display: grid;
-    grid-template-columns: 100px 1fr auto;
+    grid-template-columns: 96px 1fr auto;
     gap: 16px;
-    align-items: start;
-    padding: 20px 0;
+    align-items: center;
+    padding: 20px 20px;
     border-bottom: 1px solid #F1F5F9;
   }
   .cart-item:last-of-type { border-bottom: none; }
 
-  .cart-item-img {
-    width: 100px; height: 100px;
-    background: #F8FAFC; border-radius: 10px;
-    border: 1px solid #E2E8F0;
+  .cart-item-img-wrap {
+    width: 96px; height: 96px;
+    border-radius: 10px;
+    border: 1px solid #F1F5F9;
+    background: #F8FAFC;
     display: flex; align-items: center; justify-content: center;
-    overflow: hidden; text-decoration: none;
-    transition: transform 200ms, box-shadow 200ms;
+    overflow: hidden;
+    position: relative;
+    text-decoration: none;
     flex-shrink: 0;
+    transition: transform 200ms;
   }
-  .cart-item-img:hover {
-    transform: scale(1.04);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-  }
-  .cart-item-img img {
-    width: 100%; height: 100%; object-fit: contain; padding: 8px;
-  }
+  .cart-item-img-wrap:hover { transform: scale(1.03); }
 
+  .cart-item-body {}
+  .cart-item-brand {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 3px;
+  }
   .cart-item-name {
-    font-size: 1rem; font-weight: 600; color: #0F172A;
-    margin: 0 0 6px 0; transition: color 200ms;
-    text-decoration: none; display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #0F172A;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 12px;
+    line-height: 1.3;
+    transition: color 200ms;
   }
   .cart-item-name:hover { color: #2563EB; }
-  .cart-item-unit {
-    font-size: 0.82rem; color: #64748B; margin-bottom: 10px;
-  }
-  .cart-remove {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-size: 0.8rem; color: #EF4444;
-    background: #FFF1F0; border: 1px solid #FEE2E2;
-    border-radius: 6px; cursor: pointer;
-    padding: 5px 10px; transition: all 200ms;
-  }
-  .cart-remove:hover { background: #FEE2E2; color: #DC2626; border-color: #FCA5A5; }
 
-  /* Qty control */
-  .cart-qty {
-    display: inline-flex; align-items: center;
-    border: 1.5px solid #E2E8F0; border-radius: 8px;
-    background: #F8FAFC; overflow: hidden;
-    transition: border-color 200ms;
+  .cart-item-controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
   }
-  .cart-qty:hover { border-color: #2563EB; }
+  .cart-item-unit {
+    font-size: 0.88rem;
+    color: #64748B;
+    font-weight: 500;
+  }
+
+  .cart-qty {
+    display: inline-flex;
+    align-items: center;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 8px;
+    background: #F8FAFC;
+    overflow: hidden;
+  }
+  .cart-qty:focus-within { border-color: #94A3B8; }
   .cart-qty-btn {
     border: none; background: transparent;
-    padding: 8px 11px; cursor: pointer;
-    color: #64748B; transition: color 200ms;
+    padding: 7px 10px;
+    cursor: pointer; color: #64748B;
     display: flex; align-items: center;
+    transition: color 150ms;
   }
-  .cart-qty-btn:hover { color: #2563EB; }
-  .cart-qty-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .cart-qty-btn:hover:not(:disabled) { color: #0F172A; }
+  .cart-qty-btn:disabled { opacity: 0.35; cursor: not-allowed; }
   .cart-qty-val {
-    min-width: 36px; text-align: center;
-    font-weight: 700; font-size: 0.95rem; color: #0F172A;
-    padding: 8px 0;
-  }
-  .cart-item-total {
-    font-size: 1.1rem; font-weight: 700; color: #2563EB;
-    text-align: right; white-space: nowrap;
-    margin-top: 8px;
+    min-width: 30px; text-align: center;
+    font-weight: 700; font-size: 0.9rem; color: #0F172A;
+    padding: 7px 0;
   }
 
-  /* right col of item */
+  .cart-item-stock {
+    font-size: 0.72rem;
+    color: #2563EB;
+    margin-top: 6px;
+    font-weight: 500;
+  }
+
+  /* Right side of item */
   .cart-item-right {
     display: flex; flex-direction: column;
-    align-items: flex-end; gap: 8px;
+    align-items: flex-end; gap: 10px;
   }
-
-  .cart-header-actions {
-    display: flex; align-items: center; gap: 16px;
+  .cart-item-total {
+    font-size: 1rem; font-weight: 700; color: #0F172A;
+    white-space: nowrap;
   }
-
-  /* ── Bottom nav ── */
-  .cart-nav {
-    display: flex; justify-content: space-between; align-items: center;
-    padding-top: 20px; flex-wrap: wrap; gap: 12px;
-  }
-  .cart-continue {
-    display: inline-flex; align-items: center; gap: 8px;
-    color: #2563EB; text-decoration: none;
-    font-weight: 600; font-size: 0.9rem;
-    border: 1.5px solid #2563EB; border-radius: 8px;
-    padding: 6px 16px; background: #EEF2FF;
+  .cart-item-actions { display: flex; gap: 7px; }
+  .cart-action-btn {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    border: 1px solid #E2E8F0;
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: #64748B;
     transition: all 200ms;
   }
-  .cart-continue:hover { background: #DBEAFE; }
-  .cart-clear {
-    background: none; border: 1.5px solid #EF4444;
-    color: #EF4444; font-weight: 600; font-size: 0.9rem;
-    cursor: pointer; border-radius: 8px;
-    padding: 6px 16px; transition: all 200ms;
-  }
-  .cart-clear:hover { background: #FFF1F0; }
+  .cart-action-btn:hover { border-color: #CBD5E1; background: #F8FAFC; color: #0F172A; }
+  .cart-action-btn.fav-active { color: #EF4444; border-color: #FCA5A5; background: #FFF1F0; }
+  .cart-action-btn.remove:hover { border-color: #FCA5A5; background: #FFF1F0; color: #EF4444; }
 
-  /* ── Sidebar ── */
-  .cart-summary {
-    position: sticky; top: 90px;
-    padding: 12px 0 0 0;
+  /* Delivery warning */
+  .delivery-warning {
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex; gap: 10px; align-items: flex-start;
   }
-  .cart-summary-title {
-    display: none;
+  .delivery-warning-title {
+    font-size: 0.82rem; font-weight: 700; color: #92400E; margin-bottom: 3px;
   }
-
-  /* Discount */
-  .discount-label {
-    font-size: 0.75rem; font-weight: 700; color: #0F172A;
-    text-transform: uppercase; letter-spacing: 0.06em;
-    display: block; margin-bottom: 8px;
-  }
-  .discount-row {
-    display: flex; gap: 8px; margin-bottom: 8px;
-  }
-  .discount-input {
-    flex: 1; padding: 10px 14px;
-    border: 1.5px solid #E2E8F0; border-radius: 8px;
-    font-size: 0.9rem; color: #0F172A;
-    background: #fff; outline: none; min-width: 0;
-    transition: border-color 200ms;
-  }
-  .discount-input:focus { border-color: #2563EB; }
-  .discount-btn {
-    padding: 10px 16px; border-radius: 8px; border: none;
-    font-weight: 600; font-size: 0.88rem;
-    cursor: pointer; transition: all 200ms;
-    white-space: nowrap;
-    display: flex; align-items: center; gap: 6px;
+  .delivery-warning-text {
+    font-size: 0.78rem; color: #B45309; line-height: 1.5; margin: 0;
   }
 
-  /* Totals */
-  .summary-row {
-    display: flex; justify-content: space-between; align-items: center;
-    font-size: 0.9rem; color: #64748B; margin-bottom: 10px;
-  }
-  .summary-row span:last-child { font-weight: 600; color: #0F172A; }
-  .summary-divider {
-    display: none;
-  }
-  .summary-total {
-    display: flex; justify-content: space-between; align-items: baseline;
-    margin-bottom: 24px;
-  }
-  .summary-total-label { font-size: 1.1rem; font-weight: 500; color: #64748B; }
-  .summary-total-amount {
-    font-size: 2rem; font-weight: 700; color: #0F172A;
-    letter-spacing: -0.03em;
-  }
-  .checkout-btn {
-    display: flex; align-items: center; justify-content: center;
-    width: 100%; padding: 18px 24px;
-    background: #2563EB;
-    color: #fff;
-    border-radius: 99px;
-    font-weight: 700; font-size: 1.05rem; letter-spacing: 0.02em;
-    text-decoration: none; margin-bottom: 20px;
-    position: relative; overflow: hidden;
-    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.25);
-    transition: all 300ms cubic-bezier(0.23, 1, 0.32, 1);
-  }
-  .checkout-btn::after {
-    content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transform: skewX(-20deg); transition: all 500ms;
-  }
-  .checkout-btn:hover { 
-    background: #1D4ED8;
-    transform: translateY(-3px); 
-    box-shadow: 0 15px 35px rgba(37, 99, 235, 0.35);
-  }
-  .checkout-btn:hover::after { left: 150%; }
-  .checkout-btn .btn-arrow { transition: transform 300ms; }
-  .checkout-btn:hover .btn-arrow { transform: translateX(5px); }
+  /* Right col: summary card */
+  .cart-right { position: sticky; top: 88px; }
 
-  /* Trust badges */
-  .trust-list {
-    display: flex; flex-direction: column;
-    gap: 14px; border-top: 1px solid #E2E8F0; padding-top: 20px;
+  .summary-card {
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 20px;
   }
-  .trust-item {
-    display: flex; align-items: center; gap: 12px;
+  .summary-card-title {
+    font-size: 0.95rem; font-weight: 700; color: #0F172A;
+    margin: 0 0 14px 0;
   }
-  .trust-icon {
-    width: 38px; height: 38px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
+  .summary-section-label {
+    font-size: 0.68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: #94A3B8; margin-bottom: 10px;
+  }
+
+  .summary-item-row {
+    display: flex; justify-content: space-between;
+    align-items: center; gap: 12px; margin-bottom: 14px;
+  }
+  .summary-item-left {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    flex: 1; min-width: 0;
+  }
+  .summary-item-name {
+    font-size: 0.82rem; color: #0F172A; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .qty-badge {
+    background: #F1F5F9; color: #64748B;
+    font-size: 0.68rem; font-weight: 700;
+    padding: 2px 6px; border-radius: 4px;
     flex-shrink: 0;
   }
-  .trust-name { font-size: 0.85rem; font-weight: 600; color: #0F172A; }
-  .trust-desc { font-size: 0.75rem; color: #64748B; }
-  .security-note {
-    margin-top: 16px; padding: 10px 14px;
-    background: #EEF2FF; border-radius: 8px;
-    font-size: 0.75rem; color: #3730A3;
-    text-align: center; line-height: 1.6;
+  .summary-item-price {
+    font-size: 0.82rem; font-weight: 600; color: #0F172A;
+    white-space: nowrap;
   }
 
-  /* ── Empty state ── */
+  .summary-hr { border: none; border-top: 1px solid #F1F5F9; margin: 12px 0; }
+
+  .summary-row {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 8px; font-size: 0.85rem;
+  }
+  .summary-row-label { color: #64748B; }
+  .summary-row-value { font-weight: 600; color: #0F172A; }
+  .summary-row-value.green { color: #16A34A; }
+
+  .summary-total-row {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 10px;
+  }
+  .summary-total-label { font-size: 0.92rem; font-weight: 600; color: #0F172A; }
+  .summary-total-amount { font-size: 1.15rem; font-weight: 800; color: #0F172A; }
+
+  .loyalty-row {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 14px;
+  }
+  .loyalty-row-left {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .loyalty-icon {
+    width: 28px; height: 28px;
+    background: #EEF2FF; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: #4F46E5;
+    flex-shrink: 0;
+  }
+  .loyalty-label { font-size: 0.85rem; color: #64748B; }
+  .loyalty-value { font-size: 0.85rem; font-weight: 600; color: #0F172A; }
+
+  .coupon-btn {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; width: 100%;
+    padding: 12px;
+    background: #FFFBEB;
+    border: 1.5px dashed #FBBF24;
+    border-radius: 10px;
+    font-size: 0.85rem; font-weight: 600; color: #B45309;
+    cursor: pointer; transition: all 200ms; margin-bottom: 10px;
+  }
+  .coupon-btn:hover { background: #FEF3C7; }
+
+  .checkout-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; padding: 8px;
+    background: #2563EB; color: #fff;
+    border-radius: 10px;
+    font-weight: 700; font-size: 0.95rem;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 200ms;
+  }
+  .checkout-btn:hover { background: #155238; transform: translateY(-1px); }
+
+  /* Empty state */
   .cart-empty {
-    min-height: 70vh;
+    min-height: 60vh;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     text-align: center; padding: 40px 16px;
   }
   .cart-empty-icon {
-    width: 100px; height: 100px; border-radius: 50%;
-    background: #F1F5F9; display: flex;
-    align-items: center; justify-content: center;
-    margin: 0 auto 24px;
+    width: 80px; height: 80px; border-radius: 50%;
+    background: #F1F5F9;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
   }
-  .cart-empty h2 {
-    font-size: 2rem; font-weight: 800; color: #0F172A;
-    letter-spacing: -0.02em; margin: 0 0 12px 0;
-  }
-  .cart-empty p { font-size: 1rem; color: #64748B; margin: 0 0 32px 0; }
+  .cart-empty h2 { font-size: 1.5rem; font-weight: 800; color: #0F172A; margin: 0 0 8px; }
+  .cart-empty p { color: #64748B; margin: 0 0 24px; }
   .cart-empty-btn {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 13px 28px; background: #2563EB; color: #fff;
-    border-radius: 10px; font-weight: 700; font-size: 1rem;
+    padding: 12px 24px; background: #2563EB; color: #fff;
+    border-radius: 10px; font-weight: 700;
     text-decoration: none; transition: all 200ms;
   }
-    .cart-empty-btn:hover { background: #1D4ED8; transform: translateY(-2px); }
+  .cart-empty-btn:hover { background: #1d4ed8; }
 
-  .mobile-bottom-checkout {
+  /* Mobile header (hidden on desktop) */
+  .cart-mobile-header {
     display: none;
-    margin-top: 24px;
+    align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    background: #fff;
+    border-bottom: 1px solid #F1F5F9;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .cart-mobile-back {
+    display: flex; align-items: center; gap: 8px;
+    text-decoration: none; color: #0F172A;
+  }
+  .cart-mobile-title {
+    font-size: 1rem; font-weight: 700; color: #0F172A; margin: 0;
+  }
+  .cart-mobile-count {
+    font-size: 0.75rem; color: #64748B; font-weight: 400;
   }
 
-  /* ─── TABLET ≤ 1024px ─── */
-  @media (max-width: 1024px) {
-    .cart-grid {
-      display: block;
-    }
-    .cart-summary {
-      position: static;
-      order: -1;
-      padding-top: 0;
-    }
-    .mobile-bottom-checkout {
-      display: block;
-    }
+  /* Mobile bottom sheet */
+  .mobile-sheet-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.4);
+  }
+  .mobile-sheet-overlay.open { display: block; }
+
+  .mobile-sheet {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 201;
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -20px 60px rgba(0,0,0,0.15);
+    max-height: 82vh; overflow-y: auto;
+    padding: 0 20px 32px;
+  }
+  .mobile-sheet-handle {
+    width: 36px; height: 4px;
+    background: #E2E8F0; border-radius: 2px;
+    margin: 12px auto 16px;
   }
 
-  /* ─── MOBILE ≤ 640px ─── */
+  .mobile-bottom-bar {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid #E2E8F0;
+    padding: 12px 16px;
+    z-index: 100;
+    align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .mobile-bottom-total { font-size: 1rem; font-weight: 800; color: #0F172A; }
+  .mobile-bottom-sub { font-size: 0.72rem; color: #64748B; }
+  .mobile-checkout-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 12px 20px; background: #2563EB; color: #fff;
+    border-radius: 10px; font-weight: 700; font-size: 0.9rem;
+    text-decoration: none; white-space: nowrap;
+  }
+  .mobile-show-summary-btn {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 0.75rem; color: #2563EB; font-weight: 600;
+    background: none; border: none; cursor: pointer; padding: 0;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .cart-breadcrumb { display: none; }
+    .cart-container {
+      grid-template-columns: 1fr;
+      padding: 16px 14px 0;
+      gap: 0;
+    }
+    .cart-right { display: none; }
+    .cart-mobile-header { display: flex; }
+    .mobile-bottom-bar { display: flex; }
+    .mobile-sheet { display: block; }
+    .cart-page { padding-bottom: 90px; margin-top: 0; }
+    .cart-section-header { margin-top: 8px; }
+  }
+
   @media (max-width: 640px) {
-    .cb-fab { bottom: 90px !important; }
-    .cb-panel { bottom: 148px !important; }
-
-    .cart-wrap { padding: 20px 14px 100px; }
-    .cart-title { font-size: 1.4rem; }
-
     .cart-item {
       grid-template-columns: 80px 1fr;
-      grid-template-rows: auto auto;
       gap: 12px;
-      padding: 24px 0;
     }
     .cart-item-right {
       grid-column: 1 / -1;
-      flex-direction: row;
-      align-items: center;
+      flex-direction: row; align-items: center;
       justify-content: space-between;
       background: #F8FAFC;
-      padding: 12px 16px;
-      border-radius: 12px;
-      margin-top: 4px;
+      padding: 10px 12px; border-radius: 10px;
     }
-    .cart-item-img { width: 80px; height: 80px; }
-    .cart-item-name { font-size: 0.95rem; }
-
-    .cart-nav { flex-direction: column; align-items: flex-start; }
-
-    .cart-header-actions {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      padding: 16px;
-      justify-content: space-between;
-      border-top: 1px solid #E2E8F0;
-      box-shadow: 0 -10px 40px rgba(0,0,0,0.08);
-      z-index: 1000;
-    }
-    .cart-header-actions > div { text-align: left !important; }
-    .cart-header-actions .checkout-btn-small { 
-      padding: 14px 24px; font-size: 1rem; width: auto; 
-    }
-    
-    .mobile-bottom-checkout { display: none !important; } /* Hide the redundant button since we now have a sticky bar */
-
-    .cart-summary { padding: 0 0 16px 0; }
-    .summary-total-amount { font-size: 1.75rem; }
-
-    .discount-row { flex-wrap: wrap; }
-    .discount-btn { flex: 1; justify-content: center; }
+    .cart-item-img-wrap { width: 80px; height: 80px; }
   }
 `;
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity, clearCart } = useStore();
+  const { cartItems, removeFromCart, updateQuantity, clearCart, favorites, addFavorite, removeFavorite } = useStore();
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
-  const [discountCode, setDiscountCode] = useState("");
-  const [discountApplied, setDiscountApplied] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const subtotal = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
-  const discount = discountApplied ? Math.floor(subtotal * 0.05) : 0;
-  const shippingCost = subtotal >= 500000 ? 0 : 5000;
-  const total = subtotal; // Shipping is calculated properly in the checkout stage
-  const freeShippingProgress = Math.min((subtotal / 500000) * 100, 100);
-  const remaining = Math.max(500000 - subtotal, 0);
+  const loyaltyEarn = Math.floor(subtotal * 0.01);
+  const total = subtotal;
 
   const handleRemove = async (id: string) => {
     setRemovingItems(p => new Set(p).add(id));
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 280));
     removeFromCart(id);
     setRemovingItems(p => { const n = new Set(p); n.delete(id); return n; });
   };
 
-  /* ── Empty state ── */
+  const toggleFavorite = (id: string) => {
+    if (favorites.includes(id)) removeFavorite(id);
+    else addFavorite(id);
+  };
+
   if (cartItems.length === 0) {
     return (
       <div className="cart-page">
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className="cart-empty">
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.4 }} className="cart-empty-icon">
-            <ShoppingCart size={44} style={{ color: "#94A3B8" }} />
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.35 }} className="cart-empty-icon">
+            <ShoppingCart size={38} style={{ color: "#94A3B8" }} />
           </motion.div>
-          <motion.h2 initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}>
-            Сагс хоосон байна
-          </motion.h2>
-          <motion.p initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }}>
-            Та хүссэн бараагаа сонгон сагсандаа нэмэх боломжтой.
-          </motion.p>
-          <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}>
-            <Link href="/products" className="cart-empty-btn">
-              <Sparkles size={18} /> Дэлгүүр хэсэх
-            </Link>
+          <motion.h2 initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>Сагс хоосон байна</motion.h2>
+          <motion.p initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.18 }}>Та хүссэн бараагаа сонгон сагсандаа нэмэх боломжтой.</motion.p>
+          <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.26 }}>
+            <Link href="/products" className="cart-empty-btn">Дэлгүүр хэсэх</Link>
           </motion.div>
         </div>
       </div>
     );
   }
 
-  /* ── Trust badges data ── */
-  const badges = [
-    { icon: <Truck size={18} style={{ color: "#0284C7" }} />, bg: "#DBEAFE",
-      name: shippingCost === 0 ? "Үнэгүй хүргэлт" : "Хурдан хүргэлт",
-      desc: shippingCost === 0 ? "500К+ захиалгад" : "1–3 хоног" },
-    { icon: <Shield size={18} style={{ color: "#16A34A" }} />, bg: "#DCFCE7",
-      name: "1 жилийн баталгаа", desc: "Үйлдвэрийн албан ёсны" },
-    { icon: <CreditCard size={18} style={{ color: "#F59E0B" }} />, bg: "#FEF3C7",
-      name: "Лизинг боломжтой", desc: `Сард ~${formatMoney(Math.floor(total / 12))}` },
-  ];
+  const SummaryContent = (
+    <>
+      <p className="summary-section-label">Бүтээгдэхүүн</p>
+      {cartItems.map(item => (
+        <div key={item.id} className="summary-item-row">
+          <div className="summary-item-left">
+            <span className="summary-item-name">{item.name}</span>
+            <span className="qty-badge">x{item.quantity}</span>
+          </div>
+          <span className="summary-item-price">{formatMoney(item.price)}</span>
+        </div>
+      ))}
 
-  // Order summary sidebar (reused both positions)
-  const Summary = (
-    <div className="cart-summary">
-      <div className="summary-total">
-        <span className="summary-total-label">Нийт дүн</span>
+
+      <hr className="summary-hr" />
+      <div className="summary-total-row">
+        <span className="summary-total-label">Нийт төлөх дүн</span>
         <span className="summary-total-amount">{formatMoney(total)}</span>
       </div>
 
       <Link href="/checkout" className="checkout-btn">
-        <span style={{ position: "relative", zIndex: 2, display: "flex", alignItems: "center", gap: "8px" }}>
-          Тооцоо хийх
-          <svg className="btn-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        </span>
+        Үргэлжлүүлэх
       </Link>
-    </div>
+    </>
   );
 
   return (
     <div className="cart-page">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
-      <div className="cart-wrap">
-        {/* Header */}
-        <div className="cart-header" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-            <h1 className="cart-title">Миний сагс</h1>
-          </div>
-
-          <div className="cart-header-actions">
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "0.8rem", color: "#64748B", fontWeight: 500, marginBottom: "2px" }}>Нийт төлөх:</div>
-              <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#0F172A", lineHeight: 1 }}>{formatMoney(total)}</div>
-            </div>
-            <Link href="/checkout" className="checkout-btn-small">
-              Тооцоо хийх
-            </Link>
-          </div>
-        </div>
-
-        <div className="cart-grid">
-          {/* ── Left: items ── */}
+      {/* Mobile header */}
+      <div className="cart-mobile-header">
+        <Link href="/products" className="cart-mobile-back">
+          <ArrowLeft size={20} />
           <div>
+            <div className="cart-mobile-title">Миний сагс</div>
+            <div className="cart-mobile-count">{cartItems.length} бараа</div>
+          </div>
+        </Link>
+      </div>
+
+      {/* Desktop breadcrumb */}
+      <div className="cart-breadcrumb">
+        <span className="cart-breadcrumb-item active">Миний сагс</span>
+        <span className="cart-breadcrumb-sep">›</span>
+        <span className="cart-breadcrumb-item">Захиалгын хаяг</span>
+        <span className="cart-breadcrumb-sep">›</span>
+        <span className="cart-breadcrumb-item">Баталгаажуулах</span>
+        <span className="cart-breadcrumb-sep">›</span>
+        <span className="cart-breadcrumb-item">Захиалгын мэдээлэл</span>
+      </div>
+
+      <div className="cart-container">
+        {/* ── Left: items ── */}
+        <div className="cart-left">
+          <div className="cart-section-header">
+            <h1 className="cart-title">Таны сагс</h1>
+            <button className="cart-clear-btn" onClick={clearCart}>
+              <Trash2 size={14} /> Сагс хоослох
+            </button>
+          </div>
+
+          <div className="cart-items-card">
             <AnimatePresence>
-              {cartItems.map((item) => (
+              {cartItems.map(item => (
                 <motion.div
                   key={item.id}
                   layout
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: removingItems.has(item.id) ? 0 : 1, x: removingItems.has(item.id) ? 60 : 0 }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: removingItems.has(item.id) ? 0 : 1, x: removingItems.has(item.id) ? 40 : 0 }}
                   exit={{ opacity: 0, height: 0, overflow: "hidden" }}
-                  transition={{ duration: 0.28 }}
+                  transition={{ duration: 0.25 }}
                   className="cart-item"
                 >
                   {/* Image */}
-                  <Link href={item.slug ? `/products/${item.slug}` : "/products"} className="cart-item-img" style={{ position: "relative" }}>
-                    <Image 
-                      src={(item.image || "").replace(/ik\.imagekit\.io(.*)\.png$/, "ik.imagekit.io$1")} 
-                      alt={item.name} 
-                      fill
-                      style={{ objectFit: "cover" }}
-                    />
+                  <Link href={item.slug ? `/products/${item.slug}` : "/products"} className="cart-item-img-wrap">
+                    <Image src={item.image} alt={item.name} fill style={{ objectFit: "contain", padding: "8px" }} />
                   </Link>
 
                   {/* Details */}
-                  <div>
+                  <div className="cart-item-body">
+                    {item.brand && <div className="cart-item-brand">{item.brand}</div>}
                     <Link href={item.slug ? `/products/${item.slug}` : "/products"} className="cart-item-name">
                       {item.name}
                     </Link>
-                    <div className="cart-item-unit">Нэгж үнэ: {formatMoney(item.price)}</div>
-                    <button className="cart-remove" onClick={() => handleRemove(item.id)}>
-                      <Trash2 size={14} /> Устгах
-                    </button>
+                    <div className="cart-item-controls">
+                      <span className="cart-item-unit">{formatMoney(item.price)}</span>
+                      <div className="cart-qty">
+                        <button className="cart-qty-btn"
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          disabled={item.quantity <= 1}>
+                          <Minus size={13} />
+                        </button>
+                        <motion.div key={item.quantity}
+                          initial={{ scale: 1.25, opacity: 0.6 }} animate={{ scale: 1, opacity: 1 }}
+                          className="cart-qty-val">
+                          {item.quantity}
+                        </motion.div>
+                        <button className="cart-qty-btn"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                          <Plus size={13} />
+                        </button>
+                      </div>
+                    </div>
+                    {item.stockQty !== undefined && (
+                      <div className="cart-item-stock">Үлдэгдэл: {item.stockQty}</div>
+                    )}
                   </div>
 
-                  {/* Qty + total */}
+                  {/* Total + actions */}
                   <div className="cart-item-right">
-                    <div className="cart-qty">
-                      <button className="cart-qty-btn"
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        disabled={item.quantity <= 1}>
-                        <Minus size={14} />
-                      </button>
-                      <motion.div key={item.quantity}
-                        initial={{ scale: 1.3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                        className="cart-qty-val">
-                        {item.quantity}
-                      </motion.div>
-                      <button className="cart-qty-btn"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}>
-                        <Plus size={14} />
-                      </button>
-                    </div>
                     <motion.div key={item.quantity * item.price}
-                      initial={{ scale: 1.1 }} animate={{ scale: 1 }}
+                      initial={{ scale: 1.08 }} animate={{ scale: 1 }}
                       className="cart-item-total">
                       {formatMoney(item.price * item.quantity)}
                     </motion.div>
+                    <div className="cart-item-actions">
+                      <button
+                        className={`cart-action-btn ${favorites.includes(item.id) ? "fav-active" : ""}`}
+                        title="Хадгалах"
+                        onClick={() => toggleFavorite(item.id)}
+                      >
+                        <Heart size={15} fill={favorites.includes(item.id) ? "currentColor" : "none"} />
+                      </button>
+                      <button className="cart-action-btn remove" title="Устгах" onClick={() => handleRemove(item.id)}>
+                        <X size={15} />
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               ))}
             </AnimatePresence>
-
-            {/* Bottom nav */}
-            <div className="cart-nav" style={{ justifyContent: "space-between", paddingTop: "20px", marginTop: "20px", borderTop: "1px solid #F1F5F9" }}>
-              <Link href="/products" className="cart-continue">
-                <ArrowRight size={15} style={{ transform: "rotate(180deg)" }} />
-                Худалдан авалтаа үргэлжлүүлэх
-              </Link>
-              <button className="cart-clear" onClick={clearCart}>
-                Сагсыг хоослох
-              </button>
-            </div>
           </div>
+        </div>
 
+        {/* ── Right: summary ── */}
+        <div className="cart-right">
+          <div className="cart-section-header">
+            <h2 className="cart-title">Төлбөрийн мэдээлэл</h2>
+          </div>
+          <div className="summary-card">
+            {SummaryContent}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Mobile: bottom bar + sheet ── */}
+      {/* {sheetOpen && (
+        <div className="mobile-sheet-overlay open" onClick={() => setSheetOpen(false)} />
+      )} */}
+
+      {/* <AnimatePresence>
+        {sheetOpen && (
+          <motion.div
+            className="mobile-sheet"
+            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 300 }}
+          >
+            <div className="mobile-sheet-handle" />
+            <h2 className="summary-card-title">Төлбөрийн мэдээлэл</h2>
+            {SummaryContent}
+          </motion.div>
+        )}
+      </AnimatePresence> */}
+
+      <div className="mobile-bottom-bar">
+        <div>
+          <div className="mobile-bottom-sub">Нийт төлөх дүн</div>
+          <div className="mobile-bottom-total">{formatMoney(total)}</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {/* <button className="mobile-show-summary-btn" onClick={() => setSheetOpen(v => !v)}>
+            <ChevronUp size={15} style={{ transform: sheetOpen ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
+            Дэлгэрэнгүй
+          </button> */}
+          <Link href="/checkout" className="mobile-checkout-btn">
+            Үргэлжлүүлэх
+          </Link>
         </div>
       </div>
     </div>
