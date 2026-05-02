@@ -18,7 +18,7 @@ if (!supabaseUrl || !supabaseKey) {
   console.error("❌ SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are missing!");
 }
 
-const supabase = createClient(supabaseUrl || "https://placeholder.supabase.co", supabaseKey || "placeholder");
+export const supabase = createClient(supabaseUrl || "https://placeholder.supabase.co", supabaseKey || "placeholder");
 
 
 export async function searchProductsTool(query: string, limit = 6) {
@@ -66,9 +66,9 @@ export async function getProductDetailsTool(slugOrName: string) {
   const { data } = await supabase
     .from("products")
     .select("id, name, slug, price, hero_note, short_description, description, product_images(url)")
-    .ilike("name", `%${slugOrName}%`) // only check name since slug is missing 
+    .ilike("name", `%${slugOrName}%`) // only check name since slug is missing
     .limit(1)
-    .single();
+    .maybeSingle();
 
   return data;
 }

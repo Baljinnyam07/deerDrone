@@ -49,7 +49,6 @@ export async function dispatchCommentDM(
     }
 
     case "financing": {
-      replyText = FINANCING_DM;
       // Silent lead capture
       await captureLeadTool(
         "Тодорхойгүй", "",
@@ -57,20 +56,24 @@ export async function dispatchCommentDM(
         "financing", "fb_comment"
       ).catch(console.error);
 
-      // Send image first, then text
+      // Send image first, then text — early return to skip the trailing graphPost
       const rawImg = `${SITE_URL}/aaaaaaa-01.jpg`;
       const proxyImg = `https://wsrv.nl/?url=${encodeURIComponent(rawImg)}&w=1000&output=jpg`;
-      
+
       await graphPost(pageToken, {
         recipient: { comment_id: commentId },
         message: {
           attachment: {
             type: "image",
-            payload: { url: proxyImg, is_reusable: true }
-          }
-        }
+            payload: { url: proxyImg, is_reusable: true },
+          },
+        },
       });
-      break;
+      await graphPost(pageToken, {
+        recipient: { comment_id: commentId },
+        message: { text: FINANCING_DM },
+      });
+      return; // ← return, not break — prevents trailing graphPost from running
     }
 
     case "human_support": {

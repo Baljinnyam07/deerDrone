@@ -3,6 +3,9 @@ import Fastify from "fastify";
 import type { ChatRequest } from "@deer-drone/types";
 import { runConversation, streamChunks } from "./engine/conversation.js";
 import { systemPrompt } from "./prompts/system.js";
+import { handleWebhookEvent } from "./messenger.js";
+import { getMessengerConfigTool, supabase } from "./tools/catalog.js";
+import { handleCommentChange } from "./comments/webhookHandler.js";
 
 export const server = Fastify({
   logger: true,
@@ -40,7 +43,25 @@ server.post("/chat", async (request, reply) => {
     });
   }
 
+  // Log user message
+  const { error: userErr } = await supabase.from("conversations").insert({ 
+    session_id: body.sessionId, 
+    role: "user", 
+    content: body.message 
+  });
+  if (userErr) console.error("Web chat log err:", userErr);
+
   const response = await runConversation(body);
+
+  // Log bot response
+  if (response.reply) {
+    const { error: botErr } = await supabase.from("conversations").insert({ 
+      session_id: body.sessionId, 
+      role: "bot", 
+      content: response.reply 
+    });
+    if (botErr) console.error("Web chat log err:", botErr);
+  }
 
   return reply.send({
     ...response,
@@ -48,9 +69,6 @@ server.post("/chat", async (request, reply) => {
   });
 });
 
-import { handleWebhookEvent } from "./messenger.js";
-import { getMessengerConfigTool } from "./tools/catalog.js";
-import { handleCommentChange } from "./comments/webhookHandler.js";
 
 server.get("/webhook", async (request: any, reply: any) => {
   const config = await getMessengerConfigTool();

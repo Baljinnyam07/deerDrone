@@ -29,7 +29,13 @@ export async function postPublicReply(
   message: string,
   pageToken: string
 ): Promise<void> {
-  if (!message || !pageToken) return;
+  // ── TEMPORARILY DISABLED ──────────────────────────────────────────────────
+  // Facebook requires pages_manage_engagement + pages_read_user_content
+  // permissions which need App Review (Business account).
+  // DM flow (dmDispatcher.ts) still works normally via pages_messaging.
+  // Re-enable this block once permissions are approved.
+  // ─────────────────────────────────────────────────────────────────────────
+  return;
 
   try {
     const res = await fetch(
@@ -42,10 +48,11 @@ export async function postPublicReply(
     );
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      console.error("[publicReply] Graph API error", err);
+      const raw = await res.text();
+      console.error(`[publicReply] ❌ Graph API error ${res.status}:`, raw);
     } else {
-      console.log(`[publicReply] replied to comment ${commentId}`);
+      const ok = await res.json().catch(() => ({}));
+      console.log(`[publicReply] ✅ replied to comment ${commentId}`, ok);
     }
   } catch (e) {
     console.error("[publicReply] fetch failed", e);

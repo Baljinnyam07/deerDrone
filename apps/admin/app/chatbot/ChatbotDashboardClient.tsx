@@ -8,6 +8,13 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { updateLeadStatus, deleteLead, updateMessengerConfig, getConversationHistory, sendMessengerReply, updateLeadNotes } from "./actions";
+import { createClient } from "@supabase/supabase-js";
+
+// Client-side supabase instance for realtime
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+);
 
 interface ChatbotDashboardClientProps {
   leads: any[];
@@ -48,6 +55,8 @@ export function ChatbotDashboardClient({ leads: initialLeads, messengerConfig, t
 
   // Load chat history when lead selected
   useEffect(() => {
+    let channel: any = null;
+    
     if (selectedLead) {
       setNotesText(selectedLead.notes || "");
       if (selectedLead.session_id) {
@@ -56,10 +65,41 @@ export function ChatbotDashboardClient({ leads: initialLeads, messengerConfig, t
           setChatHistory(history || []);
           setIsLoadingHistory(false);
         });
+        
+        // Subscribe to real-time updates
+        channel = supabase
+          .channel(`conversations_${selectedLead.session_id}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "conversations",
+              filter: `session_id=eq.${selectedLead.session_id}`,
+            },
+            (payload) => {
+              // Add new message to chat history
+              setChatHistory(prev => {
+                // Prevent duplicate optimistic updates for admin messages
+                if (payload.new.role === "admin" && prev.some(m => m.id === payload.new.id || (m.role === "admin" && m.content === payload.new.content && Date.now() - new Date(m.created_at).getTime() < 5000))) {
+                  return prev;
+                }
+                return [...prev, payload.new];
+              });
+            }
+          )
+          .subscribe();
+          
       } else {
         setChatHistory([]);
       }
     }
+    
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, [selectedLead]);
 
   useEffect(() => {
@@ -159,11 +199,19 @@ export function ChatbotDashboardClient({ leads: initialLeads, messengerConfig, t
   const handleSendReply = async () => {
     if (!replyText.trim() || !selectedLead?.session_id) return;
     setIsReplying(true);
+    const msgContent = replyText;
+    setReplyText("");
+    
+    // Optimistic UI update
+    setChatHistory(prev => [...prev, { 
+      id: "temp-" + Date.now(),
+      role: "admin", 
+      content: msgContent, 
+      created_at: new Date().toISOString() 
+    }]);
+
     try {
-      await sendMessengerReply(selectedLead.session_id, replyText);
-      // Optimistically add to history
-      setChatHistory(prev => [...prev, { message: replyText, from: { id: messengerConfig.page_id }, created_time: new Date().toISOString() }]);
-      setReplyText("");
+      await sendMessengerReply(selectedLead.session_id, msgContent);
     } catch (err: any) {
       alert(err.message || "Хариу илгээхэд алдаа гарлаа.");
     } finally {
@@ -257,8 +305,8 @@ export function ChatbotDashboardClient({ leads: initialLeads, messengerConfig, t
                 {[
                   { label: "Today's Leads", value: isMounted ? metrics.todayLeads : "-", icon: Calendar, color: "#2563EB", bg: "#DBEAFE" },
                   { label: "Loan Requests", value: isMounted ? metrics.loanRequests : "-", icon: Target, color: "#EF4444", bg: "#FEE2E2" },
-                  { label: "Unanswered", value: isMounted ? metrics.unanswered : "-", icon: MessageSquare, color: "#F59E0B", bg: "#FEF3C7" },
-                  { label: "Conversion Rate", value: isMounted ? `${metrics.conversion}%` : "-", icon: CheckCircle2, color: "#10B981", bg: "#D1FAE5" },
+                  { label: "API Tokens", value: isMounted ? totalTokens.toLocaleString() : "-", icon: Bot, color: "#8B5CF6", bg: "#EDE9FE" },
+                  { label: "Est. AI Cost", value: isMounted ? `$${((totalTokens / 1000000) * 0.3).toFixed(4)}` : "-", icon: Settings, color: "#10B981", bg: "#D1FAE5" },
                 ].map((m, i) => (
                   <div key={i} style={{ backgroundColor: "#fff", padding: "1.5rem", borderRadius: "16px", border: "1px solid #E2E8F0", display: "flex", alignItems: "center", gap: "1rem", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
                     <div style={{ width: "48px", height: "48px", borderRadius: "12px", backgroundColor: m.bg, color: m.color, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -441,11 +489,15 @@ export function ChatbotDashboardClient({ leads: initialLeads, messengerConfig, t
                         <p style={{ textAlign: "center", color: "#94A3B8", fontSize: "0.875rem", margin: "auto" }}>Уншиж байна...</p>
                       ) : chatHistory.length > 0 ? (
                         chatHistory.map((msg, i) => {
-                          const isPage = msg.from?.id === messengerConfig?.page_id;
+                          const isPage = msg.role === "bot" || msg.role === "admin";
+                          const bgColor = msg.role === "admin" ? "#047857" : msg.role === "bot" ? "#2563EB" : "#E2E8F0";
+                          const color = isPage ? "#fff" : "#0F172A";
+                          
                           return (
-                            <div key={i} style={{ alignSelf: isPage ? "flex-end" : "flex-start", maxWidth: "85%" }}>
-                              <div style={{ backgroundColor: isPage ? "#2563EB" : "#E2E8F0", color: isPage ? "#fff" : "#0F172A", padding: "0.6rem 0.8rem", borderRadius: "12px", borderBottomRightRadius: isPage ? 0 : "12px", borderBottomLeftRadius: !isPage ? 0 : "12px", fontSize: "0.875rem", whiteSpace: "pre-wrap" }}>
-                                {msg.message}
+                            <div key={msg.id || i} style={{ alignSelf: isPage ? "flex-end" : "flex-start", maxWidth: "85%" }}>
+                              {msg.role === "bot" && <div style={{ fontSize: "0.65rem", color: "#94A3B8", textAlign: "right", marginBottom: "2px" }}>Auto Bot</div>}
+                              <div style={{ backgroundColor: bgColor, color, padding: "0.6rem 0.8rem", borderRadius: "12px", borderBottomRightRadius: isPage ? 0 : "12px", borderBottomLeftRadius: !isPage ? 0 : "12px", fontSize: "0.875rem", whiteSpace: "pre-wrap" }}>
+                                {msg.content || msg.message}
                               </div>
                             </div>
                           );

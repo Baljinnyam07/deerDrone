@@ -20,13 +20,26 @@ const botPausedState = new Map<string, number>();
 import {
   getMessengerConfigTool,
   captureLeadTool,
+  supabase,
 } from "./tools/catalog.js";
-import { getProductById, toChatCards } from "./productMatcher.js";
+import { getProductById } from "./productMatcher.js";
+import { toChatCards } from "./tools/catalog.js";
 import { STATIC } from "./constants/staticResponses.js";
 import { formatMoney } from "./utils.js";
 
 const API_VERSION = "v20.0";
 const BASE_URL = `https://graph.facebook.com/${API_VERSION}/me`;
+
+// ---------------------------------------------------------------------------
+// DB Logger
+// ---------------------------------------------------------------------------
+async function logConversation(sessionId: string, role: "user" | "bot" | "admin", content: string) {
+  try {
+    await supabase.from("conversations").insert({ session_id: sessionId, role, content });
+  } catch (err) {
+    console.error("Failed to log conversation:", err);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Typing indicator
@@ -52,6 +65,7 @@ export async function sendTyping(senderId: string, token: string, on = true) {
 // ---------------------------------------------------------------------------
 export async function sendMessage(senderId: string, text: string, token: string, quickReplies?: { title: string; payload: string }[]) {
   if (!token) return;
+  await logConversation(senderId, "bot", text);
   const chunks = splitMessage(text, 1900);
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
@@ -291,6 +305,9 @@ export async function handleWebhookEvent(event: any) {
     const recipientId = event.message.recipient?.id;
     if (recipientId) {
       console.log(`[messenger] Admin replied. Pausing bot for ${recipientId}`);
+      if (event.message.text) {
+        await logConversation(recipientId, "admin", event.message.text);
+      }
       if (redis) {
         await redis.set(`bot_paused_${recipientId}`, "1", { ex: 2 * 3600 });
       } else {
@@ -303,6 +320,8 @@ export async function handleWebhookEvent(event: any) {
   if (event.message?.text && !event.message.is_echo) {
     const text: string = event.message.text;
     console.log("TEXT_MESSAGE", { senderId, text: text.slice(0, 80) });
+
+    await logConversation(senderId, "user", text);
 
     // Check if bot is paused
     if (redis) {

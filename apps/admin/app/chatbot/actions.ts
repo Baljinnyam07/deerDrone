@@ -64,23 +64,22 @@ export async function updateLeadNotes(id: string, notes: string) {
   revalidatePath("/chatbot");
 }
 
-export async function getConversationHistory(senderId: string) {
-  if (!senderId) return [];
+export async function getConversationHistory(sessionId: string) {
+  if (!sessionId) return [];
   const supabase = createAdminClient();
-  const { data: config } = await supabase.from("messenger_config").select("*").limit(1).single();
   
-  if (!config || !config.page_access_token || !config.page_id) {
-    return [];
-  }
-
   try {
-    const url = `https://graph.facebook.com/v20.0/${config.page_id}/conversations?user_id=${senderId}&fields=messages{message,from,created_time}&access_token=${config.page_access_token}`;
-    const res = await fetch(url);
-    const json = await res.json();
+    const { data, error } = await supabase
+      .from("conversations")
+      .select("role, content, created_at")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+      
+    if (error) throw error;
     
-    if (json.data && json.data.length > 0 && json.data[0].messages) {
-      // FB returns messages in paginated format. We take the latest 20.
-      return json.data[0].messages.data.slice(0, 20).reverse();
+    if (data && data.length > 0) {
+      return data.reverse();
     }
     return [];
   } catch (err) {

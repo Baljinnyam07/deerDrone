@@ -134,16 +134,4 @@ function normalise(items: any[]): MatchedProduct[] {
   });
 }
 
-/**
- * Convert MatchedProduct[] to chat card format used by the response.
- */
-export function toChatCards(products: MatchedProduct[], limit = 6) {
-  return products.slice(0, limit).map((p) => ({
-    id: p.id,
-    name: p.name,
-    slug: p.slug,
-    price: p.price,
-    heroNote: p.heroNote,
-    image_url: p.image_url,
-  }));
-}
+

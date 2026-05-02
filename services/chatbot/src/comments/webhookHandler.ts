@@ -84,13 +84,23 @@ export async function handleCommentChange(
   );
 
   // Hard gates
-  if (intent === "spam") return;
-  if (confidence < 0.4)  return;
+  if (intent === "spam") {
+    console.log(`[comment] skipped: spam`);
+    return;
+  }
+  if (confidence < 0.4) {
+    console.log(`[comment] skipped: low confidence (${confidence.toFixed(2)} < 0.4)`);
+    return;
+  }
 
   // Public reply (always, if confidence ≥ 0.4)
   const publicText = PUBLIC_REPLIES[intent];
+  console.log(`[comment] publicText for intent "${intent}": "${publicText || '(empty)'}"`);
   if (publicText) {
+    console.log(`[comment] calling postPublicReply for commentId=${commentId}`);
     await postPublicReply(commentId, publicText, pageToken);
+  } else {
+    console.log(`[comment] no public reply template for intent="${intent}" — skipping`);
   }
 
   // DM — only if confidence is high enough AND user not on cooldown

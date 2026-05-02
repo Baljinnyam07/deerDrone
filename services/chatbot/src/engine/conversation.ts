@@ -361,7 +361,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   if (
     intent === "technical_consultation" ||
     intent === "compare_products" ||
-    intent === "unknown"
+    (intent === "unknown" && looksLikeDroneRelated(message))
   ) {
     // Get minimal context: try to match specific products first (1-3),
     // fall back to small catalog summary (max 8)
