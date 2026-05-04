@@ -32,13 +32,12 @@ export async function POST(request: Request) {
       headers["x-deer-service-secret"] = SERVICE_SECRET;
     }
 
+    console.log(`[chat-proxy] Forwarding request to ${CHATBOT_URL}/chat`);
+
     const res = await fetch(`${CHATBOT_URL}/chat`, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        sessionId: body.sessionId,
-        message: body.message,
-      }),
+      body: JSON.stringify(body),
       // 8-second timeout so the widget never hangs
       signal: AbortSignal.timeout(8000),
     });
@@ -47,8 +46,8 @@ export async function POST(request: Request) {
       const err = await res.json().catch(() => ({}));
       console.error("[chat-proxy] chatbot service error:", res.status, err);
       return NextResponse.json(
-        { error: "Чат үйлчилгээ түр ажиллагаагүй байна." },
-        { status: 503 }
+        { error: err.error || "Чат үйлчилгээ түр ажиллагаагүй байна." },
+        { status: res.status === 500 ? 503 : res.status }
       );
     }
 
