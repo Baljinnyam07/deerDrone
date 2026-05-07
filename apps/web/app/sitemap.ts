@@ -18,11 +18,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       lastModified: now,
-      url: `${siteUrl}/cart`,
+      url: `${siteUrl}/about`,
     },
     {
       lastModified: now,
-      url: `${siteUrl}/checkout`,
+      url: `${siteUrl}/help`,
+    },
+    {
+      lastModified: now,
+      url: `${siteUrl}/cart`,
     },
     ...products.map((product) => ({
       lastModified: now,

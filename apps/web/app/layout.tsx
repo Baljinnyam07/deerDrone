@@ -2,16 +2,16 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { Inter, Sora } from "next/font/google";
 
-const inter = Inter({ 
-  subsets: ["latin"], 
+const inter = Inter({
+  subsets: ["latin"],
   variable: "--font-inter",
-  display: "swap" 
+  display: "swap"
 });
 
-const sora = Sora({ 
-  subsets: ["latin"], 
+const sora = Sora({
+  subsets: ["latin"],
   variable: "--font-sora",
-  display: "swap" 
+  display: "swap"
 });
 
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -33,7 +33,8 @@ export const metadata: Metadata = {
     template: "%s | DEER Drone",
   },
   description:
-    "DEER Drone is a production-ready storefront for industrial drones, creator kits, service support, and delivery across Mongolia.",
+    "DEER Drone - Монголын хамгийн том дрон, технологийн төрөлжсөн дэлгүүр. DJI брэндийн албан ёсны борлуулагч. Үйлдвэрийн болон сонирхогчийн дронууд, засвар үйлчилгээ.",
+  keywords: ["drone", "dji", "mongolia", "deer drone", "дрон", "засвар", "лизинг"],
   icons: {
     icon: [
       { url: "/assets/brand/deer-logo.svg", type: "image/svg+xml" }
@@ -46,12 +47,20 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "DEER Drone",
+    title: "DEER Drone | Монголын хамгийн том дрон дэлгүүр",
     description:
-      "Industrial drones, creator tools, accessories, and after-sales support from DEER.",
+      "DJI брэндийн албан ёсны борлуулагч. Үйлдвэрийн болон сонирхогчийн дронууд, дагалдах хэрэгсэл, засвар үйлчилгээ.",
     siteName: "DEER Drone",
     type: "website",
     url: siteUrl,
+    images: [
+      {
+        url: `${siteUrl}/assets/brand/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "DEER Drone Mongolia",
+      },
+    ],
   },
   robots: {
     follow: true,
@@ -59,15 +68,41 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "DEER Drone",
+    title: "DEER Drone | Монголын хамгийн том дрон дэлгүүр",
     description:
-      "Industrial drones, creator tools, accessories, and after-sales support from DEER.",
+      "DJI брэндийн албан ёсны борлуулагч. Үйлдвэрийн болон сонирхогчийн дронууд, засвар үйлчилгээ.",
+    images: [`${siteUrl}/assets/brand/og-image.png`],
   },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="mn" className={`${inter.variable} ${sora.variable}`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "DEER Drone",
+              "url": siteUrl,
+              "logo": `${siteUrl}/assets/brand/deer-logo.svg`,
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "telephone": "+976-99977242",
+                "contactType": "sales",
+                "areaServed": "MN",
+                "availableLanguage": ["Mongolian", "English"]
+              },
+              "sameAs": [
+                "https://www.facebook.com/deerdrone.mn",
+                "https://www.instagram.com/deerdrone.mn"
+              ]
+            })
+          }}
+        />
+      </head>
       <body>
         <QueryProvider>
           <NavProgress />
