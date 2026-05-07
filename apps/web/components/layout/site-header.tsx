@@ -689,6 +689,7 @@ export function SiteHeader() {
                 </button>
 
                 {/* Facebook */}
+                {/* 
                 <Link
                   href={`/api/auth/facebook?redirect=${encodeURIComponent(pathname === "/login" ? "/account" : pathname)}`}
                   style={{
@@ -707,6 +708,7 @@ export function SiteHeader() {
                   </svg>
                   Facebook-ээр нэвтрэх
                 </Link>
+                */}
 
                 <p style={{ margin: "4px 0 0", textAlign: "center", fontSize: "0.75rem", color: "#CBD5E1", lineHeight: 1.5 }}>
                   Нэвтэрснээр{" "}

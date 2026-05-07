@@ -74,7 +74,7 @@ export const getProducts = unstable_cache(
     return data.map((item: any) => mapProductRecord(item));
   },
   ["products-query"],
-  { revalidate: 3600, tags: ["products"] }
+  { revalidate: 86400, tags: ["products"] }
 );
 
 export const getCategories = unstable_cache(
@@ -93,7 +93,7 @@ export const getCategories = unstable_cache(
     return data;
   },
   ["categories-query"],
-  { revalidate: 3600, tags: ["categories"] }
+  { revalidate: 86400, tags: ["categories"] }
 );
 
 export const getBrands = unstable_cache(
@@ -110,7 +110,7 @@ export const getBrands = unstable_cache(
     return brands.sort();
   },
   ["brands-query"],
-  { revalidate: 3600, tags: ["brands"] }
+  { revalidate: 86400, tags: ["brands"] }
 );
 
 export const getProductBySlug = unstable_cache(
@@ -135,7 +135,7 @@ export const getProductBySlug = unstable_cache(
     return mapProductRecord(data as any);
   },
   ["product-by-slug"],
-  { revalidate: 3600, tags: ["products"] }
+  { revalidate: 86400, tags: ["products"] }
 );
 
 export const getSimilarProducts = unstable_cache(
@@ -161,7 +161,7 @@ export const getSimilarProducts = unstable_cache(
     return data.map((item: any) => mapProductRecord(item));
   },
   ["similar-products"],
-  { revalidate: 3600, tags: ["products"] }
+  { revalidate: 86400, tags: ["products"] }
 );
 
 export const getSiteSettings = unstable_cache(
@@ -181,5 +181,5 @@ export const getSiteSettings = unstable_cache(
     }, {} as Record<string, string>);
   },
   ["site-settings"],
-  { revalidate: 3600, tags: ["settings"] }
+  { revalidate: 86400, tags: ["settings"] }
 );

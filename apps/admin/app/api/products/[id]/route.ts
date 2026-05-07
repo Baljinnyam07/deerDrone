@@ -3,6 +3,27 @@ import type { NextRequest } from "next/server";
 import { createAdminClient } from "../../../../lib/supabase";
 import { requireAdminApi, withAuthCookies } from "../../../../lib/auth";
 
+async function revalidateProducts() {
+  const secret = process.env.REVALIDATE_SECRET;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+
+  if (!secret || !siteUrl) {
+    console.warn("REVALIDATE_SECRET or NEXT_PUBLIC_SITE_URL missing, skipping revalidation");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${siteUrl}/api/revalidate?secret=${secret}&tag=products`);
+    if (!res.ok) {
+      console.error("Revalidation failed:", await res.text());
+    } else {
+      console.log("Revalidation successful");
+    }
+  } catch (err) {
+    console.error("Revalidation fetch error:", err);
+  }
+}
+
 export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
     const auth = await requireAdminApi(request);
@@ -42,6 +63,9 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       .eq("id", params.id);
 
     if (productError) throw productError;
+    
+    // Trigger revalidation
+    await revalidateProducts();
 
     // 2. Sync Images (Delete & Re-insert)
     if (images) {
@@ -94,6 +118,9 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
     const { error } = await supabase.from("products").delete().eq("id", params.id);
     
     if (error) throw error;
+
+    // Trigger revalidation
+    await revalidateProducts();
     return withAuthCookies(auth.response, NextResponse.json({ success: true }));
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

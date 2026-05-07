@@ -102,8 +102,8 @@ function LoginContent() {
         </div>
 
         {/* Facebook login form — hidden field carries the redirect target */}
+        {/* 
         <form action={loginWithFacebook}>
-          {/* Pass the redirect destination through the form */}
           <input type="hidden" name="redirectTo" value={redirectTo} />
           <button
             type="submit"
@@ -123,6 +123,11 @@ function LoginContent() {
             Facebook-ээр үргэлжлүүлэх
           </button>
         </form>
+        */}
+
+        <div style={{ textAlign: "center", padding: "20px", color: "#64748B", fontSize: "14px", border: "1px dashed #CBD5E1", borderRadius: "12px" }}>
+          Нэвтрэх хэсэг түр засвартай байна.
+        </div>
 
         {redirectTo !== "/account" && (
           <p style={{ marginTop: "16px", textAlign: "center", fontSize: "13px", color: "#94A3B8" }}>
