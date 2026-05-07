@@ -82,7 +82,7 @@ function isSpam(text: string): boolean {
   const digitCount = t.replace(/\D/g, '').length;
   if (digitCount === 8) return false;
 
-  if (!/\p{L}/u.test(t)) return true;          // no letters at all
+  if (!/\p{L}/u.test(t) && t !== "1") return true;          // no letters at all, except "1"
   if (/^(.)\1{4,}$/.test(t)) return true;       // aaaaa or 11111
   return false;
 }
