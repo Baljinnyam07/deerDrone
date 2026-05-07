@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { requireAdminApi, withAuthCookies } from "../../../../lib/auth";
 import { createAdminClient } from "../../../../lib/supabase";
+import { revalidateTag } from "../../../../lib/revalidate";
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,6 +68,10 @@ export async function POST(request: NextRequest) {
       const { error: specsError } = await supabase.from("product_specs").insert(specsToInsert);
       if (specsError) console.error("Specs insert error:", specsError);
     }
+
+    // Trigger revalidation
+    await revalidateTag("products");
+    await revalidateTag("brands");
 
     return withAuthCookies(
       auth.response,
