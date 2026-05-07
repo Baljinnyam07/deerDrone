@@ -1,20 +1,25 @@
 export async function revalidateTag(tag: string) {
   const secret = process.env.REVALIDATE_SECRET;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
 
   if (!secret || !siteUrl) {
-    console.warn("REVALIDATE_SECRET or NEXT_PUBLIC_SITE_URL missing, skipping revalidation");
+    console.warn("REVALIDATE_SECRET or SITE_URL missing in Admin Environment, skipping revalidation");
     return;
   }
 
+  // Ensure URL doesn't end with / to avoid //api/revalidate
+  const cleanUrl = siteUrl.endsWith("/") ? siteUrl.slice(0, -1) : siteUrl;
+  const endpoint = `${cleanUrl}/api/revalidate?secret=${secret}&tag=${tag}`;
+
   try {
-    const res = await fetch(`${siteUrl}/api/revalidate?secret=${secret}&tag=${tag}`);
+    const res = await fetch(endpoint);
+    const data = await res.json();
     if (!res.ok) {
-      console.error(`Revalidation failed for tag ${tag}:`, await res.text());
+      console.error(`Revalidation failed for tag ${tag}:`, data);
     } else {
-      console.log(`Revalidation successful for tag ${tag}`);
+      console.log(`Revalidation successful for tag ${tag}:`, data);
     }
-  } catch (err) {
-    console.error(`Revalidation fetch error for tag ${tag}:`, err);
+  } catch (err: any) {
+    console.error(`Revalidation fetch error for tag ${tag}:`, err?.message || err);
   }
 }
