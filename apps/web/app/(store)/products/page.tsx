@@ -5,6 +5,8 @@ import { ProductsSection } from "../../../components/product/products-section";
 import { SkeletonCard } from "../../../components/ui/skeleton-card";
 import { type SortOption } from "../../../lib/products-config";
 import Image from "next/image";
+import type { Metadata } from "next";
+import { getSiteUrl } from "../../../lib/server-env";
 
 type ProductsSearchParams = Promise<{
   category?: string;
@@ -15,6 +17,26 @@ type ProductsSearchParams = Promise<{
   search?: string;
   sort?: string;
 }>;
+
+export async function generateMetadata({ searchParams }: { searchParams: ProductsSearchParams }): Promise<Metadata> {
+  const params = await searchParams;
+  const activeCategory = params.category || params.cat || "all";
+  const searchQuery = params.q || params.query || params.search;
+  
+  if (searchQuery) {
+    return {
+      title: `Хайлт: ${searchQuery}`,
+      description: `"${searchQuery}" хайлтад тохирох бүтээгдэхүүнүүд`,
+    };
+  }
+
+  const banner = CATEGORY_BANNERS[activeCategory] ?? CATEGORY_BANNERS.all;
+
+  return {
+    title: banner.title,
+    description: banner.desc,
+  };
+}
 
 const CATEGORY_BANNERS: Record<
   string,
@@ -96,8 +118,32 @@ export default async function ProductsPage({
   const categorySlug = activeCategory === "all" ? undefined : activeCategory;
   const banner = CATEGORY_BANNERS[activeCategory] ?? CATEGORY_BANNERS.all;
 
+  const siteUrl = getSiteUrl();
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Нүүр",
+        "item": siteUrl
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": banner.title,
+        "item": `${siteUrl}/products?category=${activeCategory}`
+      }
+    ]
+  };
+
   return (
     <main className="p-root">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
       <section className="p-hero-wrap">
         <div className="p-hero">
           <Image
