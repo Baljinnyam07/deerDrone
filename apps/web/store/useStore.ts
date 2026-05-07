@@ -10,6 +10,7 @@ export interface CartItem {
   slug?: string;
   brand?: string;
   stockQty?: number;
+  categorySlug?: string;
 }
 
 interface UserState {

@@ -48,6 +48,7 @@ export function CategoryCircleGrid({ categories }: { categories: Category[] }) {
           overflow: hidden;
           position: relative;
           flex-shrink: 0;
+          border: none;
         }
 
         .cat-circle-label {
@@ -66,7 +67,7 @@ export function CategoryCircleGrid({ categories }: { categories: Category[] }) {
             justify-content: center;
           }
           .cat-circle-item { min-width: 150px; gap: 14px; }
-          .cat-circle-img-wrap { width: 150px; height: 140px; }
+          .cat-circle-img-wrap { width: 160px; height: 160px; }
           .cat-circle-label { font-size: 0.9rem; max-width: 140px; }
         }
 

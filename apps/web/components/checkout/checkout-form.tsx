@@ -571,6 +571,8 @@ export function CheckoutForm() {
     setForm((cur) => ({ ...cur, shippingAddress: { ...cur.shippingAddress, [f]: v } }));
   }
 
+  const isAccessoriesOnly = cartItems.length > 0 && cartItems.every(item => item.categorySlug === "accessories");
+
   const validateStep = (step = currentStep) => {
     if (step === 0) return !!(form.contactName.trim() && form.contactPhone.trim());
     if (step === 1) return !!(form.shippingAddress.line1.trim() && form.shippingAddress.city.trim());
@@ -621,7 +623,7 @@ export function CheckoutForm() {
     });
   }
 
-  const shippingCost = form.shippingMethod === "ub" ? 5000 : 15000;
+  const shippingCost = isAccessoriesOnly ? 8000 : 0;
   const total = subtotal + shippingCost;
 
   /* ─── Success screen ─── */
@@ -792,7 +794,7 @@ export function CheckoutForm() {
         </div>
         <div className="co-total-row">
           <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Truck size={13} /> Хүргэлт:</span>
-          <span>{formatMoney(shippingCost)}</span>
+          <span>{isAccessoriesOnly ? formatMoney(shippingCost) : "Үнэгүй"}</span>
         </div>
         <div className="co-total-final">
           <span>Төлөх дүн:</span>
@@ -860,8 +862,7 @@ export function CheckoutForm() {
                         <label className="co-label">Хүргэлтийн бүс <span className="co-req">*</span></label>
                         <select className="co-select" value={form.shippingMethod}
                           onChange={e => updateField("shippingMethod", e.target.value as "ub" | "rural")}>
-                          <option value="ub">Улаанбаатар хот — 5,000₮</option>
-                          <option value="rural">Орон нутаг (аймаг) — 15,000₮</option>
+                          <option value="ub">Улаанбаатар хот — {isAccessoriesOnly ? "8,000₮" : "Үнэгүй"}</option>
                         </select>
                       </div>
                       <div className="co-field">
@@ -941,6 +942,10 @@ export function CheckoutForm() {
                         <div className="co-review-row">
                           <span className="lbl">Хаяг:</span>
                           <span className="val">{form.shippingAddress.city}{form.shippingAddress.line1 ? `, ${form.shippingAddress.line1}` : ""}</span>
+                        </div>
+                        <div className="co-review-row">
+                          <span className="lbl">Үнэ:</span>
+                          <span className="val">{isAccessoriesOnly ? "8,000₮" : "Үнэгүй"}</span>
                         </div>
                       </div>
                       <div className="co-review-card">

@@ -58,7 +58,7 @@ export default function ProductDetailView({
       return;
     }
     for (let i = 0; i < quantity; i++) {
-      addToCart({ id: product.id, slug: product.slug, name: product.name, price: product.price, image: imageUrl, brand: product.brand, stockQty: product.stockQty });
+      addToCart({ id: product.id, slug: product.slug, name: product.name, price: product.price, image: imageUrl, brand: product.brand, stockQty: product.stockQty, categorySlug: product.categorySlug });
     }
   }
 
@@ -68,7 +68,7 @@ export default function ProductDetailView({
       return;
     }
     for (let i = 0; i < quantity; i++) {
-      addToCart({ id: product.id, slug: product.slug, name: product.name, price: product.price, image: imageUrl, brand: product.brand, stockQty: product.stockQty });
+      addToCart({ id: product.id, slug: product.slug, name: product.name, price: product.price, image: imageUrl, brand: product.brand, stockQty: product.stockQty, categorySlug: product.categorySlug });
     }
     router.push("/checkout");
   }

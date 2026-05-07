@@ -56,6 +56,7 @@ export function PremiumProductCard({
       image: imageUrl,
       brand: product.brand,
       stockQty: product.stockQty,
+      categorySlug: product.categorySlug,
     });
   }
 
