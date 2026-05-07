@@ -153,7 +153,7 @@ export default function AdminLoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@deersdrone.mn"
+              placeholder="admin@deerdrone.mn"
               style={{
                 width: "100%",
                 padding: "12px 16px",
@@ -381,7 +381,7 @@ export default function AdminLoginPage() {
           Туршилтын хандалт:
         </p>
         <p style={{ margin: "0 0 4px" }}>
-          <span style={{ fontWeight: 600 }}>Имэйл:</span> admin@deersdrone.mn
+          <span style={{ fontWeight: 600 }}>Имэйл:</span> admin@deerdrone.mn
         </p>
         <p style={{ margin: 0 }}>
           <span style={{ fontWeight: 600 }}>Нууц үг:</span> Supabase хэрэглэгч

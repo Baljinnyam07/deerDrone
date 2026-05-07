@@ -42,7 +42,7 @@ export function getSiteUrl(): string {
   const rawUrl =
     readEnv("NEXT_PUBLIC_SITE_URL") ??
     readEnv("SITE_URL") ??
-    "https://deer-drone.vercel.app";
+    "https://deerdrone.mn";
 
   if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
     return rawUrl;

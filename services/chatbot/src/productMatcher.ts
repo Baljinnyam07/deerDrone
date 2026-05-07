@@ -115,7 +115,7 @@ function normalise(items: any[]): MatchedProduct[] {
   return items.map((p) => {
     let imageUrl = p.product_images?.[0]?.url || p.image_url || p.image;
     if (imageUrl && imageUrl.startsWith("/")) {
-      imageUrl = `https://deer-drone.vercel.app${imageUrl}`;
+      imageUrl = `https://deerdrone.mn${imageUrl}`;
     }
     // Facebook Messenger does not support WebP. Convert via proxy.
     if (imageUrl && imageUrl.includes(".webp") && !imageUrl.includes("wsrv.nl")) {

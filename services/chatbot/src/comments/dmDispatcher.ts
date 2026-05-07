@@ -14,15 +14,12 @@ const SITE_URL = process.env.SITE_URL || "https://deerdrone.mn";
 // Static DM templates
 // ---------------------------------------------------------------------------
 
-const FINANCING_DM = STATIC.loanAck;
+const FINANCING_DM = STATIC.humanHandoff;
 
-const HANDOFF_DM =
-  "✅ Таны хүсэлтийг хүлээн авлаа.\n\n" +
-  "Манай ажилтан удахгүй холбоо барих болно.\n" +
-  "☎ 8815-7242";
+const HANDOFF_DM = STATIC.humanHandoff;
 
-const INTRO_DM = "Манай бүтээгдэхүүнүүдийг харна уу 👇";
-const SIMILAR_DM = "Танд санал болгох бүтээгдэхүүнүүд 👇";
+const INTRO_DM = "Манай бүтээгдэхүүнийг сонирхсонд баярлалаа. 😊 Дэлгэрэнгүй мэдээллийг доорх холбоосоор орж харна уу 👇";
+const SIMILAR_DM = "Танд санал болгох бүтээгдэхүүнүүдийг эндээс харна уу 👇";
 
 // ---------------------------------------------------------------------------
 // Main dispatcher
@@ -39,7 +36,7 @@ export async function dispatchCommentDM(
   switch (intent) {
     case "info_request":
     case "product_interest": {
-      replyText = `Сайн байна уу! 👋 ${INTRO_DM}\n\n${SITE_URL}`;
+      replyText = HANDOFF_DM;
       break;
     }
 
@@ -87,7 +84,7 @@ export async function dispatchCommentDM(
     }
 
     default: {
-      replyText = `Сайн байна уу! 👋 Дэлгэрэнгүй мэдээллийг эндээс харна уу: ${SITE_URL}`;
+      replyText = `Сайн байна уу! 👋 Бидэнд хандсанд баярлалаа. Дэлгэрэнгүй мэдээллийг эндээс харна уу: ${SITE_URL}`;
     }
   }
 
