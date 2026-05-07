@@ -1,5 +1,6 @@
 import { createAdminClient } from "../../lib/supabase";
 import { AdminPageHeader } from "@/components/admin-page-header";
+export const dynamic = 'force-dynamic';
 import { ChatbotDashboardClient } from "./ChatbotDashboardClient";
 
 async function getLeads() {

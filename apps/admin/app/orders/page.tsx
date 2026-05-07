@@ -1,6 +1,7 @@
 import { createAdminClient } from "../../lib/supabase";
 import { OrdersClient } from "./orders-client";
 import { AdminPageHeader } from "@/components/admin-page-header";
+export const dynamic = 'force-dynamic';
 
 async function getOrders() {
   const supabase = createAdminClient();

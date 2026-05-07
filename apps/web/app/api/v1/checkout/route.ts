@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { CheckoutPayload } from "@deer-drone/types";
-import { getDeliveryQuote, validateCheckoutPayload } from "@deer-drone/utils";
+import { validateCheckoutPayload } from "@deer-drone/utils";
 import { createClient } from "../../../../lib/supabase/server";
 import { createServiceClient } from "../../../../lib/supabase/service";
 import { createQPayInvoice } from "../../../../lib/qpay";
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     const productIds = [...new Set(payload.items.map((item) => item.productId))];
     const { data: products, error: productsError } = await supabase
       .from("products")
-      .select("id, name, price, stock_qty")
+      .select("id, name, price, stock_qty, category:categories(slug)")
       .in("id", productIds);
 
     if (productsError || !products?.length) {
@@ -101,8 +101,13 @@ export async function POST(request: Request) {
     });
 
     const subtotal = orderItems.reduce((sum, item) => sum + item.line_total, 0);
-    const shipping = getDeliveryQuote(payload.shippingMethod);
-    const total = subtotal + shipping.fee;
+
+    // Accessories-only cart → 8,000₮ shipping; drone or other item → free
+    const isAccessoriesOnly = products.every(
+      (p: any) => p.category?.slug === "accessories"
+    );
+    const shippingFee = isAccessoriesOnly ? 8000 : 0;
+    const total = subtotal + shippingFee;
     const reservedItems: OrderItemRow[] = [];
 
     for (const item of orderItems) {
@@ -136,7 +141,7 @@ export async function POST(request: Request) {
         payment_method: payload.paymentMethod,
         shipping_method: payload.shippingMethod,
         shipping_address: payload.shippingAddress,
-        shipping_cost: shipping.fee,
+        shipping_cost: shippingFee,
         subtotal,
         total,
         notes: payload.notes || null,
@@ -183,6 +188,12 @@ export async function POST(request: Request) {
         description: `DEER Drone захиалга #${order.order_number}`,
         callbackUrl,
       });
+
+      // Save QPay invoice ID to order
+      await supabase
+        .from("orders")
+        .update({ payment_reference: invoice.invoice_id })
+        .eq("id", order.id);
 
       payment = {
         method: "qpay",

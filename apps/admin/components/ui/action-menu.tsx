@@ -18,22 +18,44 @@ interface ActionMenuProps {
 
 export function ActionMenu({ items }: ActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, right: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      if (
+        menuRef.current && !menuRef.current.contains(event.target as Node) &&
+        btnRef.current && !btnRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
+    function handleScroll() { setIsOpen(false); }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    window.addEventListener("scroll", handleScroll, true);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
   }, []);
 
+  const handleToggle = () => {
+    if (!isOpen && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
-    <div style={{ position: "relative" }} ref={menuRef}>
+    <>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={btnRef}
+        onClick={handleToggle}
         style={{
           padding: "6px",
           borderRadius: "6px",
@@ -55,23 +77,22 @@ export function ActionMenu({ items }: ActionMenuProps) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 5 }}
+            ref={menuRef}
+            initial={{ opacity: 0, scale: 0.95, y: -5 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 5 }}
+            exit={{ opacity: 0, scale: 0.95, y: -5 }}
             transition={{ duration: 0.15 }}
             style={{
-              position: "absolute",
-              right: 0,
-              top: "100%",
-              marginTop: "8px",
+              position: "fixed",
+              top: coords.top,
+              right: coords.right,
               width: "180px",
               backgroundColor: "white",
               borderRadius: "8px",
               border: "1px solid var(--admin-border)",
-              boxShadow: "var(--admin-shadow-md)",
-              zIndex: 50,
+              boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+              zIndex: 99999,
               padding: "4px",
-              overflow: "hidden",
             }}
           >
             {items.map((item, idx) => (
@@ -106,6 +127,6 @@ export function ActionMenu({ items }: ActionMenuProps) {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }
