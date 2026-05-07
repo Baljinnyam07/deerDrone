@@ -43,15 +43,15 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       .eq("id", params.id);
 
     if (productError) throw productError;
-    
+
     // Trigger revalidation
-    await revalidateTag("products");
-    await revalidateTag("brands");
+    const revalProducts = await revalidateTag("products");
+    const revalBrands = await revalidateTag("brands");
 
     // 2. Sync Images (Delete & Re-insert)
     if (images) {
       await supabase.from("product_images").delete().eq("product_id", params.id);
-      
+
       if (images.length > 0) {
         const imagesToInsert = images.map((img: any, idx: number) => ({
           product_id: params.id,
@@ -79,7 +79,10 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       }
     }
 
-    return withAuthCookies(auth.response, NextResponse.json({ success: true }));
+    return withAuthCookies(auth.response, NextResponse.json({
+      success: true,
+      revalidation: { products: revalProducts, brands: revalBrands }
+    }));
   } catch (err: any) {
     console.error("Update product error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -97,13 +100,17 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
     const supabase = createAdminClient();
 
     const { error } = await supabase.from("products").delete().eq("id", params.id);
-    
+
     if (error) throw error;
 
     // Trigger revalidation
-    await revalidateTag("products");
-    await revalidateTag("brands");
-    return withAuthCookies(auth.response, NextResponse.json({ success: true }));
+    const revalProducts = await revalidateTag("products");
+    const revalBrands = await revalidateTag("brands");
+
+    return withAuthCookies(auth.response, NextResponse.json({
+      success: true,
+      revalidation: { products: revalProducts, brands: revalBrands }
+    }));
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
