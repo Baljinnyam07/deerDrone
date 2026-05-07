@@ -3,23 +3,29 @@ export async function revalidateTag(tag: string) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
 
   if (!secret || !siteUrl) {
-    console.warn("REVALIDATE_SECRET or SITE_URL missing in Admin Environment, skipping revalidation");
-    return;
+    return { 
+      success: false, 
+      message: "Missing environment variables", 
+      hasSecret: !!secret, 
+      hasSiteUrl: !!siteUrl 
+    };
   }
 
-  // Ensure URL doesn't end with / to avoid //api/revalidate
   const cleanUrl = siteUrl.endsWith("/") ? siteUrl.slice(0, -1) : siteUrl;
   const endpoint = `${cleanUrl}/api/revalidate?secret=${secret}&tag=${tag}`;
 
   try {
     const res = await fetch(endpoint);
     const data = await res.json();
-    if (!res.ok) {
-      console.error(`Revalidation failed for tag ${tag}:`, data);
-    } else {
-      console.log(`Revalidation successful for tag ${tag}:`, data);
-    }
+    return { 
+      success: res.ok, 
+      status: res.status, 
+      data 
+    };
   } catch (err: any) {
-    console.error(`Revalidation fetch error for tag ${tag}:`, err?.message || err);
+    return { 
+      success: false, 
+      message: err?.message || "Fetch error" 
+    };
   }
 }

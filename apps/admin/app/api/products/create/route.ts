@@ -70,12 +70,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Trigger revalidation
-    await revalidateTag("products");
-    await revalidateTag("brands");
+    const revalProducts = await revalidateTag("products");
+    const revalBrands = await revalidateTag("brands");
 
     return withAuthCookies(
       auth.response,
-      NextResponse.json({ success: true, product: newProduct }, { status: 201 }),
+      NextResponse.json({ 
+        success: true, 
+        product: newProduct,
+        revalidation: { products: revalProducts, brands: revalBrands }
+      }, { status: 201 }),
     );
   } catch (err) {
     console.error("Create product failed:", err);
