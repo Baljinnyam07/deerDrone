@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
 import { requireAdminApi, withAuthCookies } from "@/lib/auth";
+import { revalidateTag } from "@/lib/revalidate";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,6 +37,9 @@ export async function POST(request: NextRequest) {
     if (dbError) {
       return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
+
+    // Trigger revalidation for settings
+    await revalidateTag("settings");
 
     return withAuthCookies(auth.response, NextResponse.json({ success: true }));
   } catch (error: any) {

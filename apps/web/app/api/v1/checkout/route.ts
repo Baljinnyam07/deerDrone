@@ -4,6 +4,7 @@ import { validateCheckoutPayload } from "@deer-drone/utils";
 import { createClient } from "../../../../lib/supabase/server";
 import { createServiceClient } from "../../../../lib/supabase/service";
 import { createQPayInvoice } from "../../../../lib/qpay";
+import { revalidateTag } from "next/cache";
 
 type OrderItemRow = {
   line_total: number;
@@ -235,5 +236,11 @@ export async function POST(request: Request) {
       },
       { status: 500 },
     );
+  } finally {
+    try {
+      revalidateTag("products");
+    } catch (e) {
+      console.error("Revalidation error during checkout:", e);
+    }
   }
 }
