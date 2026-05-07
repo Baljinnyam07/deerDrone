@@ -24,10 +24,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       url: `${siteUrl}/help`,
     },
-    {
-      lastModified: now,
-      url: `${siteUrl}/cart`,
-    },
     ...products.map((product) => ({
       lastModified: now,
       url: `${siteUrl}/products/${product.slug}`,

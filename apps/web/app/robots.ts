@@ -8,8 +8,21 @@ export default function robots(): MetadataRoute.Robots {
     host: siteUrl,
     rules: [
       {
-        allow: "/",
         userAgent: "*",
+        allow: "/",
+        disallow: [
+          "/admin",
+          "/admin/",
+          "/cart",
+          "/cart/",
+          "/checkout",
+          "/checkout/",
+          "/login",
+          "/login/",
+          "/account",
+          "/account/",
+          "/api/",
+        ],
       },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,
