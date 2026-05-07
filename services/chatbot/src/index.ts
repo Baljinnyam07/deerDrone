@@ -1,6 +1,6 @@
 import "dotenv/config";
 import Fastify from "fastify";
-import type { ChatRequest } from "@deer-drone/types";
+import type { ChatRequest } from "./types.js";
 import { runConversation, streamChunks } from "./engine/conversation.js";
 import { systemPrompt } from "./prompts/system.js";
 import { handleWebhookEvent } from "./messenger.js";

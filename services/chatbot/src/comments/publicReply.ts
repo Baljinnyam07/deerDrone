@@ -11,13 +11,13 @@ const BASE = "https://graph.facebook.com/v20.0";
 // ---------------------------------------------------------------------------
 
 export const PUBLIC_REPLIES: Record<CommentIntent, string> = {
-  info_request:     "Сайн байна уу! 👋 Мэдээллийг чат руу илгээлээ.",
+  info_request: "Сайн байна уу! 👋 Мэдээллийг чат руу илгээлээ.",
   product_interest: "Сайн байна уу! 🛒 Захиалгын мэдээллийг чат руу илгээлээ.",
-  financing:        "Сайн байна уу! 💰 Зээлийн мэдээллийг чат руу илгээлээ.",
-  recommend:        "Сайн байна уу! 📦 Санал болгох бүтээгдэхүүнийг чат руу илгээлээ.",
-  human_support:    "Сайн байна уу! 📞 Манай ажилтан удахгүй чат руу холбогдох болно.",
-  low_confidence:   "Сайн байна уу! ℹ️ Дэлгэрэнгүй мэдээллийг чат руу илгээлээ.",
-  spam:             "", // no reply to spam
+  financing: "Сайн байна уу! 💰 Зээлийн мэдээллийг чат руу илгээлээ.",
+  recommend: "Сайн байна уу! 📦 Санал болгох бүтээгдэхүүнийг чат руу илгээлээ.",
+  human_support: "Сайн байна уу! 📞 Манай ажилтан удахгүй чат руу холбогдох болно.",
+  low_confidence: "Сайн байна уу! ℹ️ Дэлгэрэнгүй мэдээллийг чат руу илгээлээ.",
+  spam: "", // no reply to spam
 };
 
 // ---------------------------------------------------------------------------
@@ -29,14 +29,6 @@ export async function postPublicReply(
   message: string,
   pageToken: string
 ): Promise<void> {
-  // ── TEMPORARILY DISABLED ──────────────────────────────────────────────────
-  // Facebook requires pages_manage_engagement + pages_read_user_content
-  // permissions which need App Review (Business account).
-  // DM flow (dmDispatcher.ts) still works normally via pages_messaging.
-  // Re-enable this block once permissions are approved.
-  // ─────────────────────────────────────────────────────────────────────────
-  return;
-
   try {
     const res = await fetch(
       `${BASE}/${commentId}/comments?access_token=${pageToken}`,
