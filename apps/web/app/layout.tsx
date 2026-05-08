@@ -35,8 +35,8 @@ export const metadata: Metadata = {
   description:
     "DEER Drone - DJI брэндийн Монгол дахь албан ёсны борлуулагч. Дрон худалдаа, засвар үйлчилгээ болон мэргэжлийн зөвлөгөө.",
   keywords: [
-    "drone", "dji", "mongolia", "deer drone", "дрон", "засвар", "лизинг", 
-    "dji mongolia", "дрон дэлгүүр", "mini 4 pro", "air 3", "mavic 3 pro", 
+    "drone", "dji", "mongolia", "deer drone", "дрон", "засвар", "лизинг",
+    "dji mongolia", "дрон дэлгүүр", "mini 4 pro", "air 3", "mavic 3 pro",
     "хөдөө аж ахуйн дрон", "агри дрон", "t40", "t50", "дрон засвар"
   ],
   authors: [{ name: "DEER Drone" }],
@@ -49,11 +49,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "any" },
       { url: "/assets/brand/48x48.png", sizes: "48x48", type: "image/png" },
       { url: "/assets/brand/36x36.png", sizes: "36x36", type: "image/png" },
       { url: "/assets/brand/deer-logo.svg", type: "image/svg+xml" },
     ],
-    shortcut: ["/assets/brand/48x48.png"],
+    shortcut: ["/favicon.ico"],
     apple: [
       { url: "/assets/brand/48x48.png", sizes: "48x48", type: "image/png" },
     ],
@@ -119,8 +120,8 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
                   "availableLanguage": ["Mongolian", "English"]
                 },
                 "sameAs": [
-                  "https://www.facebook.com/deerdrone.mn",
-                  "https://www.instagram.com/deerdrone.mn"
+                  "https://www.facebook.com/Deerdroneshop2",
+                  "https://www.instagram.com/deer_drone_shop/"
                 ]
               },
               {
