@@ -123,7 +123,7 @@ async function callAI(
   sessionId: string,
   message: string,
   intent: Intent,
-  contextProducts: { id: string; name: string; price: number }[]
+  contextProducts: { id: string; name: string; price: number; heroNote: string }[]
 ): Promise<{ reply: string; cards: any[] }> {
   if (!openai) {
     return { reply: STATIC.llmNotConfigured, cards: [] };
@@ -140,7 +140,13 @@ async function callAI(
         ? JSON.stringify(contextProducts)
         : "[]";
     let prompt = basePrompt.replace("{productsContext}", productsContext);
-    prompt += `\n\nЧУХАЛ: Та зөвхөн дараах JSON форматаар хариулах ёстой: {"message": "таны хариулт...", "suggested_product_ids": ["id1", "id2"]}. Өөр ямар ч бүтэц ашиглаж болохгүй!`;
+    prompt += `\n\nЧУХАЛ ЗААВАР:
+    - Хэрэглэгчтэй маш найрсаг, "амьд" харилцаа үүсгэ (Ehniid saihn yariltsii). 
+    - Хэрэв хэрэглэгчийн хүссэн яг тэр төрлийн дрон (жишээ нь: ачаа тээвэрлэх) манайд байхгүй бол шууд "байхгүй" гэж битгий хэл.
+    - Үүний оронд "Манайд яг зориулалтын ачааны дрон одоогоор байхгүй байгаа ч, маш хүчирхэг мотортой, даац сайтай ийм загварууд байна..." гэх мэтээр байгаа бараануудаасаа санал болго.
+    - Хариултдаа байгаа бараануудын нэрийг заавал дурдаж, хүчин чадлыг нь (heroNote) ашиглан тайлбарла.
+    
+    Та зөвхөн дараах JSON форматаар хариулах ёстой: {"message": "таны хариулт...", "suggested_product_ids": ["id1", "id2"]}. Өөр ямар ч бүтэц ашиглаж болохгүй!`;
 
     const history = await getHistory(sessionId);
     const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
@@ -360,6 +366,16 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     );
   }
 
+  // ── Show pictures broad request ──────────────────────────────────────
+  if (intent === "show_pictures") {
+    return reply(
+      sessionId,
+      "Та ямар бүтээгдэхүүний зураг харахыг хүсэж байна вэ? 😊\n\nМанайд олон төрлийн Дрон, Камер, Гар төхөөрөмж болон Дагалдах хэрэгслүүд бэлэн байгаа. Та доорх цэснээс сонгох эсвэл нэрийг нь бичээрэй.",
+      undefined,
+      CATEGORY_QUICK_REPLIES
+    );
+  }
+
   // ── Step 4: Product browse — DB only, no AI ───────────────────────────
 
   if (intent === "product_search" || intent === "product_detail") {
@@ -417,7 +433,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     const matched = await matchProducts(message);
     const contextProducts =
       matched.length > 0
-        ? matched.map((p) => ({ id: p.id, name: p.name, price: p.price }))
+        ? matched.map((p) => ({ id: p.id, name: p.name, price: p.price, heroNote: p.heroNote }))
         : await getMinimalCatalogContext(8);
 
     const { reply: aiReply, cards: aiCards } = await callAI(

@@ -32,6 +32,7 @@ export type Intent =
   | "cheapest_accessory"
   | "cheapest_camera"
   | "cheapest_handheld"
+  | "show_pictures"
   | "unknown";
 
 // ---------------------------------------------------------------------------
@@ -349,6 +350,16 @@ const CHEAPEST_HANDHELD = [
   /cheapest\s*(handheld|gimbal|stabilizer)/i,
 ];
 
+const SHOW_PICTURES = [
+  /зураг\s*харъя/i,
+  /зураг\s*үзмээр/i,
+  /зураг\s*байна\s*уу/i,
+  /zurag\s*harii/i,
+  /zurag\s*uzmee/i,
+  /зураг\s*үзэх/i,
+  /бүтээгдэхүүний\s*зураг/i,
+];
+
 const ORDER = [
   /захиалах/i,
   /захиалга\s*хийх/i,
@@ -425,6 +436,7 @@ export function classifyIntent(message: string): Intent {
   if (matches(text, CHEAPEST_ACCESSORY)) return "cheapest_accessory";
   if (matches(text, CHEAPEST_CAMERA)) return "cheapest_camera";
   if (matches(text, CHEAPEST_HANDHELD)) return "cheapest_handheld";
+  if (matches(text, SHOW_PICTURES)) return "show_pictures";
   if (matches(text, ORDER)) return "order_request";
   if (matches(text, PRODUCT_SEARCH)) return "product_search";
 
@@ -454,6 +466,17 @@ export function looksLikeDroneRelated(message: string): boolean {
     /матриц/i,
     /матрис/i,
     /пропеллер/i,
+    /зураг/i,
+    /бичлэг/i,
+    /видео/i,
+    /ачаа/i,
+    /тээвэр/i,
+    /тариа/i,
+    /цацах/i,
+    /shooting/i,
+    /photo/i,
+    /video/i,
+    /agriculture/i,
   ];
   return droneKeywords.some((p) => p.test(message));
 }

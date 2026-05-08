@@ -125,17 +125,25 @@ export async function getFeaturedProductsTool(limit = 6) {
 
   if (featured && featured.length > 0) return featured;
 
-  // Fallback: newest products
-  const { data: fallback, error } = await supabase
+  // Priority Fallback: Latest Drones
+  const { data: cat } = await supabase
+    .from("categories")
+    .select("id")
+    .ilike("name", "Дрон")
+    .single();
+
+  let query = supabase
     .from("products")
     .select("id, name, slug, price, hero_note, short_description, product_images(url)")
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (error) {
-    console.error("getFeaturedProductsTool error", error);
-    return [];
+  if (cat?.id) {
+    query = query.eq("category_id", cat.id);
   }
+
+  const { data: fallback, error } = await query;
+  if (error) { console.error("getFeaturedProductsTool error", error); return []; }
   return fallback || [];
 }
 

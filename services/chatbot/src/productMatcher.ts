@@ -99,12 +99,13 @@ export async function getProductsByIds(ids: string[]): Promise<MatchedProduct[]>
  */
 export async function getMinimalCatalogContext(
   limit = 10
-): Promise<{ id: string; name: string; price: number }[]> {
+): Promise<{ id: string; name: string; price: number; heroNote: string }[]> {
   const all = await getAllProductsTool();
   return all.slice(0, limit).map((p: any) => ({
     id: p.id,
     name: p.name,
     price: p.price,
+    heroNote: p.hero_note || "",
   }));
 }
 

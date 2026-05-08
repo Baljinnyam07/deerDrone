@@ -77,7 +77,7 @@ export async function sendMessage(senderId: string, text: string, token: string,
     })) : undefined;
 
     try {
-      await fetch(`${BASE_URL}/messages?access_token=${token}`, {
+      const response = await fetch(`${BASE_URL}/messages?access_token=${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -88,8 +88,17 @@ export async function sendMessage(senderId: string, text: string, token: string,
           },
         }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ Facebook API Error:", {
+          status: response.status,
+          data: errorData,
+          tokenPreview: `...${token.slice(-5)}`
+        });
+      }
     } catch (err) {
-      console.error("sendMessage error:", err);
+      console.error("sendMessage fetch error:", err);
     }
   }
 }

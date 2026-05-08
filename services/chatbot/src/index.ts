@@ -44,10 +44,10 @@ server.post("/chat", async (request, reply) => {
   }
 
   // Log user message
-  const { error: userErr } = await supabase.from("conversations").insert({ 
-    session_id: body.sessionId, 
-    role: "user", 
-    content: body.message 
+  const { error: userErr } = await supabase.from("conversations").insert({
+    session_id: body.sessionId,
+    role: "user",
+    content: body.message
   });
   if (userErr) console.error("Web chat log err:", userErr);
 
@@ -55,10 +55,10 @@ server.post("/chat", async (request, reply) => {
 
   // Log bot response
   if (response.reply) {
-    const { error: botErr } = await supabase.from("conversations").insert({ 
-      session_id: body.sessionId, 
-      role: "bot", 
-      content: response.reply 
+    const { error: botErr } = await supabase.from("conversations").insert({
+      session_id: body.sessionId,
+      role: "bot",
+      content: response.reply
     });
     if (botErr) console.error("Web chat log err:", botErr);
   }
@@ -71,8 +71,8 @@ server.post("/chat", async (request, reply) => {
 
 
 server.get("/webhook", async (request: any, reply: any) => {
-  const mode      = request.query["hub.mode"];
-  const token     = request.query["hub.verify_token"];
+  const mode = request.query["hub.mode"];
+  const token = request.query["hub.verify_token"];
   const challenge = request.query["hub.challenge"];
 
   if (!mode || !token) return reply.status(400).send();
@@ -99,31 +99,35 @@ server.post("/webhook", async (request: any, reply: any) => {
     const allConfigs: any[] = await getAllMessengerConfigsTool().catch(() => []);
 
     // Build env fallback map for pages not yet in DB
-    // If PAGE_ACCESS_TOKEN_N is not set, falls back to the base PAGE_ACCESS_TOKEN
-    const baseToken = process.env.PAGE_ACCESS_TOKEN || "";
     const envFallbacks: { pageId: string; token: string }[] = [];
     for (let i = 1; i <= 5; i++) {
       const suffix = i === 1 ? "" : `_${i}`;
       const pid = process.env[`MESSENGER_PAGE_ID${suffix}`];
-      const tok = process.env[`PAGE_ACCESS_TOKEN${suffix}`] || baseToken;
-      if (pid && tok) envFallbacks.push({ pageId: pid, token: tok });
+      const tok = process.env[`PAGE_ACCESS_TOKEN${suffix}`];
+      if (pid && tok) {
+        envFallbacks.push({ pageId: pid, token: tok });
+      }
     }
 
     for (const entry of body.entry || []) {
       const entryPageId: string = entry.id ?? "";
 
-      // ── Find matching config for this entry's page ───────────────────────
-      const dbConfig = allConfigs.find((c: any) => c.page_id === entryPageId);
+      // ── Find matching config (Priority: Environment Variables) ──────────
       const envMatch = envFallbacks.find(f => f.pageId === entryPageId);
+      const dbConfig = allConfigs.find((c: any) => c.page_id === entryPageId);
 
       const pageToken: string =
-        dbConfig?.page_access_token ||
         envMatch?.token ||
-        process.env.PAGE_ACCESS_TOKEN ||
-        "";
+        dbConfig?.page_access_token || "";
+
+      if (!pageToken) {
+        console.warn(`⚠️ Skipping entry for page ${entryPageId}: No access token found in env (PAGE_ACCESS_TOKEN_N) or DB.`);
+        continue;
+      }
+
       const pageId: string =
-        dbConfig?.page_id ||
         envMatch?.pageId ||
+        dbConfig?.page_id ||
         process.env.MESSENGER_PAGE_ID ||
         "";
 
