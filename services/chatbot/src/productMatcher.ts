@@ -35,6 +35,8 @@ const DRONE_NAME_ALIASES: Record<string, string[]> = {
   air: ["air"],
   avata: ["avata"],
   neo: ["neo"],
+  atom: ["атом", "atom"],
+  fpv: ["fpv"],
 };
 
 // ---------------------------------------------------------------------------

@@ -525,6 +525,7 @@ export function looksLikeDroneRelated(message: string): boolean {
     /phantom/i,
     /avata/i,
     /neo/i,
+    /atom/i,
     /fpv/i,
     /inspire/i,
   ];

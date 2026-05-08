@@ -429,15 +429,17 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   // ── Step 5: AI fallback — consultation, compare, or unknown drone topic ─
+  
+  // Try to match products first to see if it's drone-related even if keywords miss
+  const matched = await matchProducts(message);
 
   if (
     intent === "technical_consultation" ||
     intent === "compare_products" ||
-    (intent === "unknown" && looksLikeDroneRelated(message))
+    (intent === "unknown" && (looksLikeDroneRelated(message) || matched.length > 0))
   ) {
     // Get minimal context: try to match specific products first (1-3),
     // fall back to small catalog summary (max 8)
-    const matched = await matchProducts(message);
     const contextProducts =
       matched.length > 0
         ? matched.map((p) => ({ id: p.id, name: p.name, price: p.price, heroNote: p.heroNote }))
