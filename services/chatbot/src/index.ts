@@ -4,7 +4,7 @@ import type { ChatRequest } from "./types.js";
 import { runConversation, streamChunks } from "./engine/conversation.js";
 import { systemPrompt } from "./prompts/system.js";
 import { handleWebhookEvent } from "./messenger.js";
-import { getMessengerConfigTool, supabase } from "./tools/catalog.js";
+import { getMessengerConfigTool, getAllMessengerConfigsTool, supabase } from "./tools/catalog.js";
 import { handleCommentChange } from "./comments/webhookHandler.js";
 
 export const server = Fastify({
@@ -71,22 +71,22 @@ server.post("/chat", async (request, reply) => {
 
 
 server.get("/webhook", async (request: any, reply: any) => {
-  const config = await getMessengerConfigTool();
-  if (!config) return reply.status(403).send();
-
-  const mode = request.query["hub.mode"];
-  const token = request.query["hub.verify_token"];
+  const mode      = request.query["hub.mode"];
+  const token     = request.query["hub.verify_token"];
   const challenge = request.query["hub.challenge"];
 
-  if (mode && token) {
-    if (mode === "subscribe" && token === config.verify_token) {
-      server.log.info("WEBHOOK_VERIFIED");
-      return reply.send(challenge);
-    } else {
-      return reply.status(403).send();
-    }
+  if (!mode || !token) return reply.status(400).send();
+
+  // Check all page configs — any matching verify_token is accepted
+  const configs = await getAllMessengerConfigsTool().catch(() => []);
+  const matched = configs.find((c: any) => c.verify_token === token);
+
+  if (mode === "subscribe" && matched) {
+    server.log.info(`WEBHOOK_VERIFIED for page: ${matched.page_id}`);
+    return reply.send(challenge);
   }
-  return reply.status(400).send();
+
+  return reply.status(403).send();
 });
 
 server.post("/webhook", async (request: any, reply: any) => {
@@ -95,23 +95,47 @@ server.post("/webhook", async (request: any, reply: any) => {
   if (body.object === "page") {
     const promises = [];
 
-    // Load config from DB — fallback to env if DB not configured
-    const dbConfig = await getMessengerConfigTool().catch(() => null);
-    const pageToken: string =
-      dbConfig?.page_access_token || process.env.PAGE_ACCESS_TOKEN || "";
-    const pageId: string =
-      dbConfig?.page_id || process.env.MESSENGER_PAGE_ID || "";
+    // Load ALL page configs from DB for multi-page routing
+    const allConfigs: any[] = await getAllMessengerConfigsTool().catch(() => []);
 
-    if (!pageToken) {
-      server.log.warn("PAGE_ACCESS_TOKEN not set — webhook skipped");
-      return reply.status(200).send("EVENT_RECEIVED");
+    // Build env fallback map for pages not yet in DB
+    // If PAGE_ACCESS_TOKEN_N is not set, falls back to the base PAGE_ACCESS_TOKEN
+    const baseToken = process.env.PAGE_ACCESS_TOKEN || "";
+    const envFallbacks: { pageId: string; token: string }[] = [];
+    for (let i = 1; i <= 5; i++) {
+      const suffix = i === 1 ? "" : `_${i}`;
+      const pid = process.env[`MESSENGER_PAGE_ID${suffix}`];
+      const tok = process.env[`PAGE_ACCESS_TOKEN${suffix}`] || baseToken;
+      if (pid && tok) envFallbacks.push({ pageId: pid, token: tok });
     }
 
     for (const entry of body.entry || []) {
+      const entryPageId: string = entry.id ?? "";
+
+      // ── Find matching config for this entry's page ───────────────────────
+      const dbConfig = allConfigs.find((c: any) => c.page_id === entryPageId);
+      const envMatch = envFallbacks.find(f => f.pageId === entryPageId);
+
+      const pageToken: string =
+        dbConfig?.page_access_token ||
+        envMatch?.token ||
+        process.env.PAGE_ACCESS_TOKEN ||
+        "";
+      const pageId: string =
+        dbConfig?.page_id ||
+        envMatch?.pageId ||
+        process.env.MESSENGER_PAGE_ID ||
+        "";
+
+      if (!pageToken) {
+        server.log.warn(`No PAGE_ACCESS_TOKEN for page ${entryPageId} — skipping entry`);
+        continue;
+      }
+
       // ── Messenger events (DMs, postbacks) ───────────────────────────────
       const webhookEvent = entry.messaging?.[0];
       if (webhookEvent && dbConfig?.is_enabled !== false) {
-        promises.push(handleWebhookEvent(webhookEvent));
+        promises.push(handleWebhookEvent(webhookEvent, pageToken));
       }
 
       // ── Page feed events (comments on posts) ────────────────────────────

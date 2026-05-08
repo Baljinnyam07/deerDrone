@@ -178,6 +178,21 @@ export async function getMessengerConfigTool() {
   return data;
 }
 
+/**
+ * Returns ALL messenger page configs from the DB.
+ * Used for multi-page webhook routing — each entry is matched by page_id.
+ */
+export async function getAllMessengerConfigsTool(): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("messenger_config")
+    .select("*");
+  if (error) {
+    console.error("getAllMessengerConfigsTool error", error);
+    return [];
+  }
+  return data || [];
+}
+
 export async function incrementTokenUsage(tokens: number) {
   try {
     const { data } = await supabase.from('system_settings').select('setting_value').eq('setting_key', 'total_tokens_used').single();

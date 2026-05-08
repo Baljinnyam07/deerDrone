@@ -18,7 +18,6 @@ const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisTo
 // Fallback in-memory pause state
 const botPausedState = new Map<string, number>();
 import {
-  getMessengerConfigTool,
   captureLeadTool,
   supabase,
 } from "./tools/catalog.js";
@@ -252,7 +251,7 @@ async function handleDetailPostback(
 // ---------------------------------------------------------------------------
 // Main webhook event handler
 // ---------------------------------------------------------------------------
-export async function handleWebhookEvent(event: any) {
+export async function handleWebhookEvent(event: any, pageToken: string) {
   const senderId: string = event.sender?.id;
   if (!senderId) return;
 
@@ -262,18 +261,12 @@ export async function handleWebhookEvent(event: any) {
     hasPostback: !!event.postback,
   });
 
-  const config = await getMessengerConfigTool();
-
-  if (!config || !config.is_enabled) {
-    console.log("MESSENGER_DISABLED", { hasConfig: !!config });
-    if (config?.page_access_token) {
-      await sendMessage(senderId, STATIC.systemDisabled, config.page_access_token);
-    }
+  if (!pageToken) {
+    console.log("MESSENGER_DISABLED: no token provided");
     return;
   }
 
-  const token: string = config.page_access_token;
-  if (!token) return;
+  const token: string = pageToken;
 
   // ── Postback handling (ORDER / DETAIL) — deterministic, NO AI ──────────
   if (event.postback) {
