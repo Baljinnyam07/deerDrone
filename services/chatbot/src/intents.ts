@@ -188,6 +188,17 @@ const ADDRESS = [
   /plaza/i,
   /плаза/i,
   /очих/i,
+  /утас/i,
+  /utas/i,
+  /utasni\s*dugaar/i,
+  /phone/i,
+  /number/i,
+  /холбоо\s*барих/i,
+  /цагийн\s*хуваарь/i,
+  /tsagiin\s*huwaar/i,
+  /huvaar/i,
+  /schedule/i,
+  /opening/i,
 ];
 
 const COMPARE = [
