@@ -31,6 +31,7 @@ import {
   getAllProductsTool,
   getFeaturedProductsTool,
   getSystemPromptTool,
+  getCheapestByCategory,
   toChatCards,
   incrementTokenUsage,
 } from "../tools/catalog.js";
@@ -309,6 +310,54 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   if (intent === "bulk_order") {
     await captureLead(sessionId, message, intent, "bulk_order");
     return reply(sessionId, STATIC.bulkOrderAck);
+  }
+
+  // ── Cheapest drone (DB only, zero AI) ────────────────────────────────
+  if (intent === "cheapest_drone") {
+    const product = await getCheapestByCategory("Дрон");
+    if (!product) return reply(sessionId, "Одоогоор дроны мэдээлэл олдсонгүй. Та бидэнтэй шууд холбогдоно уу.");
+    const cards = toChatCards([{ ...product, hero_note: product.hero_note }]);
+    return reply(
+      sessionId,
+      `🚁 Манай хамгийн хямдхан дрон бол *${product.name}* — ${(product.price ?? 0).toLocaleString()}₮\n\n${product.short_description || ""}`,
+      cards
+    );
+  }
+
+  // ── Cheapest accessory (DB only, zero AI) ─────────────────────────────
+  if (intent === "cheapest_accessory") {
+    const product = await getCheapestByCategory("Дагалдах хэрэгсэл");
+    if (!product) return reply(sessionId, "Одоогоор дагалдах хэрэгслийн мэдээлэл олдсонгүй. Та бидэнтэй шууд холбогдоно уу.");
+    const cards = toChatCards([{ ...product, hero_note: product.hero_note }]);
+    return reply(
+      sessionId,
+      `🔧 Манай хамгийн хямдхан дагалдах хэрэгсэл бол *${product.name}* — ${(product.price ?? 0).toLocaleString()}₮\n\n${product.short_description || ""}`,
+      cards
+    );
+  }
+
+  // ── Cheapest camera (DB only, zero AI) ────────────────────────────────
+  if (intent === "cheapest_camera") {
+    const product = await getCheapestByCategory("Камер");
+    if (!product) return reply(sessionId, "Одоогоор камерын мэдээлэл олдсонгүй. Та бидэнтэй шууд холбогдоно уу.");
+    const cards = toChatCards([{ ...product, hero_note: product.hero_note }]);
+    return reply(
+      sessionId,
+      `📷 Манай хамгийн хямдхан камер бол *${product.name}* — ${(product.price ?? 0).toLocaleString()}₮\n\n${product.short_description || ""}`,
+      cards
+    );
+  }
+
+  // ── Cheapest handheld (DB only, zero AI) ──────────────────────────────
+  if (intent === "cheapest_handheld") {
+    const product = await getCheapestByCategory("Гар төхөөрөмж");
+    if (!product) return reply(sessionId, "Одоогоор гар төхөөрөмжийн мэдээлэл олдсонгүй. Та бидэнтэй шууд холбогдоно уу.");
+    const cards = toChatCards([{ ...product, hero_note: product.hero_note }]);
+    return reply(
+      sessionId,
+      `📱 Манай хамгийн хямдхан гар төхөөрөмж бол *${product.name}* — ${(product.price ?? 0).toLocaleString()}₮\n\n${product.short_description || ""}`,
+      cards
+    );
   }
 
   // ── Step 4: Product browse — DB only, no AI ───────────────────────────

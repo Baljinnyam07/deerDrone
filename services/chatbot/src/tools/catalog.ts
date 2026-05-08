@@ -179,6 +179,38 @@ export async function getMessengerConfigTool() {
 }
 
 /**
+ * Returns the single cheapest product that belongs to a category
+ * whose name matches `categoryKeyword` (case-insensitive ILIKE).
+ * Example: categoryKeyword = "дрон" | "дагалдах"
+ */
+export async function getCheapestByCategory(categoryKeyword: string) {
+  // First resolve matching category IDs
+  const { data: cats } = await supabase
+    .from("categories")
+    .select("id")
+    .ilike("name", `%${categoryKeyword}%`);
+
+  const catIds = (cats ?? []).map((c: any) => c.id);
+
+  let query = supabase
+    .from("products")
+    .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+    .order("price", { ascending: true })
+    .limit(1);
+
+  if (catIds.length > 0) {
+    query = query.in("category_id", catIds);
+  } else {
+    // Fallback: search by product name keyword
+    query = query.ilike("name", `%${categoryKeyword}%`);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) { console.error("getCheapestByCategory error", error); return null; }
+  return data;
+}
+
+/**
  * Returns ALL messenger page configs from the DB.
  * Used for multi-page webhook routing — each entry is matched by page_id.
  */

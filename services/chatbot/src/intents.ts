@@ -28,6 +28,10 @@ export type Intent =
   | "accessories_info"
   | "beginner_recommendation"
   | "easy_to_control"
+  | "cheapest_drone"
+  | "cheapest_accessory"
+  | "cheapest_camera"
+  | "cheapest_handheld"
   | "unknown";
 
 // ---------------------------------------------------------------------------
@@ -308,6 +312,43 @@ const PRODUCT_SEARCH = [
   /юу\s*байна\s*вэ/i,
 ];
 
+const CHEAPEST_DRONE = [
+  /хамгийн\s*хямд.*дрон/i,
+  /хямд.*дрон/i,
+  /дрон.*хямд/i,
+  /хямдхан\s*дрон/i,
+  /хямдхан.*дрон/i,
+  /cheapest\s*drone/i,
+  /budget\s*drone/i,
+  /хамгийн\s*(бага|доод)\s*үнэтэй\s*дрон/i,
+];
+
+const CHEAPEST_ACCESSORY = [
+  /хамгийн\s*хямд.*дагалдах/i,
+  /хямд.*дагалдах/i,
+  /дагалдах.*хямд/i,
+  /хямдхан.*дагалдах/i,
+  /хамгийн\s*хямд.*хэрэгсэл/i,
+  /cheapest\s*accessor/i,
+];
+
+const CHEAPEST_CAMERA = [
+  /хамгийн\s*хямд.*камер/i,
+  /хямд.*камер/i,
+  /камер.*хямд/i,
+  /хямдхан.*камер/i,
+  /хамгийн\s*(бага|доод)\s*үнэтэй\s*камер/i,
+  /cheapest\s*camera/i,
+];
+
+const CHEAPEST_HANDHELD = [
+  /хамгийн\s*хямд.*гар\s*төхөөрөмж/i,
+  /хямд.*гар\s*төхөөрөмж/i,
+  /гар\s*төхөөрөмж.*хямд/i,
+  /хямдхан.*гар\s*төхөөрөмж/i,
+  /cheapest\s*(handheld|gimbal|stabilizer)/i,
+];
+
 const ORDER = [
   /захиалах/i,
   /захиалга\s*хийх/i,
@@ -380,6 +421,10 @@ export function classifyIntent(message: string): Intent {
   if (matches(text, EASY_TO_CONTROL)) return "easy_to_control";
   if (matches(text, COMPARE)) return "compare_products";
   if (matches(text, TECHNICAL)) return "technical_consultation";
+  if (matches(text, CHEAPEST_DRONE)) return "cheapest_drone";
+  if (matches(text, CHEAPEST_ACCESSORY)) return "cheapest_accessory";
+  if (matches(text, CHEAPEST_CAMERA)) return "cheapest_camera";
+  if (matches(text, CHEAPEST_HANDHELD)) return "cheapest_handheld";
   if (matches(text, ORDER)) return "order_request";
   if (matches(text, PRODUCT_SEARCH)) return "product_search";
 
