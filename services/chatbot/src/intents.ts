@@ -477,6 +477,15 @@ export function looksLikeDroneRelated(message: string): boolean {
     /photo/i,
     /video/i,
     /agriculture/i,
+    /zurag/i,
+    /bichleg/i,
+    /achaa/i,
+    /teewer/i,
+    /teever/i,
+    /taria/i,
+    /tsatsah/i,
+    /nisgeh/i,
+    /nisdeg/i,
   ];
   return droneKeywords.some((p) => p.test(message));
 }
