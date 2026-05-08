@@ -32,6 +32,9 @@ const DRONE_NAME_ALIASES: Record<string, string[]> = {
   matrice: ["матриц", "matrice", "m300", "m350", "м300"],
   mini: ["мини", "mini"],
   inspire: ["инспайр", "inspire"],
+  air: ["air"],
+  avata: ["avata"],
+  neo: ["neo"],
 };
 
 // ---------------------------------------------------------------------------
@@ -47,7 +50,7 @@ function extractProductKeyword(message: string): string | null {
   }
   // Fallback: strip common filler words and return the remainder
   const filler =
-    /үнэ|хэд|вэ|бэ|юу|дрон|drone|авмаар|захиалах|дэлгэрэнгүй|мэдэх|хүсэх|байна|болно|та|би|энэ|тэр/gi;
+    /үнэ|хэд|вэ|бэ|юу|дрон|drone|авмаар|захиалах|дэлгэрэнгүй|мэдэх|хүсэх|байна|болно|та|би|энэ|тэр|une|vne|hed|vnehed|unehed/gi;
   const stripped = lower.replace(filler, "").replace(/\s+/g, " ").trim();
   return stripped.length >= 3 ? stripped : null;
 }
@@ -68,7 +71,14 @@ export async function matchProducts(message: string): Promise<MatchedProduct[]> 
     // Attempt DB search first
     const results = await searchProductsTool(keyword);
     if (results.length > 0) {
-      return normalise(results).slice(0, 3);
+      // Prioritize Drones in the result set
+      const normalised = normalise(results);
+
+      // Separate drones and others
+      const drones = normalised.filter(p => (p as any).categories?.name?.toLowerCase() === "дрон");
+      const others = normalised.filter(p => (p as any).categories?.name?.toLowerCase() !== "дрон");
+
+      return [...drones, ...others].slice(0, 5); // Return up to 5 cards, drones first
     }
   }
 
@@ -131,6 +141,7 @@ function normalise(items: any[]): MatchedProduct[] {
       short_description: p.short_description ?? "",
       description: p.description ?? "",
       image_url: imageUrl || undefined,
+      categories: p.categories,
     };
   });
 }

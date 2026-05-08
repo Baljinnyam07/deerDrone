@@ -337,6 +337,12 @@ const PRODUCT_SEARCH = [
   /бүгдийг\s*харах/i,
   /танилцуулах/i,
   /юу\s*байна\s*вэ/i,
+  /үнэ/i,
+  /vne/i,
+  /une/i,
+  /vnehed/i,
+  /unehed/i,
+  /hed/i,
 ];
 
 const CHEAPEST_DRONE = [
@@ -513,6 +519,14 @@ export function looksLikeDroneRelated(message: string): boolean {
     /tsatsah/i,
     /nisgeh/i,
     /nisdeg/i,
+    /air/i,
+    /mini/i,
+    /mavic/i,
+    /phantom/i,
+    /avata/i,
+    /neo/i,
+    /fpv/i,
+    /inspire/i,
   ];
   return droneKeywords.some((p) => p.test(message));
 }

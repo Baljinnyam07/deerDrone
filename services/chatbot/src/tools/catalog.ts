@@ -24,7 +24,7 @@ export const supabase = createClient(supabaseUrl || "https://placeholder.supabas
 export async function searchProductsTool(query: string, limit = 6) {
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+    .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
     .ilike("name", `%${query}%`)
     .limit(limit);
 
