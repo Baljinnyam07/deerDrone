@@ -50,9 +50,10 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
+      { url: "/assets/brand/144x144.png", sizes: "144x144", type: "image/png" },
       { url: "/assets/brand/96x96.png", sizes: "96x96", type: "image/png" },
       { url: "/assets/brand/48x48.png", sizes: "48x48", type: "image/png" },
-      { url: "/assets/brand/36x36.png", sizes: "36x36", type: "image/png" },
+      { url: "/assets/brand/32x32.png", sizes: "32x32", type: "image/png" },
       { url: "/assets/brand/deer-logo.svg", type: "image/svg+xml" },
     ],
     shortcut: ["/favicon.ico"],

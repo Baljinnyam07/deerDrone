@@ -17,22 +17,18 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient();
 
-    // Check if exists
-    const { data: existing } = await supabase.from("site_settings").select("id").eq("key", key).single();
-
-    let dbError;
-    if (existing) {
-      const { error } = await supabase
-        .from("site_settings")
-        .update({ value, updated_at: new Date().toISOString() })
-        .eq("key", key);
-      dbError = error;
-    } else {
-      const { error } = await supabase
-        .from("site_settings")
-        .insert([{ key, value, label: label || key, description: description || "" }]);
-      dbError = error;
-    }
+    const { error: dbError } = await supabase
+      .from("site_settings")
+      .upsert(
+        {
+          key,
+          value,
+          label: label || key,
+          description: description || "",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" }
+      );
 
     if (dbError) {
       return NextResponse.json({ error: dbError.message }, { status: 500 });
