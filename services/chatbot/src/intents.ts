@@ -33,6 +33,7 @@ export type Intent =
   | "cheapest_camera"
   | "cheapest_handheld"
   | "show_pictures"
+  | "website_info"
   | "unknown";
 
 // ---------------------------------------------------------------------------
@@ -253,6 +254,20 @@ const BEGINNER_RECOMMENDATION = [
   /анх\s*удаа/i,
   /анхлан/i,
   /anhlan/i,
+  /anh\s*surch/i,
+  /anh\s*udaa/i,
+  /beginner/i,
+  /first\s*time/i,
+  /\banh\b/i,
+];
+
+const WEBSITE_INFO = [
+  /бусад\s*мэдээлэл/i,
+  /busad\s*medeelel/i,
+  /web\s*site/i,
+  /вэб\s*сайт/i,
+  /website/i,
+  /илүү\s*мэдээлэл/i,
 ];
 
 const EASY_TO_CONTROL = [
@@ -437,6 +452,7 @@ export function classifyIntent(message: string): Intent {
   if (matches(text, CHEAPEST_CAMERA)) return "cheapest_camera";
   if (matches(text, CHEAPEST_HANDHELD)) return "cheapest_handheld";
   if (matches(text, SHOW_PICTURES)) return "show_pictures";
+  if (matches(text, WEBSITE_INFO)) return "website_info";
   if (matches(text, ORDER)) return "order_request";
   if (matches(text, PRODUCT_SEARCH)) return "product_search";
 

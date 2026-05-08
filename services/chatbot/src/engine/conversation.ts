@@ -267,6 +267,13 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     return reply(sessionId, STATIC.beginnerRecommendation);
   }
 
+  if (intent === "website_info") {
+    return reply(
+      sessionId,
+      "Та манай вэб сайтыг сонирхоно уу? 😊 Доорх холбоосоор орж манай бүх бүтээгдэхүүн, үйлчилгээний дэлгэрэнгүй мэдээллийг харах боломжтой:\n\n🌐 https://www.deerdrone.mn/"
+    );
+  }
+
   if (intent === "easy_to_control") {
     return reply(sessionId, STATIC.easyToControl);
   }

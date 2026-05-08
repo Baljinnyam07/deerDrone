@@ -110,41 +110,65 @@ export async function captureLeadTool(
   return data;
 }
 
-/**
- * Get featured products — is_featured = true first, then falls back to
- * all products ordered by created_at desc (newest first). Returns up to `limit`.
- */
 export async function getFeaturedProductsTool(limit = 6) {
-  // Try featured flag first
-  const { data: featured } = await supabase
-    .from("products")
-    .select("id, name, slug, price, hero_note, short_description, product_images(url)")
-    .eq("is_featured", true)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (featured && featured.length > 0) return featured;
-
-  // Priority Fallback: Latest Drones
+  // 0. Get Drone category ID
   const { data: cat } = await supabase
     .from("categories")
     .select("id")
     .ilike("name", "Дрон")
     .single();
 
-  let query = supabase
+  const categoryId = cat?.id;
+
+  // 1. Force 'DJI NEO 2 MOTION FLYMORE COMBO' to be first
+  let neo2Query = supabase
     .from("products")
     .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+    .ilike("name", "%DJI NEO 2 MOTION FLYMORE COMBO%");
+  
+  if (categoryId) neo2Query = neo2Query.eq("category_id", categoryId);
+  const { data: neo2 } = await neo2Query.single();
+
+  // 2. Get other featured DRONES
+  let featuredQuery = supabase
+    .from("products")
+    .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+    .eq("is_featured", true)
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (cat?.id) {
-    query = query.eq("category_id", cat.id);
+  if (categoryId) featuredQuery = featuredQuery.eq("category_id", categoryId);
+  const { data: featured } = await featuredQuery;
+
+  let finalProducts = featured || [];
+
+  // 3. Fallback to other DRONES if needed
+  if (finalProducts.length < limit && categoryId) {
+    const { data: drones } = await supabase
+      .from("products")
+      .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+      .eq("category_id", categoryId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    
+    if (drones) {
+      // Append drones that aren't already in the list
+      const existingIds = new Set(finalProducts.map(p => p.id));
+      for (const d of drones) {
+        if (!existingIds.has(d.id)) finalProducts.push(d);
+      }
+    }
   }
 
-  const { data: fallback, error } = await query;
-  if (error) { console.error("getFeaturedProductsTool error", error); return []; }
-  return fallback || [];
+  // Remove Neo 2 from the list if it's already there to avoid duplicates
+  finalProducts = finalProducts.filter(p => p.id !== neo2?.id);
+
+  // Prepend Neo 2 if found
+  if (neo2) {
+    finalProducts = [neo2, ...finalProducts];
+  }
+
+  return finalProducts.slice(0, limit);
 }
 
 export function toChatCards(items: any[], limit = 6) {
