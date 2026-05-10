@@ -42,10 +42,6 @@ export function PremiumProductCard({
   }, []);
 
   async function addCurrentProductToCart() {
-    if (!user) {
-      window.dispatchEvent(new CustomEvent('open-login-modal'));
-      return;
-    }
     if (product.stockQty !== undefined && product.stockQty <= 0) return;
 
     addToCart({
@@ -86,16 +82,14 @@ export function PremiumProductCard({
           >
             <Eye size={16} />
           </button>
-          {user && (
-            <button
-              className="action-circle action-circle-cart"
-              title={product.stockQty === 0 ? "Нөөц дууссан" : "Сагслах"}
-              disabled={product.stockQty === 0}
-              onClick={() => void addCurrentProductToCart()}
-            >
-              <ShoppingCart size={16} />
-            </button>
-          )}
+          <button
+            className="action-circle action-circle-cart"
+            title={product.stockQty === 0 ? "Нөөц дууссан" : "Сагслах"}
+            disabled={product.stockQty === 0}
+            onClick={() => void addCurrentProductToCart()}
+          >
+            <ShoppingCart size={16} />
+          </button>
         </div>
 
         {/* Product Image */}

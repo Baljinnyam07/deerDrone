@@ -16,8 +16,8 @@ const FacebookIcon = ({ size = 20 }: { size?: number }) => (
 
 function LoginContent() {
   const searchParams = useSearchParams();
-  // Where to send the user after a successful login
   const redirectTo = searchParams.get("redirect") || "/account";
+  const error = searchParams.get("error");
 
   return (
     <div
@@ -125,9 +125,16 @@ function LoginContent() {
         </form>
         */}
 
-        <div style={{ textAlign: "center", padding: "20px", color: "#64748B", fontSize: "14px", border: "1px dashed #CBD5E1", borderRadius: "12px" }}>
-          Нэвтрэх хэсэг түр засвартай байна.
-        </div>
+        {error === "unauthorized" ? (
+          <div style={{ textAlign: "center", padding: "20px", color: "#DC2626", fontSize: "14px", border: "1px dashed #FCA5A5", borderRadius: "12px", backgroundColor: "#FEF2F2" }}>
+            <p style={{ margin: "0 0 6px", fontWeight: 700 }}>Нэвтрэлт амжилтгүй боллоо</p>
+            <p style={{ margin: 0, color: "#B91C1C", fontSize: "13px" }}>Нэвтрэх холбоос хүчингүй болсон эсвэл хугацаа дууссан байна. Дахин оролдоно уу.</p>
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "20px", color: "#64748B", fontSize: "14px", border: "1px dashed #CBD5E1", borderRadius: "12px" }}>
+            Нэвтрэх хэсэг түр засвартай байна.
+          </div>
+        )}
 
         {redirectTo !== "/account" && (
           <p style={{ marginTop: "16px", textAlign: "center", fontSize: "13px", color: "#94A3B8" }}>

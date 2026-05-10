@@ -42,7 +42,7 @@ export function getSiteUrl(): string {
   const rawUrl =
     readEnv("NEXT_PUBLIC_SITE_URL") ??
     readEnv("SITE_URL") ??
-    "https://deerdrone.mn";
+    "https://www.deerdrone.mn";
 
   if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
     return rawUrl;

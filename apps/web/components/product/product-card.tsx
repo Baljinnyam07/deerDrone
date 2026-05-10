@@ -121,14 +121,12 @@ export function ProductCard({ product }: ProductCardProps) {
               )}
             </div>
 
-            {user && (
-              <div
-                className="rounded-3 d-flex align-items-center justify-content-center product-cart-icon"
-                style={{ width: "40px", height: "40px", backgroundColor: "#7c3aed" }}
-              >
-                <ShoppingCart size={20} className="text-white" />
-              </div>
-            )}
+            <div
+              className="rounded-3 d-flex align-items-center justify-content-center product-cart-icon"
+              style={{ width: "40px", height: "40px", backgroundColor: "#7c3aed" }}
+            >
+              <ShoppingCart size={20} className="text-white" />
+            </div>
           </div>
         </div>
       </div>

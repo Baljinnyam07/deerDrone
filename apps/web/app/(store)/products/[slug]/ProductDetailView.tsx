@@ -53,20 +53,12 @@ export default function ProductDetailView({
   }, {}) ?? {};
 
   async function addCurrentProductToCart() {
-    if (!user) {
-      window.dispatchEvent(new CustomEvent('open-login-modal'));
-      return;
-    }
     for (let i = 0; i < quantity; i++) {
       addToCart({ id: product.id, slug: product.slug, name: product.name, price: product.price, image: imageUrl, brand: product.brand, stockQty: product.stockQty, categorySlug: product.categorySlug });
     }
   }
 
   async function handleBuyNow() {
-    if (!user) {
-      window.dispatchEvent(new CustomEvent('open-login-modal'));
-      return;
-    }
     for (let i = 0; i < quantity; i++) {
       addToCart({ id: product.id, slug: product.slug, name: product.name, price: product.price, image: imageUrl, brand: product.brand, stockQty: product.stockQty, categorySlug: product.categorySlug });
     }
@@ -178,16 +170,14 @@ export default function ProductDetailView({
             </div>
 
             {/* CTA buttons */}
-            <div className="pd-cta" style={{ gridTemplateColumns: user ? "1fr 1fr" : "1fr" }}>
-              {user && (
-                <button
-                  className="pd-btn-secondary"
-                  disabled={!inStock}
-                  onClick={() => void addCurrentProductToCart()}
-                >
-                  Сагсанд хийх
-                </button>
-              )}
+            <div className="pd-cta" style={{ gridTemplateColumns: "1fr 1fr" }}>
+              <button
+                className="pd-btn-secondary"
+                disabled={!inStock}
+                onClick={() => void addCurrentProductToCart()}
+              >
+                Сагсанд хийх
+              </button>
               <button
                 className="pd-btn-primary"
                 disabled={!inStock}
@@ -201,7 +191,7 @@ export default function ProductDetailView({
             <div className="pd-trust">
               <div className="pd-trust-item">
                 <Truck size={16} />
-                <span>Хүргэлт 1–2 хоног</span>
+                <span>Хүргэлт 24 цаг</span>
               </div>
               <div className="pd-trust-item">
                 <ShieldCheck size={16} />

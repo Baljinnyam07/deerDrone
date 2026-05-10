@@ -24,15 +24,18 @@ export interface ClassifyResult {
 
 const PATTERNS: Record<Exclude<CommentIntent, "low_confidence" | "spam">, RegExp[]> = {
   info_request: [
-    /^(medeelel|мэдээлэл|info|delgerengui|дэлгэрэнгүй|inbox|une|үнэ|price|1|i)$/i,
+    /^(medeelel|мэдээлэл|info|delgerengui|дэлгэрэнгүй|inbox|une|үнэ|vne|price|1|i)[.,?!]*$/i,
     /мэдээлэл\s*(өгнө|авъя|хэрэгтэй|илгээ)/i,
+    /medeelel\s*(ogn|avya|awya|avii|awii|awie|avie|heregtei|ilgee)/i,
     /үнэ\s*(нь\s*)?(хэд|мэдэх|болох)/i,
     /yamar\s*une|ямар\s*үнэ/i,
+    /une\s*hed|vne\s*hed|үнэ\s*хэд|хэд\s*вэ|hed\s*we|hed\s*ve/i,
     /^(➕|✅|ℹ️|❓)$/,
     /дэлгэрэнгүй\s*мэдэх/i,
+    /(?:^|\s|[^a-zA-Zа-яА-ЯүҮөӨ])(une|vne|үнэ|үнээ|vniin|uniin|үнийн)(?:\s|$|[^a-zA-Zа-яА-ЯүҮөӨ])/i, // Proper word boundary for Cyrillic/Latin
   ],
   product_interest: [
-    /авъя|авмаар|avya|awya/i,
+    /авъя|авмаар|avya|awya|avii|awii|awie|avie/i, // Added awie, avie
     /захиалъя|захиалмаар|zahialya|zahialah/i,
     /худалдаж\s*авъя/i,
     /^(order|buy|purchase|авах)$/i,
@@ -82,7 +85,11 @@ function isSpam(text: string): boolean {
   const digitCount = t.replace(/\D/g, '').length;
   if (digitCount === 8) return false;
 
-  if (!/\p{L}/u.test(t) && t !== "1") return true;          // no letters at all, except "1"
+  // Ганц цэг, асуултын тэмдэг, эсвэл эможи байвал спам биш (үнийн мэдээлэл авах гэсэн үйлдэл)
+  if (/^(\.|\?|➕|✅|ℹ️|❓)+$/.test(t)) return false;
+
+  const cleanT = t.replace(/[^\p{L}0-9]/gu, '');
+  if (!/\p{L}/u.test(t) && cleanT !== "1") return true;          // no letters at all, except "1"
   if (/^(.)\1{4,}$/.test(t)) return true;       // aaaaa or 11111
   return false;
 }
@@ -111,5 +118,5 @@ export function classifyComment(text: string): ClassifyResult {
     return { intent: "info_request", confidence: 0.65 };
   }
 
-  return { intent: "low_confidence", confidence: 0.3 };
+  return { intent: "low_confidence", confidence: 0.45 };
 }

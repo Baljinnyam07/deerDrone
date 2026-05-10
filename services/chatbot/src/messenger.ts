@@ -131,6 +131,43 @@ export async function sendImage(senderId: string, imageUrl: string, token: strin
 }
 
 // ---------------------------------------------------------------------------
+// Button template sender — shows a URL as a tappable button in Messenger
+// ---------------------------------------------------------------------------
+export async function sendButtonTemplate(
+  senderId: string,
+  text: string,
+  buttons: { title: string; url: string }[],
+  token: string
+) {
+  if (!token) return;
+  try {
+    await fetch(`${BASE_URL}/messages?access_token=${token}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipient: { id: senderId },
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "button",
+              text: text.substring(0, 640), // FB button template text limit
+              buttons: buttons.slice(0, 3).map((b) => ({
+                type: "web_url",
+                title: b.title.substring(0, 20), // FB button title limit
+                url: b.url,
+              })),
+            },
+          },
+        },
+      }),
+    });
+  } catch (err) {
+    console.error("sendButtonTemplate error:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Product carousel sender
 // ---------------------------------------------------------------------------
 export async function sendProductCarousel(
@@ -140,7 +177,7 @@ export async function sendProductCarousel(
 ) {
   if (!token || !products.length) return;
 
-  const siteUrl = process.env.SITE_URL || "https://deerdrone.mn";
+  const siteUrl = process.env.SITE_URL || "https://www.deerdrone.mn";
   const elements = products.slice(0, 10).map((p) => ({
     title: p.name,
     subtitle: `${formatMoney(p.price || 0)} — ${
@@ -207,12 +244,14 @@ async function handleOrderPostback(
     senderId
   ).catch(console.error);
 
-  const siteUrl = process.env.SITE_URL || "https://deerdrone.mn";
+  const siteUrl = (process.env.SITE_URL || "https://www.deerdrone.mn").replace(/\/$/, "");
   const orderUrl = `${siteUrl}/products/${product.slug}`;
 
-  await sendMessage(
+  // Send as a tappable button instead of plain text URL
+  await sendButtonTemplate(
     senderId,
-    `🛒 "${product.name}" захиалахын тулд доорх холбоосоор орно уу:\n${orderUrl}`,
+    `🛒 "${product.name.substring(0, 60)}" захиалахын тулд:`,
+    [{ title: "🌐 Вэбсайтаас захиалах", url: orderUrl }],
     token
   );
 }
@@ -242,19 +281,25 @@ async function handleDetailPostback(
     }
   }
 
-  const siteUrl = process.env.SITE_URL || "https://deerdrone.mn";
+  const siteUrl = (process.env.SITE_URL || "https://www.deerdrone.mn").replace(/\/$/, "");
   const orderUrl = `${siteUrl}/products/${product.slug}`;
 
+  // Text detail — no URL at the end (button template handles it below)
   const detail =
     `📦 *${product.name}*\n` +
     `💰 Үнэ: ${formatMoney(product.price)}\n\n` +
     (product.heroNote ? `✨ ${product.heroNote}\n\n` : "") +
-    (specsList ? `📋 Үзүүлэлт ба давуу тал:\n${specsList}\n\n` : "") +
-    `🛒 Захиалах эсвэл илүү дэлгэрэнгүй харах бол доорх линкээр орно уу 👇\n${orderUrl}`;
+    (specsList ? `📋 Үзүүлэлт ба давуу тал:\n${specsList}` : "");
 
-  await sendMessage(senderId, detail, token);
-  // Send single-item carousel so they can ORDER or ask for more DETAIL
-  await sendProductCarousel(senderId, toChatCards([product]), token);
+  await sendMessage(senderId, detail.trim(), token);
+
+  // Send tappable button for ordering
+  await sendButtonTemplate(
+    senderId,
+    "Захиалах эсвэл дэлгэрэнгүй харах:",
+    [{ title: "🛒 Захиалах", url: orderUrl }],
+    token
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -303,17 +348,29 @@ export async function handleWebhookEvent(event: any, pageToken: string) {
 
 // ── Text message handling ───────────────────────────────────────────────
   if (event.message?.is_echo) {
-    // Page admin replied -> Pause bot for 2 hours
+    const text = event.message.text || "";
+    // Facebook-ийн автомат хариултуудыг алгасах (эдгээр нь админы бичсэн мессеж биш)
+    if (
+      text.includes("Бид танд тун удахгүй мэдээлэл илгээнэ") || 
+      text.includes("This chat contains a reply to your ad") ||
+      text.includes("Бид танд удахгүй хариу өгнө") ||
+      text.includes("Та Дийр Дрон дэлгүүртэй холбогдсон байна")
+    ) {
+      console.log(`[messenger] Ignoring Facebook automated echo message.`);
+      return;
+    }
+
+    // Page admin replied -> Pause bot for 10 minutes
     const recipientId = event.message.recipient?.id;
     if (recipientId) {
       console.log(`[messenger] Admin replied. Pausing bot for ${recipientId}`);
-      if (event.message.text) {
-        await logConversation(recipientId, "admin", event.message.text);
+      if (text) {
+        await logConversation(recipientId, "admin", text);
       }
       if (redis) {
-        await redis.set(`bot_paused_${recipientId}`, "1", { ex: 2 * 3600 });
+        await redis.set(`bot_paused_${recipientId}`, "1", { ex: 10 * 60 });
       } else {
-        botPausedState.set(recipientId, Date.now() + 2 * 3600 * 1000);
+        botPausedState.set(recipientId, Date.now() + 10 * 60 * 1000);
       }
     }
     return;
@@ -321,6 +378,27 @@ export async function handleWebhookEvent(event: any, pageToken: string) {
 
   if (event.message?.text && !event.message.is_echo) {
     const text: string = event.message.text;
+    const mid: string = event.message.mid;
+    
+    // ── Deduplicate messages to prevent double replies ──────────
+    if (mid) {
+      if (redis) {
+        const isProcessed = await redis.get(`msg_processed_${mid}`);
+        if (isProcessed) {
+          console.log(`[messenger] Duplicate message skipped (redis): ${mid}`);
+          return;
+        }
+        await redis.set(`msg_processed_${mid}`, "1", { ex: 60 * 60 * 24 }); // expire in 24h
+      } else {
+        const isProcessed = botPausedState.has(`msg_${mid}`);
+        if (isProcessed) {
+          console.log(`[messenger] Duplicate message skipped (mem): ${mid}`);
+          return;
+        }
+        botPausedState.set(`msg_${mid}`, Date.now()); // Using botPausedState map as an in-memory store for simplicity
+      }
+    }
+
     console.log("TEXT_MESSAGE", { senderId, text: text.slice(0, 80) });
 
     await logConversation(senderId, "user", text);

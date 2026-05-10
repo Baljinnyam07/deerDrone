@@ -8,7 +8,7 @@ import { captureLeadTool } from "../tools/catalog.js";
 import { STATIC } from "../constants/staticResponses.js";
 
 const BASE = "https://graph.facebook.com/v20.0/me";
-const SITE_URL = process.env.SITE_URL || "https://deerdrone.mn";
+const SITE_URL = process.env.SITE_URL || "https://www.deerdrone.mn";
 
 // ---------------------------------------------------------------------------
 // Static DM templates

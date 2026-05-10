@@ -95,9 +95,10 @@ const LOAN_INFO = [
   /zeel\s*baigaa\s*yu/i,
   /зээл\s*гардаг\s*уу/i,
   /zeel\s*gardag\s*uu/i,
+  /лизинг/i,
+  /lizing/i,
+  /leasing/i,
 ];
-
-
 
 const LOAN = [
   /зээл/i,
@@ -343,6 +344,11 @@ const PRODUCT_SEARCH = [
   /vnehed/i,
   /unehed/i,
   /hed/i,
+  /мэдээлэл\s*авах/i,
+  /medeelel\s*avah/i,
+  /мэдээлэл\s*өг/i,
+  /medeelel\s*ug/i,
+  /dji.*мэдээлэл/i,
 ];
 
 const CHEAPEST_DRONE = [
@@ -417,11 +423,16 @@ function matches(text: string, patterns: RegExp[]): boolean {
  */
 function isSpam(text: string): boolean {
   const trimmed = text.trim();
+  if (!trimmed) return true;
+
+  // Allow short numeric inputs (e.g. 1, 2, 1., 2))
+  if (/^\d+[\.\)]?$/.test(trimmed)) return false;
+
   // Empty / single char
   if (trimmed.length < 2) return true;
-  // No Unicode letter at all (emoji-only, symbol-only, pure punctuation)
+  // No Unicode letter or digit at all (emoji-only, symbol-only, pure punctuation)
   // \p{L} with u flag correctly recognises Mongolian / Cyrillic as letters
-  if (!/\p{L}/u.test(trimmed)) return true;
+  if (!/[\p{L}\d]/u.test(trimmed)) return true;
   // Single character repeated 5+ times (aaaaaaa, аааааааа, 111111)
   if (/^(.)\1{5,}$/.test(trimmed)) return true;
   // Classic keyboard-mash patterns
@@ -528,6 +539,7 @@ export function looksLikeDroneRelated(message: string): boolean {
     /atom/i,
     /fpv/i,
     /inspire/i,
+    /^\d+[\.\)]?$/, // Route standalone numbers to AI (e.g., when replying to menus)
   ];
-  return droneKeywords.some((p) => p.test(message));
+  return droneKeywords.some((p) => p.test(message.trim()));
 }

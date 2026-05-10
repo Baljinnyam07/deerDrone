@@ -55,6 +55,14 @@ const menuItems: MenuItem[] = [
   },
 ];
 
+// Detect Facebook, Instagram, Twitter, Line and other in-app browsers
+// that block Google OAuth (Error 403: disallowed_useragent)
+function isInAppBrowser(): boolean {
+  if (typeof window === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  return /FB_IAB|FBAN|FBAV|Instagram|Twitter|Line\/|MicroMessenger|LinkedInApp|GSA\/|KAKAOTALK/i.test(ua);
+}
+
 export function SiteHeader() {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -64,11 +72,14 @@ export function SiteHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
+  const [inAppBrowser, setInAppBrowser] = useState(false);
   const [openMobileSection, setOpenMobileSection] = useState<string | null>(null);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [activeDropdown, setActiveDropdown] = useState<"user" | "cart" | null>(null);
+  const [email, setEmail] = useState("");
+  const [magicLinkStatus, setMagicLinkStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const cartItems = useStore((state) => state.cartItems);
 
   // Global event listener for login popup
@@ -83,6 +94,7 @@ export function SiteHeader() {
 
   useEffect(() => {
     setMounted(true);
+    setInAppBrowser(isInAppBrowser());
     let isActive = true;
     let unsubscribe: (() => void) | undefined;
     async function syncAuth() {
@@ -128,13 +140,40 @@ export function SiteHeader() {
   const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
   const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
 
+  const handleMagicLink = async () => {
+    if (!email || !email.includes("@")) return;
+    setMagicLinkStatus("loading");
+    try {
+      const { createClient } = await import("../../lib/supabase/client");
+      const supabase = createClient();
+      // emailRedirectTo: simple URL without extra query params to avoid PKCE issues
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+          shouldCreateUser: true,
+        },
+      });
+      setMagicLinkStatus(error ? "error" : "success");
+    } catch {
+      setMagicLinkStatus("error");
+    }
+  };
+
   const handleGoogleLogin = () => {
+    const url = `/api/auth/google?redirect=${encodeURIComponent("/auth/success")}`;
+
+    // In-app browsers (Facebook, Instagram, etc.) block Google OAuth popups.
+    // Force navigation to the real browser via window.location.href instead.
+    if (isInAppBrowser()) {
+      window.location.href = url;
+      return;
+    }
+
     const width = 500;
     const height = 650;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
-    
-    const url = `/api/auth/google?redirect=${encodeURIComponent("/auth/success")}`;
     
     const popup = window.open(
       url,
@@ -209,98 +248,9 @@ export function SiteHeader() {
           <div style={{ display: "flex", alignItems: "center", gap: isDesktop ? "24px" : "16px" }}>
             <button onClick={() => setIsSearchOpen(true)} style={{ background: "none", border: "none", padding: "8px", cursor: "pointer", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}><Search size={22} strokeWidth={1.5} /></button>
             
-            {/* User Icon & Dropdown - Desktop Only */}
-            <div style={{ position: "relative", display: isDesktop ? "block" : "none" }} onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => {
-                  if (user) {
-                    setActiveDropdown(activeDropdown === "user" ? null : "user");
-                  } else {
-                    setIsLoginPopupOpen(true);
-                  }
-                }}
-                style={{ background: "none", border: "none", padding: "8px", cursor: "pointer", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}
-              >
-                <User size={22} strokeWidth={1.5} />
-              </button>
-              {/* ... AnimatePresence for user dropdown ... */}
-
-              <AnimatePresence>
-                {activeDropdown === "user" && user && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 15, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.96 }}
-                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    style={{
-                      position: "absolute",
-                      top: "100%",
-                      right: 0,
-                      marginTop: "12px",
-                      width: "280px",
-                      backgroundColor: "rgba(255, 255, 255, 0.95)",
-                      backdropFilter: "blur(20px)",
-                      WebkitBackdropFilter: "blur(20px)",
-                      borderRadius: "24px",
-                      boxShadow: "0 20px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)",
-                      padding: "12px",
-                      zIndex: 1100,
-                      overflow: "hidden"
-                    }}
-                  >
-                    <div style={{ padding: "16px 20px", background: "linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)", borderRadius: "16px", marginBottom: "8px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ width: "40px", height: "40px", borderRadius: "12px", backgroundColor: "#0F172A", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFFFFF", fontWeight: 700, fontSize: "1.1rem", fontFamily: "var(--font-display)" }}>
-                          {user.email?.[0].toUpperCase()}
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>{user.email?.split("@")[0]}</p>
-                          <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748B", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "var(--font-body)" }}>{user.email}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                      <div style={{ height: "1px", backgroundColor: "#F1F5F9", margin: "8px 12px" }} />
-                      
-                      <button 
-                        onClick={async () => {
-                          const { createClient } = await import("../../lib/supabase/client");
-                          const supabase = createClient();
-                          await supabase.auth.signOut();
-                          setActiveDropdown(null);
-                          window.location.reload();
-                        }}
-                        style={{ 
-                          width: "100%", 
-                          textAlign: "left", 
-                          background: "none", 
-                          border: "none", 
-                          display: "flex", 
-                          alignItems: "center", 
-                          gap: "12px", 
-                          padding: "12px 16px", 
-                          cursor: "pointer", 
-                          color: "#EF4444", 
-                          fontSize: "0.9rem", 
-                          fontWeight: 700, 
-                          borderRadius: "12px", 
-                          transition: "all 200ms ease",
-                          fontFamily: "var(--font-body)"
-                        }} 
-                        className="dropdown-item-danger"
-                      >
-                        <LogOut size={18} strokeWidth={2} />
-                        Системээс гарах
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
 
             {/* Cart Icon & Dropdown - Desktop Only */}
-            {isDesktop && mounted && user && (
+            {isDesktop && mounted && (
               <div style={{ position: "relative" }} onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setActiveDropdown(activeDropdown === "cart" ? null : "cart")}
@@ -438,7 +388,7 @@ export function SiteHeader() {
             )}
 
             {/* Cart Icon - Mobile Only */}
-            {!isDesktop && mounted && user && (
+            {!isDesktop && mounted && (
               <Link
                 href="/cart"
                 style={{ display: "flex", position: "relative", padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}
@@ -663,33 +613,89 @@ export function SiteHeader() {
 
               {/* Action area */}
               <div style={{ padding: "0 24px 24px", backgroundColor: "#F1F5F9", display: "flex", flexDirection: "column", gap: "10px" }}>
-                {/* Google */}
-                <button
-                  onClick={handleGoogleLogin}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
-                    width: "100%", padding: "13px",
-                    marginTop: "24px",
-                    backgroundColor: "#ffffff", color: "#0F172A",
-                    border: "1.5px solid #E2E8F0",
-                    borderRadius: "12px", fontSize: "0.95rem", fontWeight: 600,
-                    cursor: "pointer", transition: "border-color 150ms, box-shadow 150ms, transform 120ms",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#94A3B8"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "translateY(0)"; }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 24 24">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                  </svg>
-                  Google-ээр нэвтрэх
-                </button>
 
-                {/* Facebook */}
-                {/* 
+                {/* In-App Browser Warning (Facebook/Instagram Messenger WebView) */}
+                {inAppBrowser ? (
+                  <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
+
+                    {/* Magic Link — Email OTP */}
+                    {magicLinkStatus === "success" ? (
+                      <div style={{ background: "#F0FDF4", border: "1.5px solid #86EFAC", borderRadius: "14px", padding: "18px 16px", textAlign: "center" }}>
+                        <p style={{ margin: "0 0 4px", fontSize: "1.1rem" }}>📬</p>
+                        <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#166534", fontSize: "0.92rem" }}>Имэйл илгээгдлээ!</p>
+                        <p style={{ margin: 0, fontSize: "0.80rem", color: "#15803D", lineHeight: 1.5 }}>
+                          <strong>{email}</strong> хаяг руу нэвтрэх линк илгээлээ. Имэйлдээ орж линкийг дарна уу.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <p style={{ margin: "0 0 2px", fontSize: "0.85rem", fontWeight: 600, color: "#334155" }}>✉️ Имэйлээр нэвтрэх</p>
+                        <p style={{ margin: "0 0 8px", fontSize: "0.78rem", color: "#64748B", lineHeight: 1.4 }}>
+                          Имэйл хаягаа оруулахад нэвтрэх линк илгээнэ.
+                        </p>
+                        <input
+                          type="email"
+                          placeholder="Таны имэйл хаяг"
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
+                          onKeyDown={e => e.key === "Enter" && handleMagicLink()}
+                          style={{
+                            width: "100%", padding: "12px 14px",
+                            border: "1.5px solid #CBD5E1", borderRadius: "10px",
+                            fontSize: "0.92rem", color: "#0F172A",
+                            backgroundColor: "#ffffff", outline: "none",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                        <button
+                          onClick={handleMagicLink}
+                          disabled={magicLinkStatus === "loading"}
+                          style={{
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                            width: "100%", padding: "13px",
+                            backgroundColor: magicLinkStatus === "loading" ? "#94A3B8" : "#0F172A",
+                            color: "#FFFFFF", border: "none",
+                            borderRadius: "12px", fontSize: "0.95rem", fontWeight: 600,
+                            cursor: magicLinkStatus === "loading" ? "not-allowed" : "pointer",
+                            boxShadow: "0 4px 12px rgba(15,23,42,0.2)",
+                          }}
+                        >
+                          {magicLinkStatus === "loading" ? "Илгээж байна..." : "✉️ Нэвтрэх линк авах"}
+                        </button>
+                        {magicLinkStatus === "error" && (
+                          <p style={{ margin: "0", textAlign: "center", fontSize: "0.78rem", color: "#DC2626" }}>Алдаа гарлаа. Имэйл хаягаа шалгаад дахин оролдоно уу.</p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  /* Normal Google Login */
+                  <button
+                    onClick={handleGoogleLogin}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+                      width: "100%", padding: "13px",
+                      marginTop: "24px",
+                      backgroundColor: "#ffffff", color: "#0F172A",
+                      border: "1.5px solid #E2E8F0",
+                      borderRadius: "12px", fontSize: "0.95rem", fontWeight: 600,
+                      cursor: "pointer", transition: "border-color 150ms, box-shadow 150ms, transform 120ms",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#94A3B8"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "translateY(0)"; }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 24 24">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                    </svg>
+                    Google-ээр нэвтрэх
+                  </button>
+                )}
+
+                {/* Facebook Login — идэвхгүй (тохиргоо дуусаагүй)
                 <Link
                   href={`/api/auth/facebook?redirect=${encodeURIComponent(pathname === "/login" ? "/account" : pathname)}`}
                   style={{

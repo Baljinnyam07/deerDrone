@@ -281,7 +281,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   // ── Step 3: Lead capture paths (ZERO AI) ──────────────────────────────
 
   if (intent === "loan_info") {
-    const baseUrl = process.env.SITE_URL || "https://deerdrone.mn";
+    const baseUrl = process.env.SITE_URL || "https://www.deerdrone.mn";
     const rawImg = `${baseUrl}/aaaaaaa-01.jpg`;
     const proxyImg = `https://wsrv.nl/?url=${encodeURIComponent(rawImg)}&w=1000&output=jpg`;
 
@@ -294,7 +294,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
 
   if (intent === "loan_request") {
     await captureLead(sessionId, message, intent, "loan");
-    const baseUrl = process.env.SITE_URL || "https://deerdrone.mn";
+    const baseUrl = process.env.SITE_URL || "https://www.deerdrone.mn";
     const rawImg = `${baseUrl}/aaaaaaa-01.jpg`;
     const proxyImg = `https://wsrv.nl/?url=${encodeURIComponent(rawImg)}&w=1000&output=jpg`;
 
@@ -404,7 +404,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   if (intent === "order_request") {
     // Try to identify which product they want
     const matched = await matchProducts(message);
-    const siteUrl = process.env.SITE_URL || "https://deerdrone.mn";
+    const siteUrl = process.env.SITE_URL || "https://www.deerdrone.mn";
 
     if (matched.length > 0) {
       const product = matched[0];

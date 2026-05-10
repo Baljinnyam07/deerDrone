@@ -175,7 +175,7 @@ export function toChatCards(items: any[], limit = 6) {
   return items.slice(0, limit).map((product) => {
     let imageUrl = product.product_images?.[0]?.url || product.image_url || product.image;
     if (imageUrl && imageUrl.startsWith("/")) {
-      imageUrl = `https://deerdrone.mn${imageUrl}`;
+      imageUrl = `https://www.deerdrone.mn${imageUrl}`;
     }
     // Facebook Messenger does not support WebP. Convert via proxy.
     if (imageUrl && imageUrl.includes(".webp") && !imageUrl.includes("wsrv.nl")) {
