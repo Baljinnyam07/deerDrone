@@ -34,6 +34,7 @@ import {
   getCheapestByCategory,
   toChatCards,
   incrementTokenUsage,
+  supabase,
 } from "../tools/catalog.js";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
@@ -91,7 +92,7 @@ async function addToHistory(
   const history = await getHistory(sessionId);
   history.push({ role, content });
   if (history.length > MAX_TURNS * 2) history.splice(0, 2);
-  
+
   if (redis) {
     // Keep history for 24 hours
     await redis.set(`history_${sessionId}`, history, { ex: 60 * 60 * 24 });
@@ -188,9 +189,9 @@ async function callAI(
     // Resolve any AI-suggested product IDs to cards
     const suggestedIds: string[] = Array.isArray(parsed.suggested_product_ids)
       ? parsed.suggested_product_ids
-          .map((x) => (typeof x === "string" ? x : (x as any)?.id))
-          .filter((id): id is string => Boolean(id))
-          .slice(0, 3)
+        .map((x) => (typeof x === "string" ? x : (x as any)?.id))
+        .filter((id): id is string => Boolean(id))
+        .slice(0, 3)
       : [];
 
     let cards: any[] = [];
@@ -393,7 +394,40 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
       return reply(sessionId, STATIC.productsIntro, cards, CATEGORY_QUICK_REPLIES);
     }
 
-    // No keyword match → show featured products up to 6
+    // --- ENHANCED FALLBACK ---
+    // If no specific product matched, try to find products in the same category
+    // by checking if the user mentioned a category name
+    const lower = message.toLowerCase();
+    let categoryKeyword = "";
+    if (lower.includes("камер") || lower.includes("camera")) categoryKeyword = "Камер";
+    else if (lower.includes("дагалдах") || lower.includes("accessory") || lower.includes("mic") || lower.includes("цүнх")) categoryKeyword = "Дагалдах хэрэгсэл";
+    else if (lower.includes("гар төхөөрөмж") || lower.includes("handheld") || lower.includes("gimbal")) categoryKeyword = "Гар төхөөрөмж";
+
+    if (categoryKeyword) {
+      const { data: catProducts } = await supabase
+        .from("products")
+        .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+        .ilike("categories.name", `%${categoryKeyword}%`) // Note: this might need join
+        .limit(6);
+
+      // Since ilike on joined table categories.name might be tricky with Supabase JS sometimes 
+      // without explicit join, let's use the tool we have or do a quick subquery
+      const { data: cat } = await supabase.from("categories").select("id").ilike("name", `%${categoryKeyword}%`).maybeSingle();
+      if (cat) {
+        const { data: products } = await supabase
+          .from("products")
+          .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+          .eq("category_id", cat.id)
+          .limit(6);
+
+        if (products && products.length > 0) {
+          const cards = toChatCards(products);
+          return reply(sessionId, `Манайд дараах ${categoryKeyword.toLowerCase()}үүд бэлэн байна 👇`, cards, CATEGORY_QUICK_REPLIES);
+        }
+      }
+    }
+
+    // No keyword match or category match → show featured products up to 6
     const featured = await getFeaturedProductsTool(6);
     if (featured.length === 0) return reply(sessionId, STATIC.noProducts, undefined, CATEGORY_QUICK_REPLIES);
     const mapped = featured.map((p: any) => ({ ...p, heroNote: p.hero_note }));
@@ -429,7 +463,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   // ── Step 5: AI fallback — consultation, compare, or unknown drone topic ─
-  
+
   // Try to match products first to see if it's drone-related even if keywords miss
   const matched = await matchProducts(message);
 

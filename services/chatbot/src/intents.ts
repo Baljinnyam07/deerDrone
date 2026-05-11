@@ -349,6 +349,18 @@ const PRODUCT_SEARCH = [
   /мэдээлэл\s*өг/i,
   /medeelel\s*ug/i,
   /dji.*мэдээлэл/i,
+  /mic/i,
+  /мик/i,
+  /микрофон/i,
+  /пульт/i,
+  /цэнэглэгч/i,
+  /зай/i,
+  /батарей/i,
+  /пропеллер/i,
+  /далавч/i,
+  /цүнх/i,
+  /case/i,
+  /цүнх/i,
 ];
 
 const CHEAPEST_DRONE = [
@@ -539,6 +551,19 @@ export function looksLikeDroneRelated(message: string): boolean {
     /atom/i,
     /fpv/i,
     /inspire/i,
+    /mic/i,
+    /мик/i,
+    /атом/i,
+    /atom/i,
+    /neo/i,
+    /potensic/i,
+    /батарей/i,
+    /цүнх/i,
+    /case/i,
+    /хэд\s*бэ/i,
+    /үнэ/i,
+    /vne/i,
+    /une/i,
     /^\d+[\.\)]?$/, // Route standalone numbers to AI (e.g., when replying to menus)
   ];
   return droneKeywords.some((p) => p.test(message.trim()));

@@ -50,11 +50,18 @@ function extractProductKeyword(message: string): string | null {
       return canonical;
     }
   }
-  // Fallback: strip common filler words and return the remainder
+  // Fallback: strip common filler words and particles
+  // Added more particles like 'be', 'we', 'uu', 'yu' and common typos
   const filler =
-    /үнэ|хэд|вэ|бэ|юу|дрон|drone|авмаар|захиалах|дэлгэрэнгүй|мэдэх|хүсэх|байна|болно|та|би|энэ|тэр|une|vne|hed|vnehed|unehed/gi;
-  const stripped = lower.replace(filler, "").replace(/\s+/g, " ").trim();
-  return stripped.length >= 3 ? stripped : null;
+    /\b(үнэ|хэд|вэ|бэ|юу|дрон|drone|авмаар|захиалах|дэлгэрэнгүй|мэдэх|хүсэх|байна|болно|та|би|энэ|тэр|уу|юу|үү|ээ|оо|une|vne|hed|vnehed|unehed|be|we|uu|yu|wehed|behed)\b/gi;
+  
+  // Also strip standalone single/double characters that aren't parts of product names
+  const stripped = lower.replace(filler, " ").replace(/\s+/g, " ").trim();
+  
+  // If we have a decent keyword left, use it
+  if (stripped.length >= 2) return stripped;
+  
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,21 +77,29 @@ export async function matchProducts(message: string): Promise<MatchedProduct[]> 
   const keyword = extractProductKeyword(message);
 
   if (keyword) {
-    // Attempt DB search first
+    // Attempt DB search
     const results = await searchProductsTool(keyword);
     if (results.length > 0) {
-      // Prioritize Drones in the result set
       const normalised = normalise(results);
 
-      // Separate drones and others
-      const drones = normalised.filter(p => (p as any).categories?.name?.toLowerCase() === "дрон");
-      const others = normalised.filter(p => (p as any).categories?.name?.toLowerCase() !== "дрон");
-
-      return [...drones, ...others].slice(0, 5); // Return up to 5 cards, drones first
+      // Smart sorting:
+      // 1. Exact name match first
+      // 2. Contains keyword in name
+      // 3. Drones first ONLY IF the user didn't specify a non-drone keyword
+      
+      const isDroneKeyword = Object.keys(DRONE_NAME_ALIASES).includes(keyword.toLowerCase());
+      
+      if (isDroneKeyword) {
+        const drones = normalised.filter(p => (p as any).categories?.name?.toLowerCase() === "дрон");
+        const others = normalised.filter(p => (p as any).categories?.name?.toLowerCase() !== "дрон");
+        return [...drones, ...others].slice(0, 10);
+      } else {
+        // If user asked for something specific (like "mic"), don't force drones to the top
+        return normalised.slice(0, 10);
+      }
     }
   }
 
-  // No match → return nothing; caller decides to show full catalog or fallback
   return [];
 }
 

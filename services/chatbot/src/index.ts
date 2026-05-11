@@ -92,8 +92,8 @@ server.get("/webhook", async (request: any, reply: any) => {
 server.post("/webhook", async (request: any, reply: any) => {
   const body = request.body;
 
-  if (body.object === "page") {
-    const promises = [];
+  if (body.object === "page" || body.object === "instagram") {
+    const promises: Promise<any>[] = [];
 
     // Load ALL page configs from DB for multi-page routing
     const allConfigs: any[] = await getAllMessengerConfigsTool().catch(() => []);
@@ -112,34 +112,33 @@ server.post("/webhook", async (request: any, reply: any) => {
     for (const entry of body.entry || []) {
       const entryPageId: string = entry.id ?? "";
 
-      // ── Find matching config (Priority: Environment Variables) ──────────
-      const envMatch = envFallbacks.find(f => f.pageId === entryPageId);
+      // ── Find matching config (DB first, then env fallback) ──────────────
       const dbConfig = allConfigs.find((c: any) => c.page_id === entryPageId);
+      const envMatch = envFallbacks.find(f => f.pageId === entryPageId);
 
       const pageToken: string =
+        dbConfig?.page_access_token ||
         envMatch?.token ||
-        dbConfig?.page_access_token || "";
-
-      if (!pageToken) {
-        console.warn(`⚠️ Skipping entry for page ${entryPageId}: No access token found in env (PAGE_ACCESS_TOKEN_N) or DB.`);
-        continue;
-      }
-
-      const pageId: string =
-        envMatch?.pageId ||
-        dbConfig?.page_id ||
-        process.env.MESSENGER_PAGE_ID ||
         "";
 
       if (!pageToken) {
-        server.log.warn(`No PAGE_ACCESS_TOKEN for page ${entryPageId} — skipping entry`);
+        console.warn(`⚠️ No token for page ${entryPageId} — checked DB (${allConfigs.length} configs) and env (${envFallbacks.length} fallbacks). Skipping.`);
         continue;
       }
 
-      // ── Messenger events (DMs, postbacks) ───────────────────────────────
-      const webhookEvent = entry.messaging?.[0];
-      if (webhookEvent && dbConfig?.is_enabled !== false) {
-        promises.push(handleWebhookEvent(webhookEvent, pageToken));
+      const pageId: string = dbConfig?.page_id || envMatch?.pageId || entryPageId;
+
+      // ── Messenger/Instagram DM events ───────────────────────────────────
+      // Facebook pages use entry.messaging[]
+      // Instagram DMs use entry.messages[] (different field!)
+      // Process ALL events in the array, not just [0]
+      const messagingEvents: any[] = entry.messaging || entry.messages || [];
+      for (const messagingEvent of messagingEvents) {
+        if (dbConfig?.is_enabled === false) {
+          console.log(`[webhook] Bot disabled for page ${entryPageId} — skipping DM`);
+        } else {
+          promises.push(handleWebhookEvent(messagingEvent, pageToken, pageId));
+        }
       }
 
       // ── Page feed events (comments on posts) ────────────────────────────
@@ -150,7 +149,12 @@ server.post("/webhook", async (request: any, reply: any) => {
       }
     }
 
-    await Promise.allSettled(promises);
+    const results = await Promise.allSettled(promises);
+    const failed = results.filter(r => r.status === "rejected");
+    if (failed.length > 0) {
+      console.error(`[webhook] ${failed.length} promise(s) failed:`, failed);
+    }
+
     return reply.status(200).send("EVENT_RECEIVED");
   }
 

@@ -305,12 +305,19 @@ async function handleDetailPostback(
 // ---------------------------------------------------------------------------
 // Main webhook event handler
 // ---------------------------------------------------------------------------
-export async function handleWebhookEvent(event: any, pageToken: string) {
+export async function handleWebhookEvent(event: any, pageToken: string, pageId?: string) {
   const senderId: string = event.sender?.id;
   if (!senderId) return;
 
+  // ── Instagram echo detection ─────────────────────────────────────────────
+  // Facebook Messenger: admin reply comes with is_echo: true
+  // Instagram: is_echo flag is sometimes MISSING — detect by comparing senderId to pageId
+  const isEcho: boolean = !!event.message?.is_echo || (!!pageId && senderId === pageId);
+
   console.log("WEBHOOK_EVENT", {
     senderId,
+    pageId,
+    isEcho,
     hasMessage: !!event.message,
     hasPostback: !!event.postback,
   });
@@ -346,24 +353,27 @@ export async function handleWebhookEvent(event: any, pageToken: string) {
 
 
 
-// ── Text message handling ───────────────────────────────────────────────
-  if (event.message?.is_echo) {
-    const text = event.message.text || "";
-    // Facebook-ийн автомат хариултуудыг алгасах (эдгээр нь админы бичсэн мессеж биш)
+// ── Echo / admin reply handling ─────────────────────────────────────────
+  // isEcho = true when: Facebook is_echo flag OR Instagram senderId === pageId
+  if (isEcho) {
+    const text = event.message?.text || "";
+    // Facebook-ийн автомат хариултуудыг алгасах
     if (
       text.includes("Бид танд тун удахгүй мэдээлэл илгээнэ") || 
       text.includes("This chat contains a reply to your ad") ||
       text.includes("Бид танд удахгүй хариу өгнө") ||
       text.includes("Та Дийр Дрон дэлгүүртэй холбогдсон байна")
     ) {
-      console.log(`[messenger] Ignoring Facebook automated echo message.`);
+      console.log(`[messenger] Ignoring automated echo message.`);
       return;
     }
 
-    // Page admin replied -> Pause bot for 10 minutes
-    const recipientId = event.message.recipient?.id;
+    // Admin manually replied → pause bot for that customer for 10 minutes
+    // Facebook: recipientId = customer
+    // Instagram echo (senderId===pageId): recipientId = customer IGSID
+    const recipientId = event.message?.recipient?.id ?? event.recipient?.id;
     if (recipientId) {
-      console.log(`[messenger] Admin replied. Pausing bot for ${recipientId}`);
+      console.log(`[messenger] Admin replied. Pausing bot for recipient=${recipientId}`);
       if (text) {
         await logConversation(recipientId, "admin", text);
       }
