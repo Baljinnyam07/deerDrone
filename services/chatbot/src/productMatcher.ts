@@ -1,13 +1,14 @@
 /**
  * Product matching layer.
- * Tries exact slug match → fuzzy name match → keyword scan.
- * Returns matched products from DB without calling OpenAI.
+ * Tries category-scoped search first to avoid cross-category noise,
+ * then falls back to global keyword search.
  */
 
 import {
   getAllProductsTool,
   getProductsByIdsTool,
   searchProductsTool,
+  supabase,
 } from "./tools/catalog.js";
 
 export interface MatchedProduct {
@@ -22,8 +23,7 @@ export interface MatchedProduct {
 }
 
 // ---------------------------------------------------------------------------
-// Known drone name mappings for Mongolian keyword matching
-// (extend as catalog grows)
+// Known model name aliases → canonical keyword
 // ---------------------------------------------------------------------------
 const DRONE_NAME_ALIASES: Record<string, string[]> = {
   agras: ["аграс", "agras", "t50", "t40", "t30", "т50", "т40", "т30"],
@@ -37,30 +37,83 @@ const DRONE_NAME_ALIASES: Record<string, string[]> = {
   neo: ["neo"],
   atom: ["атом", "atom"],
   fpv: ["fpv"],
+  flip: ["flip"],
 };
 
 // ---------------------------------------------------------------------------
-// Extract a product-like keyword from user message
+// Category keyword routing
+// Maps user message patterns → DB category name (exact match required)
+// This prevents "DJI Drone LED Light" from appearing when user searches "дрон"
 // ---------------------------------------------------------------------------
-function extractProductKeyword(message: string): string | null {
+const CATEGORY_KEYWORDS: { patterns: RegExp[]; category: string }[] = [
+  {
+    category: "Дрон",
+    patterns: [
+      /\bдрон\b/i, /\bdrone\b/i, /нисдэг/i, /нисгэх/i,
+      /mavic/i, /\bmini\b/i, /\bair\b/i, /\bneo\b/i, /avata/i,
+      /\bflip\b/i, /agras/i, /phantom/i, /matrice/i, /inspire/i,
+      /\bfpv\b/i, /\batom\b/i,
+    ],
+  },
+  {
+    category: "Камер",
+    patterns: [
+      /\bкамер\b/i, /\bcamera\b/i, /pocket/i,
+      /osmo\s*360/i, /action\s*\d/i, /\bnano\b/i,
+    ],
+  },
+  {
+    category: "Гар төхөөрөмж",
+    patterns: [
+      /\bmic\b/i, /\bмик\b/i, /микрофон/i, /microphone/i,
+      /rs\s*[345]/i, /\bgimbal\b/i, /stabilizer/i, /osmo\s*mobile/i,
+    ],
+  },
+  {
+    category: "Дагалдах хэрэгсэл",
+    patterns: [
+      /пропеллер/i, /далавч/i, /propeller/i,
+      /\bcase\b/i, /цүнх/i, /\bbag\b/i,
+      /guard/i, /landing\s*pad/i, /\bstrap\b/i,
+      /батарей/i, /battery/i, /цэнэглэгч/i, /charger/i,
+      /пульт/i, /remote\s*control/i,
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Extract keyword + category from user message
+// ---------------------------------------------------------------------------
+function extractProductKeyword(
+  message: string
+): { keyword: string; category?: string } | null {
   const lower = message.toLowerCase();
-  // Try alias groups first
+
+  // 1. Specific model aliases (most precise)
   for (const [canonical, aliases] of Object.entries(DRONE_NAME_ALIASES)) {
     if (aliases.some((a) => lower.includes(a)) || lower.includes(canonical)) {
-      return canonical;
+      const cat = CATEGORY_KEYWORDS.find((c) =>
+        c.patterns.some((p) => p.test(canonical))
+      );
+      return { keyword: canonical, category: cat?.category };
     }
   }
-  // Fallback: strip common filler words and particles
-  // Added more particles like 'be', 'we', 'uu', 'yu' and common typos
+
+  // 2. Category-level keyword routing
+  for (const { patterns, category } of CATEGORY_KEYWORDS) {
+    if (patterns.some((p) => p.test(lower))) {
+      const matched = patterns.map((p) => lower.match(p)).find(Boolean);
+      const keyword = matched?.[0]?.trim() || category;
+      return { keyword, category };
+    }
+  }
+
+  // 3. Strip filler and use what remains
   const filler =
     /\b(үнэ|хэд|вэ|бэ|юу|дрон|drone|авмаар|захиалах|дэлгэрэнгүй|мэдэх|хүсэх|байна|болно|та|би|энэ|тэр|уу|юу|үү|ээ|оо|une|vne|hed|vnehed|unehed|be|we|uu|yu|wehed|behed)\b/gi;
-  
-  // Also strip standalone single/double characters that aren't parts of product names
   const stripped = lower.replace(filler, " ").replace(/\s+/g, " ").trim();
-  
-  // If we have a decent keyword left, use it
-  if (stripped.length >= 2) return stripped;
-  
+  if (stripped.length >= 2) return { keyword: stripped };
+
   return null;
 }
 
@@ -69,61 +122,73 @@ function extractProductKeyword(message: string): string | null {
 // ---------------------------------------------------------------------------
 
 /**
- * Try to find products matching the user message.
- * Priority: DB slug match → DB name ilike search → full catalog scan.
- * Returns up to 3 products for carousel display.
+ * Priority:
+ *   1. category_id filter + keyword ilike  ← no cross-category noise
+ *   2. All products in that category       ← broad keyword like "дрон"
+ *   3. Global keyword search               ← no category detected
  */
 export async function matchProducts(message: string): Promise<MatchedProduct[]> {
-  const keyword = extractProductKeyword(message);
+  const extracted = extractProductKeyword(message);
+  if (!extracted) return [];
 
-  if (keyword) {
-    // Attempt DB search
-    const results = await searchProductsTool(keyword);
-    if (results.length > 0) {
-      const normalised = normalise(results);
+  const { keyword, category } = extracted;
 
-      // Smart sorting:
-      // 1. Exact name match first
-      // 2. Contains keyword in name
-      // 3. Drones first ONLY IF the user didn't specify a non-drone keyword
-      
-      const isDroneKeyword = Object.keys(DRONE_NAME_ALIASES).includes(keyword.toLowerCase());
-      
-      if (isDroneKeyword) {
-        const drones = normalised.filter(p => (p as any).categories?.name?.toLowerCase() === "дрон");
-        const others = normalised.filter(p => (p as any).categories?.name?.toLowerCase() !== "дрон");
-        return [...drones, ...others].slice(0, 10);
-      } else {
-        // If user asked for something specific (like "mic"), don't force drones to the top
-        return normalised.slice(0, 10);
-      }
+  if (category) {
+    const { data: cats } = await supabase
+      .from("categories")
+      .select("id")
+      .eq("name", category);
+
+    const catIds = (cats ?? []).map((c: any) => c.id);
+
+    if (catIds.length > 0) {
+      // Try: category + keyword
+      const { data: byKeyword } = await supabase
+        .from("products")
+        .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
+        .in("category_id", catIds)
+        .ilike("name", `%${keyword}%`)
+        .limit(10);
+
+      if (byKeyword && byKeyword.length > 0) return normalise(byKeyword);
+
+      // Fallback: all products in category (keyword was broad, e.g. "дрон")
+      const { data: allInCat } = await supabase
+        .from("products")
+        .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
+        .in("category_id", catIds)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (allInCat && allInCat.length > 0) return normalise(allInCat);
     }
   }
 
-  return [];
+  // Global fallback
+  const results = await searchProductsTool(keyword);
+  return normalise(results).slice(0, 10);
 }
 
-/**
- * Fetch a single product by ID (for DETAIL_ postback).
- */
+// ---------------------------------------------------------------------------
+// Single product by ID (for DETAIL_ postback)
+// ---------------------------------------------------------------------------
 export async function getProductById(id: string): Promise<MatchedProduct | null> {
   const results = await getProductsByIdsTool([id]);
   if (results.length === 0) return null;
   return normalise(results)[0];
 }
 
-/**
- * Fetch products by IDs (for AI suggestions).
- */
+// ---------------------------------------------------------------------------
+// Multiple products by IDs (for AI suggestions)
+// ---------------------------------------------------------------------------
 export async function getProductsByIds(ids: string[]): Promise<MatchedProduct[]> {
   const results = await getProductsByIdsTool(ids);
   return normalise(results);
 }
 
-/**
- * Get all products as minimal AI context objects (id + name + price only).
- * Max 10 entries to keep token count low.
- */
+// ---------------------------------------------------------------------------
+// Minimal catalog context for AI prompt
+// ---------------------------------------------------------------------------
 export async function getMinimalCatalogContext(
   limit = 10
 ): Promise<{ id: string; name: string; price: number; heroNote: string }[]> {
@@ -145,7 +210,6 @@ function normalise(items: any[]): MatchedProduct[] {
     if (imageUrl && imageUrl.startsWith("/")) {
       imageUrl = `https://www.deerdrone.mn${imageUrl}`;
     }
-    // Facebook Messenger does not support WebP. Convert via proxy.
     if (imageUrl && imageUrl.includes(".webp") && !imageUrl.includes("wsrv.nl")) {
       imageUrl = `https://wsrv.nl/?url=${encodeURIComponent(imageUrl)}&output=jpg`;
     }
@@ -162,5 +226,3 @@ function normalise(items: any[]): MatchedProduct[] {
     };
   });
 }
-
-
