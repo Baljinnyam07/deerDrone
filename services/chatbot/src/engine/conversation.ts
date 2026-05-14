@@ -384,7 +384,13 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     );
   }
 
-  // ── Step 4: Product browse — DB only, no AI ───────────────────────────
+  // ── Step 4a: Vague price inquiry — guide user to specify product ──────
+
+  if (intent === "price_inquiry") {
+    return reply(sessionId, STATIC.priceInquiry, undefined, CATEGORY_QUICK_REPLIES);
+  }
+
+  // ── Step 4b: Product browse — DB only, no AI ──────────────────────────
 
   if (intent === "product_search" || intent === "product_detail") {
     const matched = await matchProducts(message);

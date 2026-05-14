@@ -21,8 +21,11 @@ async function testChat(message) {
     
     if (response.ok) {
       console.log(`🤖 AI: ${data.reply}`);
-      if (data.cards) {
+      if (data.cards && data.cards.length > 0) {
         console.log(`📦 Suggested Products: ${data.cards.length} items`);
+        data.cards.forEach((c, i) => {
+          console.log(`   ${i + 1}. ${c.name} — ${(c.price ?? 0).toLocaleString()}₮`);
+        });
       }
     } else {
       console.error(`❌ Error (${response.status}):`, data.error || 'Unknown error');
@@ -34,9 +37,9 @@ async function testChat(message) {
 
 // Зарим туршилтын асуултууд
 const questions = [
-  "Сайн байна уу?",
-  "Хамгийн хямдхан дрон юу байна?",
-  "Мэргэжлийн зураг авдаг дрон сонирхож байна."
+  // ── price_inquiry (vague) — should NOT dump products ──
+  "Une hed ve",
+  "mic bnu"
 ];
 
 async function runTests() {

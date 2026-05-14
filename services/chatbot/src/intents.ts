@@ -10,6 +10,7 @@ export type Intent =
   | "spam"
   | "product_search"
   | "product_detail"
+  | "price_inquiry"
   | "order_request"
   | "technical_consultation"
   | "compare_products"
@@ -318,13 +319,36 @@ const TECHNICAL = [
   /дутагдал/i,
 ];
 
+// ---------------------------------------------------------------------------
+// Price inquiry — user asks "how much" WITHOUT naming a specific product
+// These MUST be checked BEFORE PRODUCT_SEARCH to avoid false-positive dumps
+// ---------------------------------------------------------------------------
+const PRICE_INQUIRY = [
+  // Mongolian Cyrillic
+  /^үнэ\s*хэд\s*(вэ|бэ|юм)?\s*\??$/i,
+  /^үнэ\s*нь\s*хэд(\s*вэ|\s*бэ)?\s*\??$/i,
+  /^хэдэн\s*төгрөг\s*(вэ|бэ|юм)?\s*\??$/i,
+  /^хэдэн\s*мянга\s*(вэ|бэ|юм)?\s*\??$/i,
+  /^ямар\s*үнэтэй\s*(юм|вэ|бэ)?\s*\??$/i,
+  // Transliteration variants
+  /^une\s*hed\s*(ve|be|yu)?\s*\??$/i,
+  /^vne\s*hed\s*(ve|be|yu)?\s*\??$/i,
+  /^unehed\s*(ve|be)?\s*\??$/i,
+  /^vnehed\s*(ve|be)?\s*\??$/i,
+  /^hed\s*(ve|be|yum)?\s*\??$/i,
+  /^heden\s*tugreg\s*\??$/i,
+  /^heden\s*myanga\s*\??$/i,
+];
+
 const PRODUCT_SEARCH = [
   /^дрон$/i,
   /^камер$/i,
   /^гар\s*төхөөрөмж$/i,
   /^дагалдах\s*хэрэгсэл$/i,
   /^дагалдах$/i,
-  /үнэ\s*хэд/i,
+  // Price with a category/product keyword attached — specific enough
+  /үнэ\s*хэд.*(дрон|камер|гар\s*төхөөрөмж|дагалдах)/i,
+  /(дрон|камер|гар\s*төхөөрөмж|дагалдах).+үнэ\s*хэд/i,
   /хэдэн\s*төгрөг/i,
   /хэдэн\s*мянга/i,
   /үнэ\s*нь/i,
@@ -338,30 +362,27 @@ const PRODUCT_SEARCH = [
   /бүгдийг\s*харах/i,
   /танилцуулах/i,
   /юу\s*байна\s*вэ/i,
-  /үнэ/i,
-  /vne/i,
-  /une/i,
-  /vnehed/i,
-  /unehed/i,
-  /hed/i,
   /мэдээлэл\s*авах/i,
   /medeelel\s*avah/i,
   /мэдээлэл\s*өг/i,
   /medeelel\s*ug/i,
   /dji.*мэдээлэл/i,
-  /mic/i,
-  /мик/i,
+  // Product type keywords — specific accessories / products
+  /\bmic\b/i,
+  /мик\b/i,
   /микрофон/i,
   /пульт/i,
   /цэнэглэгч/i,
-  /зай/i,
-  /батарей/i,
   /пропеллер/i,
   /далавч/i,
   /цүнх/i,
-  /case/i,
-  /цүнх/i,
+  // Availability-check suffix patterns: "X байна уу?", "X bnu", "X bnuu"
+  /байна\s*уу/i,
+  /\bbnu\b/i,
+  /\bbnuu\b/i,
+  /\bavah\s*bolomjtoi\b/i,
 ];
+
 
 const CHEAPEST_DRONE = [
   /хамгийн\s*хямд.*дрон/i,
@@ -494,6 +515,8 @@ export function classifyIntent(message: string): Intent {
   if (matches(text, SHOW_PICTURES)) return "show_pictures";
   if (matches(text, WEBSITE_INFO)) return "website_info";
   if (matches(text, ORDER)) return "order_request";
+  // Check vague price inquiries BEFORE product_search to avoid false dumps
+  if (matches(text, PRICE_INQUIRY)) return "price_inquiry";
   if (matches(text, PRODUCT_SEARCH)) return "product_search";
 
   return "unknown";

@@ -53,7 +53,7 @@ function extractProductKeyword(message: string): string | null {
   // Fallback: strip common filler words and particles
   // Added more particles like 'be', 'we', 'uu', 'yu' and common typos
   const filler =
-    /\b(үнэ|хэд|вэ|бэ|юу|дрон|drone|авмаар|захиалах|дэлгэрэнгүй|мэдэх|хүсэх|байна|болно|та|би|энэ|тэр|уу|юу|үү|ээ|оо|une|vne|hed|vnehed|unehed|be|we|uu|yu|wehed|behed)\b/gi;
+    /\b(үнэ|хэд|вэ|бэ|юу|дрон|drone|авмаар|захиалах|дэлгэрэнгүй|мэдэх|хүсэх|байна|baina|болно|та|би|энэ|тэр|уу|юу|үү|ээ|оо|une|vne|hed|vnehed|unehed|be|we|uu|yu|wehed|behed|bnu|bnuu|bnu|yum|gej)\b/gi;
   
   // Also strip standalone single/double characters that aren't parts of product names
   const stripped = lower.replace(filler, " ").replace(/\s+/g, " ").trim();
