@@ -49,7 +49,7 @@ const CATEGORY_KEYWORDS: { patterns: RegExp[]; category: string }[] = [
   {
     category: "Дрон",
     patterns: [
-      /\bдрон\b/i, /\bdrone\b/i, /нисдэг/i, /нисгэх/i,
+      /дрон/i, /\bdrone\b/i, /нисдэг/i, /нисгэх/i,
       /mavic/i, /\bmini\b/i, /\bair\b/i, /\bneo\b/i, /avata/i,
       /\bflip\b/i, /agras/i, /phantom/i, /matrice/i, /inspire/i,
       /\bfpv\b/i, /\batom\b/i,
@@ -58,14 +58,14 @@ const CATEGORY_KEYWORDS: { patterns: RegExp[]; category: string }[] = [
   {
     category: "Камер",
     patterns: [
-      /\bкамер\b/i, /\bcamera\b/i, /pocket/i,
+      /камер/i, /\bcamera\b/i, /pocket/i,
       /osmo\s*360/i, /action\s*\d/i, /\bnano\b/i,
     ],
   },
   {
     category: "Гар төхөөрөмж",
     patterns: [
-      /\bmic\b/i, /\bмик\b/i, /микрофон/i, /microphone/i,
+      /\bmic\b/i, /мик/i, /микрофон/i, /microphone/i,
       /rs\s*[345]/i, /\bgimbal\b/i, /stabilizer/i, /osmo\s*mobile/i,
     ],
   },
@@ -110,7 +110,7 @@ function extractProductKeyword(
 
   // 3. Strip filler and use what remains
   const filler =
-    /\b(үнэ|хэд|вэ|бэ|юу|дрон|drone|авмаар|захиалах|дэлгэрэнгүй|мэдэх|хүсэх|байна|болно|та|би|энэ|тэр|уу|юу|үү|ээ|оо|une|vne|hed|vnehed|unehed|be|we|uu|yu|wehed|behed)\b/gi;
+    /(?<!\p{L})(үнэ|хэд|вэ|бэ|юу|дрон|drone|авмаар|захиалах|дэлгэрэнгүй|мэдэх|хүсэх|байна|болно|та|би|энэ|тэр|уу|юу|үү|ээ|оо|une|vne|hed|vnehed|unehed|be|we|uu|yu|wehed|behed)(?!\p{L})/giu;
   const stripped = lower.replace(filler, " ").replace(/\s+/g, " ").trim();
   if (stripped.length >= 2) return { keyword: stripped };
 

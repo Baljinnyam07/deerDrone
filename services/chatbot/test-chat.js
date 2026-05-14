@@ -4,7 +4,7 @@ const CHAT_URL = 'http://localhost:8787/chat';
 
 async function testChat(message) {
   console.log(`👤 User: ${message}`);
-  
+
   try {
     const response = await fetch(CHAT_URL, {
       method: 'POST',
@@ -18,7 +18,7 @@ async function testChat(message) {
     });
 
     const data = await response.json();
-    
+
     if (response.ok) {
       console.log(`🤖 AI: ${data.reply}`);
       if (data.cards) {
@@ -34,9 +34,9 @@ async function testChat(message) {
 
 // Зарим туршилтын асуултууд
 const questions = [
-  "Сайн байна уу?",
-  "Хамгийн хямдхан дрон юу байна?",
-  "Мэргэжлийн зураг авдаг дрон сонирхож байна."
+  "Мэргэжлийн зураг авдаг дрон сонирхож байна.",
+  "dagaldah heregsel baigaa yu ?",
+  "1"
 ];
 
 async function runTests() {

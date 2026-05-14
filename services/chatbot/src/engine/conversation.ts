@@ -70,7 +70,7 @@ const CATEGORY_QUICK_REPLIES = [
 // ---------------------------------------------------------------------------
 // Conversation history — capped at MAX_TURNS * 2 messages (user + assistant)
 // ---------------------------------------------------------------------------
-const MAX_TURNS = 4;
+const MAX_TURNS = 4; // 4 user + 4 assistant = 8 messages max
 const conversationHistory = new Map<
   string,
   Array<{ role: "assistant" | "user"; content: string }>
@@ -94,6 +94,7 @@ async function addToHistory(
   if (history.length > MAX_TURNS * 2) history.splice(0, 2);
 
   if (redis) {
+    // Keep history for 24 hours
     await redis.set(`history_${sessionId}`, history, { ex: 60 * 60 * 24 });
   } else {
     conversationHistory.set(sessionId, history);
@@ -117,55 +118,6 @@ async function captureLead(
 }
 
 // ---------------------------------------------------------------------------
-// Drone category filter — AI санал болгосон карт дрон категориас эсэхийг шалгана
-// ---------------------------------------------------------------------------
-const DRONE_ONLY_PATTERN = [
-  /^дрон$/i,
-  /^drone$/i,
-  /дрон/i,
-  /drone/i,
-  /нисдэг/i,
-  /нисгэх/i,
-  /deer/i,
-  /дийр/i,
-  /видео.*бичлэг/i,
-  /бичлэг.*хийх/i,
-  /зураг.*авах/i,
-  /ачаа.*тээвэр/i,
-];
-
-function isDroneOnlyMessage(text: string): boolean {
-  return DRONE_ONLY_PATTERN.some((p) => p.test(text.trim()));
-}
-
-async function filterToDroneCategory(cards: any[]): Promise<any[]> {
-  if (cards.length === 0) return cards;
-
-  const { data: cat } = await supabase
-    .from("categories")
-    .select("id")
-    .ilike("name", "Дрон")
-    .maybeSingle();
-
-  if (!cat?.id) return cards;
-
-  const cardIds = cards.map((c: any) => c.id).filter(Boolean);
-  if (cardIds.length === 0) return cards;
-
-  const { data: droneProducts } = await supabase
-    .from("products")
-    .select("id")
-    .in("id", cardIds)
-    .eq("category_id", cat.id);
-
-  const droneIdSet = new Set((droneProducts || []).map((p: any) => p.id));
-  const filtered = cards.filter((c: any) => droneIdSet.has(c.id));
-
-  // Шүүсний дараа хоосон болвол эхийн карт буцаана (fallback)
-  return filtered.length > 0 ? filtered : cards;
-}
-
-// ---------------------------------------------------------------------------
 // AI fallback — only called for consultation / compare / unknown drone topics
 // ---------------------------------------------------------------------------
 async function callAI(
@@ -179,9 +131,11 @@ async function callAI(
   }
 
   try {
+    // Use DB prompt if admin has customised it, else use local compact prompt
     const dbPrompt = await getSystemPromptTool();
     const basePrompt = dbPrompt || systemPrompt;
 
+    // Only inject products if we have them (saves tokens when empty)
     const productsContext =
       contextProducts.length > 0
         ? JSON.stringify(contextProducts)
@@ -206,8 +160,8 @@ async function callAI(
       model: "gpt-4o-mini",
       messages,
       response_format: { type: "json_object" },
-      max_tokens: 300,
-      temperature: 0.3,
+      max_tokens: 300,      // Hard cap — was 1000
+      temperature: 0.3,     // Lower = more deterministic = cheaper retries
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
@@ -232,6 +186,7 @@ async function callAI(
       parsed.reply ||
       STATIC.fallback;
 
+    // Resolve any AI-suggested product IDs to cards
     const suggestedIds: string[] = Array.isArray(parsed.suggested_product_ids)
       ? parsed.suggested_product_ids
         .map((x) => (typeof x === "string" ? x : (x as any)?.id))
@@ -243,11 +198,6 @@ async function callAI(
     if (suggestedIds.length > 0) {
       const found = await getProductsByIds(suggestedIds);
       cards = toChatCards(found);
-
-      // ← ЗАСВАР: хэрэглэгч дрон хайсан бол зөвхөн дрон карт буцаана
-      if (isDroneOnlyMessage(message)) {
-        cards = await filterToDroneCategory(cards);
-      }
     }
 
     return { reply, cards };
@@ -278,6 +228,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   if (intent === "greeting") {
+    // Show featured / newest products (up to 6 for carousel)
     const featured = await getFeaturedProductsTool(6);
     const mapped = featured.map((p: any) => ({ ...p, heroNote: p.hero_note }));
     const cards = toChatCards(mapped);
@@ -310,6 +261,16 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   if (intent === "accessories_info") {
+    const matched = await matchProducts(message);
+    if (matched.length > 0) {
+      const siteUrl = process.env.SITE_URL || "https://www.deerdrone.mn";
+      const cards = toChatCards(matched);
+      return reply(
+        sessionId,
+        `Таны сонирхсон дагалдах хэрэгслүүд:\n\nДэлгэрэнгүйг: ${siteUrl}/products?category=accessories`,
+        cards
+      );
+    }
     return reply(sessionId, STATIC.accessoriesInfo);
   }
 
@@ -444,6 +405,8 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     }
 
     // --- ENHANCED FALLBACK ---
+    // If no specific product matched, try to find products in the same category
+    // by checking if the user mentioned a category name
     const lower = message.toLowerCase();
     let categoryKeyword = "";
     if (lower.includes("камер") || lower.includes("camera")) categoryKeyword = "Камер";
@@ -451,6 +414,14 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     else if (lower.includes("гар төхөөрөмж") || lower.includes("handheld") || lower.includes("gimbal")) categoryKeyword = "Гар төхөөрөмж";
 
     if (categoryKeyword) {
+      const { data: catProducts } = await supabase
+        .from("products")
+        .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+        .ilike("categories.name", `%${categoryKeyword}%`) // Note: this might need join
+        .limit(6);
+
+      // Since ilike on joined table categories.name might be tricky with Supabase JS sometimes 
+      // without explicit join, let's use the tool we have or do a quick subquery
       const { data: cat } = await supabase.from("categories").select("id").ilike("name", `%${categoryKeyword}%`).maybeSingle();
       if (cat) {
         const { data: products } = await supabase
@@ -475,6 +446,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   if (intent === "order_request") {
+    // Try to identify which product they want
     const matched = await matchProducts(message);
     const siteUrl = process.env.SITE_URL || "https://www.deerdrone.mn";
 
@@ -489,6 +461,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
       );
     }
 
+    // Product unclear — show catalog and let them pick
     const featured = await getFeaturedProductsTool(4);
     const mapped = featured.map((p: any) => ({ ...p, slug: p.slug ?? "", heroNote: p.hero_note ?? "" }));
     const cards = toChatCards(mapped);
@@ -501,6 +474,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
 
   // ── Step 5: AI fallback — consultation, compare, or unknown drone topic ─
 
+  // Try to match products first to see if it's drone-related even if keywords miss
   const matched = await matchProducts(message);
 
   if (
@@ -508,6 +482,13 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     intent === "compare_products" ||
     (intent === "unknown" && (looksLikeDroneRelated(message) || matched.length > 0))
   ) {
+    // Intercept ambiguous short numeric inputs (like "1") that would confuse the AI
+    if (intent === "unknown" && matched.length === 0 && /^\d+[\.\)]?$/.test(message.trim())) {
+      return reply(sessionId, STATIC.clarify);
+    }
+
+    // Get minimal context: try to match specific products first (1-3),
+    // fall back to small catalog summary (max 8)
     const contextProducts =
       matched.length > 0
         ? matched.map((p) => ({ id: p.id, name: p.name, price: p.price, heroNote: p.heroNote }))
@@ -520,6 +501,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
       contextProducts
     );
 
+    // Only store consultation messages in history (not static responses)
     await addToHistory(sessionId, "user", message);
     await addToHistory(sessionId, "assistant", aiReply);
 
