@@ -174,6 +174,13 @@ const DELIVERY = [
   /хэдэн\s*хоног/i,
   /хэдэн\s*цаг/i,
   /хүлэ?эн\s*авах/i,
+  /hurgelt/i,
+  /hurgeltiin/i,
+  /hurgelt\s*baigaa/i,
+  /hurgelt\s*hii/i,
+  /hurgelt\s*shideh/i,
+  /teever/i,
+  /teewer/i,
 ];
 
 const ADDRESS = [
@@ -182,6 +189,8 @@ const ADDRESS = [
   /hayg/i,
   /хаана\s*байдаг/i,
   /haana\s*we/i,
+  /haana\s*be/i,
+  /haana\s*baidag/i,
   /location/i,
   /address/i,
   /байршил/i,
@@ -193,14 +202,15 @@ const ADDRESS = [
   /утас/i,
   /utas/i,
   /utasni\s*dugaar/i,
-  /phone/i,
-  /number/i,
+  /\bphone\b/i,
+  /\bnumber\b/i,
   /холбоо\s*барих/i,
   /цагийн\s*хуваарь/i,
   /tsagiin\s*huwaar/i,
   /huvaar/i,
   /schedule/i,
   /opening/i,
+  /duureg/i,
 ];
 
 const COMPARE = [
@@ -254,9 +264,43 @@ const VAT_INFO = [
 const ACCESSORIES_INFO = [
   /батарей/i,
   /batarei/i,
-  /battery/i,
+  /batter/i,
+  /bater/i,
   /дагалдах/i,
   /dagaldah/i,
+  /led\s*gerel/i,
+  /led/i,
+  // Mic / handheld accessories
+  /\bmic\b/i,
+  /мик/i,
+  /микрофон/i,
+  /microphone/i,
+  // Remote / controller
+  /пульт/i,
+  /controller/i,
+  /remote/i,
+  // Bag / case
+  /цүнх/i,
+  /сумк/i,
+  /\bcase\b/i,
+  /\bbag\b/i,
+  // Propeller / guard
+  /пропеллер/i,
+  /далавч/i,
+  /propeller/i,
+  /prop\b/i,
+  /guard/i,
+  /landing\s*pad/i,
+  // Charger
+  /цэнэглэгч/i,
+  /charger/i,
+  /charging/i,
+  // Gimbal (handheld stabilizer — not RS series drones)
+  /gimbal/i,
+  /stabilizer/i,
+  /osmo\s*mobile/i,
+  // Strap / carry
+  /strap/i,
 ];
 
 const BEGINNER_RECOMMENDATION = [
@@ -381,6 +425,25 @@ const PRODUCT_SEARCH = [
   /\bbnu\b/i,
   /\bbnuu\b/i,
   /\bavah\s*bolomjtoi\b/i,
+];
+
+// "Видео бичлэг хийх дрон" use-case → product_search (Дрон категори)
+// Accessories гарахаас сэргийлж тусдаа pattern-д байрлуулсан
+const DRONE_USECASE = [
+  /видео.*бичлэг/i,
+  /бичлэг.*хийх/i,
+  /video.*shoot/i,
+  /bichleg.*hiih/i,
+  /зураг.*авах.*дрон/i,
+  /агаараас.*зураг/i,
+  /агаараас.*бичлэг/i,
+  /aerial.*photo/i,
+  /aerial.*video/i,
+  /дрон.*зураг/i,
+  /дрон.*бичлэг/i,
+  /дрон.*видео/i,
+  /нисгэж.*зураг/i,
+  /нисгэж.*бичлэг/i,
 ];
 
 
@@ -517,6 +580,7 @@ export function classifyIntent(message: string): Intent {
   if (matches(text, ORDER)) return "order_request";
   // Check vague price inquiries BEFORE product_search to avoid false dumps
   if (matches(text, PRICE_INQUIRY)) return "price_inquiry";
+  if (matches(text, DRONE_USECASE)) return "product_search";
   if (matches(text, PRODUCT_SEARCH)) return "product_search";
 
   return "unknown";
@@ -581,12 +645,18 @@ export function looksLikeDroneRelated(message: string): boolean {
     /neo/i,
     /potensic/i,
     /батарей/i,
+    /batter/i,
+    /bater/i,
+    /led/i,
+    /gerel/i,
     /цүнх/i,
     /case/i,
     /хэд\s*бэ/i,
     /үнэ/i,
     /vne/i,
     /une/i,
+    /hurgelt/i,
+    /hurgeltiin/i,
     /^\d+[\.\)]?$/, // Route standalone numbers to AI (e.g., when replying to menus)
   ];
   return droneKeywords.some((p) => p.test(message.trim()));

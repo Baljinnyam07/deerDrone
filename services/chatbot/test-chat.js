@@ -4,7 +4,7 @@ const CHAT_URL = 'http://localhost:8787/chat';
 
 async function testChat(message) {
   console.log(`👤 User: ${message}`);
-  
+
   try {
     const response = await fetch(CHAT_URL, {
       method: 'POST',
@@ -18,7 +18,7 @@ async function testChat(message) {
     });
 
     const data = await response.json();
-    
+
     if (response.ok) {
       console.log(`🤖 AI: ${data.reply}`);
       if (data.cards && data.cards.length > 0) {

@@ -261,6 +261,16 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   if (intent === "accessories_info") {
+    const matched = await matchProducts(message);
+    if (matched.length > 0) {
+      const siteUrl = process.env.SITE_URL || "https://www.deerdrone.mn";
+      const cards = toChatCards(matched);
+      return reply(
+        sessionId,
+        `Таны сонирхсон дагалдах хэрэгслүүд:\n\nДэлгэрэнгүйг: ${siteUrl}/products?category=accessories`,
+        cards
+      );
+    }
     return reply(sessionId, STATIC.accessoriesInfo);
   }
 
@@ -478,6 +488,11 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     intent === "compare_products" ||
     (intent === "unknown" && (looksLikeDroneRelated(message) || matched.length > 0))
   ) {
+    // Intercept ambiguous short numeric inputs (like "1") that would confuse the AI
+    if (intent === "unknown" && matched.length === 0 && /^\d+[\.\)]?$/.test(message.trim())) {
+      return reply(sessionId, STATIC.clarify);
+    }
+
     // Get minimal context: try to match specific products first (1-3),
     // fall back to small catalog summary (max 8)
     const contextProducts =

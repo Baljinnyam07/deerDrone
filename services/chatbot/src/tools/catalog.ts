@@ -134,7 +134,7 @@ export async function getFeaturedProductsTool(limit = 6) {
     .from("products")
     .select("id, name, slug, price, hero_note, short_description, product_images(url)")
     .eq("is_featured", true)
-    .order("created_at", { ascending: false })
+    .order("price", { ascending: false })
     .limit(limit);
 
   if (categoryId) featuredQuery = featuredQuery.eq("category_id", categoryId);
@@ -148,7 +148,7 @@ export async function getFeaturedProductsTool(limit = 6) {
       .from("products")
       .select("id, name, slug, price, hero_note, short_description, product_images(url)")
       .eq("category_id", categoryId)
-      .order("created_at", { ascending: false })
+      .order("price", { ascending: false })
       .limit(limit);
     
     if (drones) {
