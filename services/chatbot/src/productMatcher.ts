@@ -6,6 +6,7 @@
 
 import {
   getAllProductsTool,
+  getFeaturedProductsTool,
   getProductsByIdsTool,
   searchProductsTool,
   supabase,
@@ -110,7 +111,7 @@ function extractProductKeyword(
 
   // 3. Strip filler and use what remains
   const filler =
-    /(?<!\p{L})(үнэ|хэд|вэ|бэ|юу|дрон|drone|авмаар|захиалах|дэлгэрэнгүй|мэдэх|хүсэх|байна|baina|болно|та|би|энэ|тэр|уу|юу|үү|ээ|оо|une|vne|hed|vnehed|unehed|be|we|uu|yu|wehed|behed|bnu|bnuu|bnu|yum|gej)\b/gi;
+    /(?<!\p{L})(үнэ|хэд|вэ|бэ|юу|дрон|drone|авмаар|захиалах|дэлгэрэнгүй|мэдэх|хүсэх|байна|baina|болно|та|би|энэ|тэр|уу|юу|үү|ээ|оо|une|vne|hed|vnehed|unehed|be|we|uu|yu|wehed|behed|bnu|bnuu|bnu|yum|gej)(?!\p{L})/giu;
   const stripped = lower.replace(filler, " ").replace(/\s+/g, " ").trim();
   if (stripped.length >= 2) return { keyword: stripped };
 
@@ -192,6 +193,20 @@ export async function getProductsByIds(ids: string[]): Promise<MatchedProduct[]>
 export async function getMinimalCatalogContext(
   limit = 10
 ): Promise<{ id: string; name: string; price: number; heroNote: string }[]> {
+  try {
+    const featured = await getFeaturedProductsTool(limit);
+    if (featured && featured.length > 0) {
+      return featured.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        heroNote: p.hero_note || "",
+      }));
+    }
+  } catch (err) {
+    console.error("Error fetching featured products for context:", err);
+  }
+
   const all = await getAllProductsTool();
   return all.slice(0, limit).map((p: any) => ({
     id: p.id,

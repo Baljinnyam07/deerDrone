@@ -142,10 +142,10 @@ async function callAI(
         : "[]";
     let prompt = basePrompt.replace("{productsContext}", productsContext);
     prompt += `\n\nЧУХАЛ ЗААВАР:
-    - Хэрэглэгчтэй маш найрсаг, "амьд" харилцаа үүсгэ (Ehniid saihn yariltsii). 
-    - Хэрэв хэрэглэгчийн хүссэн яг тэр төрлийн дрон (жишээ нь: ачаа тээвэрлэх) манайд байхгүй бол шууд "байхгүй" гэж битгий хэл.
-    - Үүний оронд "Манайд яг зориулалтын ачааны дрон одоогоор байхгүй байгаа ч, маш хүчирхэг мотортой, даац сайтай ийм загварууд байна..." гэх мэтээр байгаа бараануудаасаа санал болго.
-    - Хариултдаа байгаа бараануудын нэрийг заавал дурдаж, хүчин чадлыг нь (heroNote) ашиглан тайлбарла.
+    - Хэрэглэгчтэй маш найрсаг, "амьд" харилцаа үүсгэ.
+    - Хэрэв хэрэглэгчийн хайсан онцгой зориулалтын бараа манайд байхгүй байвал "байхгүй" гэж шууд таслахын оронд, хамгийн ойр очих эсвэл өөр төстэй сайн загваруудыг ({productsContext}-д байгаа) санал болго.
+    - Хариултдаа санал болгож буй барааны нэрийг заавал дурдаж, давуу талыг (heroNote) нь товч тайлбарла.
+    - Хэрэглэгчийн асуугаагүй зүйлийг дурдах шаардлагагүй, зөвхөн асуултад нь яг тохируулж хариул.
     
     Та зөвхөн дараах JSON форматаар хариулах ёстой: {"message": "таны хариулт...", "suggested_product_ids": ["id1", "id2"]}. Өөр ямар ч бүтэц ашиглаж болохгүй!`;
 
@@ -415,9 +415,10 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     // by checking if the user mentioned a category name
     const lower = message.toLowerCase();
     let categoryKeyword = "";
-    if (lower.includes("камер") || lower.includes("camera")) categoryKeyword = "Камер";
+    if (lower.includes("камер") || lower.includes("camera") || lower.includes("kamer")) categoryKeyword = "Камер";
     else if (lower.includes("дагалдах") || lower.includes("accessory") || lower.includes("mic") || lower.includes("цүнх")) categoryKeyword = "Дагалдах хэрэгсэл";
     else if (lower.includes("гар төхөөрөмж") || lower.includes("handheld") || lower.includes("gimbal")) categoryKeyword = "Гар төхөөрөмж";
+    else if (lower.includes("дрон") || lower.includes("dron") || lower.includes("drone")) categoryKeyword = "Дрон";
 
     if (categoryKeyword) {
       const { data: catProducts } = await supabase
@@ -473,7 +474,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     const cards = toChatCards(mapped);
     return reply(
       sessionId,
-      "Юу бүтээгдэхүүнийг захиалах гэж байна вэ? Доорх бүтээгдэхүүнийг сонгох уу 👇",
+      "Та аль бүтээгдэхүүнийг захиалахыг хүсэж байна вэ? Доорх загваруудаас сонголтоо хийнэ үү 👇",
       cards
     );
   }

@@ -35,11 +35,15 @@ async function testChat(message) {
   }
 }
 
-// Зарим туршилтын асуултууд
+// Зарим туршилтын асуултууд - Бодит хэрэглэгчийн кэйсүүд
 const questions = [
-  "Танай бүтээгдэхүүнүүд ямар үнэтэй вэ",
-  "Ямар үнэтэй вэ",
-  "Үнэ.",
+  "Сайн байна уу?",
+  "Камер", // Case 1: Button click or direct text that failed before
+  "үнэ мэдээлэл авъя", // Case 2: Vague price inquiry that returned accessories before
+  "Dronii une asuuj bna hed be", // Case 3: Drone price inquiry with latin letters
+  "Une bolmjiin udirdhad hamgiin amrhn dron hmr dron bga bol", // Case 4: AI hallucination case about cargo drones
+  "Хамгийн хямдхан нь хэд вэ?", // Broad AI test
+  "Захиалга өгье", // Order intent test
 ];
 
 async function runTests() {
