@@ -16,7 +16,7 @@ async function getDashboardData() {
 
   const [productsRes, ordersRes, pendingRes, leadsRes, chartDataRes, auditRes] = await Promise.all([
     supabase.from("products").select("id", { count: "exact", head: true }),
-    supabase.from("orders").select("total"),
+    supabase.from("orders").select("total, status"),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", "new"),
     supabase.from("orders")
@@ -29,7 +29,9 @@ async function getDashboardData() {
       .limit(8)
   ]);
 
-  const totalRevenue = (ordersRes.data || []).reduce((sum: number, o: any) => sum + Number(o.total || 0), 0);
+  const totalRevenue = (ordersRes.data || [])
+    .filter((o: any) => o.status === "paid" || o.status === "completed")
+    .reduce((sum: number, o: any) => sum + Number(o.total || 0), 0);
   const totalOrders = ordersRes.data?.length || 0;
 
   // Process chart data (Revenue by day)
@@ -46,7 +48,9 @@ async function getDashboardData() {
   (chartDataRes.data || []).forEach((order: any) => {
     const dateStr = new Date(order.created_at).toLocaleDateString('mn-MN', { month: 'short', day: 'numeric' });
     if (dailyData[dateStr]) {
-      dailyData[dateStr].revenue += Number(order.total || 0);
+      if (order.status === "paid" || order.status === "completed") {
+        dailyData[dateStr].revenue += Number(order.total || 0);
+      }
       dailyData[dateStr].orders += 1;
     }
   });

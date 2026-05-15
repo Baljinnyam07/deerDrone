@@ -212,6 +212,19 @@ export async function POST(request: Request) {
       };
     }
 
+    // Send Telegram Notification (Fire and forget)
+    import("../../../../lib/telegram").then(({ sendTelegramNotification }) => {
+      const itemsList = orderItems.map((i) => `• ${i.quantity}x ${i.product_name}`).join("\n");
+      const msg = `🔔 <b>Шинэ захиалга орж ирлээ!</b>\n\n` +
+        `<b>Захиалга:</b> #${order.order_number}\n` +
+        `<b>Хэрэглэгч:</b> ${payload.contactName}\n` +
+        `<b>Утас:</b> ${payload.contactPhone}\n` +
+        `<b>Төлбөр:</b> ${payload.paymentMethod === 'qpay' ? 'QPay' : 'Дансаар'}\n` +
+        `<b>Нийт дүн:</b> ${total.toLocaleString()}₮\n\n` +
+        `<b>Бараа:</b>\n${itemsList}`;
+      sendTelegramNotification(msg);
+    }).catch(console.error);
+
     return NextResponse.json(
       {
         order: {
