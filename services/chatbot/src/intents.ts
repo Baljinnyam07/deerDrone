@@ -369,17 +369,20 @@ const TECHNICAL = [
 // ---------------------------------------------------------------------------
 const PRICE_INQUIRY = [
   // Mongolian Cyrillic
-  /^үнэ\s*хэд\s*(вэ|бэ|юм)?\s*\??$/i,
-  /^үнэ\s*нь\s*хэд(\s*вэ|\s*бэ)?\s*\??$/i,
+  /^үнэ\.?\s*\??$/i,
+  /^хэд\s*вэ\s*\??$/i,
+  /бүтээгдэхүүнүүд\s*ямар\s*үнэтэй\s*вэ/i,
+  /^үнэ\s*хэд\s*(вэ|бэ|юм|вэ|вээ|бээ)?\s*\??$/i,
+  /^үнэ\s*нь\s*хэд(\s*вэ|\s*бэ|\s*вэ)?\s*\??$/i,
   /^хэдэн\s*төгрөг\s*(вэ|бэ|юм)?\s*\??$/i,
   /^хэдэн\s*мянга\s*(вэ|бэ|юм)?\s*\??$/i,
   /^ямар\s*үнэтэй\s*(юм|вэ|бэ)?\s*\??$/i,
   // Transliteration variants
-  /^une\s*hed\s*(ve|be|yu)?\s*\??$/i,
-  /^vne\s*hed\s*(ve|be|yu)?\s*\??$/i,
-  /^unehed\s*(ve|be)?\s*\??$/i,
-  /^vnehed\s*(ve|be)?\s*\??$/i,
-  /^hed\s*(ve|be|yum)?\s*\??$/i,
+  /^une\s*hed\s*(ve|we|be|yu|vee|wee|we|vэ)?\s*\??$/i,
+  /^vne\s*hed\s*(ve|we|be|yu|vee|wee|we|vэ)?\s*\??$/i,
+  /^unehed\s*(ve|we|be|yu)?\s*\??$/i,
+  /^vnehed\s*(ve|we|be|yu)?\s*\??$/i,
+  /^hed\s*(ve|we|be|yum|vэ)?\s*\??$/i,
   /^heden\s*tugreg\s*\??$/i,
   /^heden\s*myanga\s*\??$/i,
 ];

@@ -37,9 +37,9 @@ async function testChat(message) {
 
 // Зарим туршилтын асуултууд
 const questions = [
-  // ── price_inquiry (vague) — should NOT dump products ──
-  "Une hed ve",
-  "mic bnu"
+  "Танай бүтээгдэхүүнүүд ямар үнэтэй вэ",
+  "Ямар үнэтэй вэ",
+  "Үнэ.",
 ];
 
 async function runTests() {
