@@ -5,6 +5,7 @@ import { createClient } from "../../../../lib/supabase/server";
 import { createServiceClient } from "../../../../lib/supabase/service";
 import { createQPayInvoice } from "../../../../lib/qpay";
 import { revalidateTag } from "next/cache";
+import { sendTelegramNotification } from "../../../../lib/telegram";
 
 type OrderItemRow = {
   line_total: number;
@@ -177,6 +178,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // ── Telegram Notification ────────────────────────────────────────
+    // Fire immediately once order is confirmed in DB (before payment processing)
+    {
+      const lines = orderItems.map((i) => `• ${i.quantity}x ${i.product_name}`).join("\n");
+      const tgMsg =
+        `🔔 <b>Шинэ захиалга орж ирлээ!</b>\n\n` +
+        `<b>Захиалга:</b> #${order.order_number}\n` +
+        `<b>Хэрэглэгч:</b> ${payload.contactName}\n` +
+        `<b>Утас:</b> ${payload.contactPhone}\n` +
+        `<b>Төлбөр:</b> ${payload.paymentMethod === "qpay" ? "QPay" : "Дансаар"}\n` +
+        `<b>Нийт дүн:</b> ${total.toLocaleString()}₮\n\n` +
+        `<b>Бараа:</b>\n${lines}`;
+      sendTelegramNotification(tgMsg).catch((e) => console.error("Telegram error:", e));
+    }
+
     let payment: Record<string, unknown>;
 
     if (payload.paymentMethod === "qpay") {
@@ -211,19 +227,6 @@ export async function POST(request: Request) {
         reference: order.order_number,
       };
     }
-
-    // Send Telegram Notification (Fire and forget)
-    import("../../../../lib/telegram").then(({ sendTelegramNotification }) => {
-      const itemsList = orderItems.map((i) => `• ${i.quantity}x ${i.product_name}`).join("\n");
-      const msg = `🔔 <b>Шинэ захиалга орж ирлээ!</b>\n\n` +
-        `<b>Захиалга:</b> #${order.order_number}\n` +
-        `<b>Хэрэглэгч:</b> ${payload.contactName}\n` +
-        `<b>Утас:</b> ${payload.contactPhone}\n` +
-        `<b>Төлбөр:</b> ${payload.paymentMethod === 'qpay' ? 'QPay' : 'Дансаар'}\n` +
-        `<b>Нийт дүн:</b> ${total.toLocaleString()}₮\n\n` +
-        `<b>Бараа:</b>\n${itemsList}`;
-      sendTelegramNotification(msg);
-    }).catch(console.error);
 
     return NextResponse.json(
       {
