@@ -37,13 +37,18 @@ async function testChat(message) {
 
 // Зарим туршилтын асуултууд - Бодит хэрэглэгчийн кэйсүүд
 const questions = [
-  "Сайн байна уу?",
-  "Камер", // Case 1: Button click or direct text that failed before
-  "үнэ мэдээлэл авъя", // Case 2: Vague price inquiry that returned accessories before
-  "Dronii une asuuj bna hed be", // Case 3: Drone price inquiry with latin letters
-  "Une bolmjiin udirdhad hamgiin amrhn dron hmr dron bga bol", // Case 4: AI hallucination case about cargo drones
-  "Хамгийн хямдхан нь хэд вэ?", // Broad AI test
-  "Захиалга өгье", // Order intent test
+  // ── Price transliteration fix ──────────────────────────────────────────
+  "Vne",           // bare "vne" → must hit price_inquiry (NOT AI dump)
+  "Une",           // bare "une" → same
+  "vne?",          // with question mark
+  "Vne hed ve",    // "хэд вэ" variant
+  // ── Greeting ───────────────────────────────────────────────────────────
+  "Сайн байна уу", // greeting → featured products carousel
+  // ── Specific product price ─────────────────────────────────────────────
+  "DJI Mini 5 Pro үнэ хэд вэ",
+  // ── Category browse ───────────────────────────────────────────────────
+  "Дрон",
+  "Хамгийн хямд дрон",
 ];
 
 async function runTests() {

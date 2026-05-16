@@ -28,6 +28,21 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: orderError.message }, { status: 500 });
     }
 
+    // ── Telegram Notification for "paid" status ──────────────────────
+    if (status === "paid") {
+      const tgMsg = 
+        `💳 <b>Захиалга төлөгдлөө! (Admin)</b>\n\n` +
+        `<b>Захиалга:</b> #${order.order_number}\n` +
+        `<b>Хэрэглэгч:</b> ${order.contact_name}\n` +
+        `<b>Дүн:</b> ${order.total?.toLocaleString()}₮\n` +
+        `<b>Шинэ төлөв:</b> Төлөгдсөн\n` +
+        `<b>Админ:</b> ${auth.user.email}`;
+      
+      // Using global fetch or imported function
+      const { sendTelegramNotification } = await import("@/lib/telegram");
+      sendTelegramNotification(tgMsg).catch(e => console.error("Telegram error:", e));
+    }
+
     // 2. Create Audit Log
     const { error: logError } = await supabase
       .from("admin_audit_logs")

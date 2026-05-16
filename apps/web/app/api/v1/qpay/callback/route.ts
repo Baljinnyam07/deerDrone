@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { checkQPayPayment } from "../../../../../lib/qpay";
 import { createServiceClient } from "../../../../../lib/supabase/service";
+import { sendTelegramNotification } from "../../../../../lib/telegram";
 
 // QPay calls this URL after the customer pays.
 // It sends a POST with payment_id in the body, and we pass order_id via query param.
@@ -48,6 +49,23 @@ export async function POST(request: Request) {
         .from("orders")
         .update({ status: "paid" })
         .eq("id", orderId);
+
+      // Notify via Telegram
+      const { data: updatedOrder } = await supabase
+        .from("orders")
+        .select("order_number, total, contact_name")
+        .eq("id", orderId)
+        .single();
+
+      if (updatedOrder) {
+        const tgMsg = 
+          `✅ <b>Төлбөр амжилттай хийгдлээ!</b>\n\n` +
+          `<b>Захиалга:</b> #${updatedOrder.order_number}\n` +
+          `<b>Хэрэглэгч:</b> ${updatedOrder.contact_name}\n` +
+          `<b>Дүн:</b> ${updatedOrder.total?.toLocaleString()}₮\n` +
+          `<b>Төлөв:</b> Төлөгдсөн (QPay)`;
+        sendTelegramNotification(tgMsg).catch(e => console.error("Telegram notification error:", e));
+      }
     }
 
     return NextResponse.json({ paid: isPaid });

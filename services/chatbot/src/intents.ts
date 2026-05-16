@@ -386,7 +386,9 @@ const PRICE_INQUIRY = [
   /une\s*bolomjiin/i,
   /une\s*bolmjiin/i,
   /vne\s*bolomjiin/i,
-  // Transliteration variants
+  // Transliteration variants — bare "vne" / "une" (= үнэ) must come first
+  /^vne\.?\s*\??$/i,
+  /^une\.?\s*\??$/i,
   /^une\s*hed\s*(ve|we|be|yu|vee|wee|we|vэ)?\s*\??$/i,
   /^vne\s*hed\s*(ve|we|be|yu|vee|wee|we|vэ)?\s*\??$/i,
   /^unehed\s*(ve|we|be|yu)?\s*\??$/i,
