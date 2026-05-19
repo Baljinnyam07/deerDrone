@@ -110,7 +110,7 @@ export async function captureLeadTool(
   return data;
 }
 
-export async function getFeaturedProductsTool(limit = 6) {
+export async function getFeaturedProductsTool(limit = 8) {
   // 0. Get Drone category ID
   const { data: cat } = await supabase
     .from("categories")
@@ -120,16 +120,34 @@ export async function getFeaturedProductsTool(limit = 6) {
 
   const categoryId = cat?.id;
 
-  // 1. Force 'DJI NEO 2 MOTION FLYMORE COMBO' to be first
-  let neo2Query = supabase
-    .from("products")
-    .select("id, name, slug, price, hero_note, short_description, product_images(url)")
-    .ilike("name", "%DJI NEO 2 MOTION FLYMORE COMBO%");
-  
-  if (categoryId) neo2Query = neo2Query.eq("category_id", categoryId);
-  const { data: neo2 } = await neo2Query.single();
+  // 1. Pin specific products that must always appear
+  const pinnedNames = [
+    "%DJI NEO 2 MOTION FLYMORE COMBO%",        // 2,180,000₮ — flagship entry
+    "%DJI NEO 2 FLYMORE COMBO%",                // 1,480,000₮ — budget NEO 2
+    "%POTENSIC ATOM 2S%FLYMORE COMBO%",         // 2,450,000₮ — drone kit only
+  ];
 
-  // 2. Get other featured DRONES
+  const pinnedProducts: any[] = [];
+  const pinnedIds = new Set<string>();
+
+  for (const namePat of pinnedNames) {
+    let q = supabase
+      .from("products")
+      .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+      .ilike("name", namePat)
+      .limit(1);
+    const { data } = await q;
+    if (data && data.length > 0) {
+      const p = data[0];
+      if (!pinnedIds.has(p.id)) {
+        pinnedIds.add(p.id);
+        pinnedProducts.push(p);
+      }
+    }
+  }
+
+  // 2. Get other featured DRONES to fill remaining slots
+  const remaining = limit - pinnedProducts.length;
   let featuredQuery = supabase
     .from("products")
     .select("id, name, slug, price, hero_note, short_description, product_images(url)")
@@ -140,9 +158,15 @@ export async function getFeaturedProductsTool(limit = 6) {
   if (categoryId) featuredQuery = featuredQuery.eq("category_id", categoryId);
   const { data: featured } = await featuredQuery;
 
-  let finalProducts = featured || [];
+  let finalProducts = [...pinnedProducts];
 
-  // 3. Fallback to other DRONES if needed
+  for (const p of (featured || [])) {
+    if (!pinnedIds.has(p.id) && finalProducts.length < limit) {
+      finalProducts.push(p);
+    }
+  }
+
+  // 3. Fallback to all drones if still under limit
   if (finalProducts.length < limit && categoryId) {
     const { data: drones } = await supabase
       .from("products")
@@ -150,28 +174,18 @@ export async function getFeaturedProductsTool(limit = 6) {
       .eq("category_id", categoryId)
       .order("price", { ascending: false })
       .limit(limit);
-    
-    if (drones) {
-      // Append drones that aren't already in the list
-      const existingIds = new Set(finalProducts.map(p => p.id));
-      for (const d of drones) {
-        if (!existingIds.has(d.id)) finalProducts.push(d);
+
+    for (const d of (drones || [])) {
+      if (!pinnedIds.has(d.id) && finalProducts.length < limit) {
+        finalProducts.push(d);
       }
     }
-  }
-
-  // Remove Neo 2 from the list if it's already there to avoid duplicates
-  finalProducts = finalProducts.filter(p => p.id !== neo2?.id);
-
-  // Prepend Neo 2 if found
-  if (neo2) {
-    finalProducts = [neo2, ...finalProducts];
   }
 
   return finalProducts.slice(0, limit);
 }
 
-export function toChatCards(items: any[], limit = 6) {
+export function toChatCards(items: any[], limit = 8) {
   return items.slice(0, limit).map((product) => {
     let imageUrl = product.product_images?.[0]?.url || product.image_url || product.image;
     if (imageUrl && imageUrl.startsWith("/")) {

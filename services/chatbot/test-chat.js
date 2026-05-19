@@ -37,18 +37,9 @@ async function testChat(message) {
 
 // Зарим туршилтын асуултууд - Бодит хэрэглэгчийн кэйсүүд
 const questions = [
-  // ── Price transliteration fix ──────────────────────────────────────────
-  "Vne",           // bare "vne" → must hit price_inquiry (NOT AI dump)
-  "Une",           // bare "une" → same
-  "vne?",          // with question mark
-  "Vne hed ve",    // "хэд вэ" variant
-  // ── Greeting ───────────────────────────────────────────────────────────
-  "Сайн байна уу", // greeting → featured products carousel
-  // ── Specific product price ─────────────────────────────────────────────
-  "DJI Mini 5 Pro үнэ хэд вэ",
-  // ── Category browse ───────────────────────────────────────────────────
-  "Дрон",
-  "Хамгийн хямд дрон",
+  "энэ хэд вэ",
+  "Дрон мэдээллүүд авий",
+  "vne hed we ? hudaldaalah nuhtsulvvd",
 ];
 
 async function runTests() {

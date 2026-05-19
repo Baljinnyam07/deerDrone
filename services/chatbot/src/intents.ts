@@ -380,6 +380,7 @@ const PRICE_INQUIRY = [
   /^хэдэн\s*төгрөг\s*(вэ|бэ|юм)?\s*\??$/i,
   /^хэдэн\s*мянга\s*(вэ|бэ|юм)?\s*\??$/i,
   /^ямар\s*үнэтэй\s*(юм|вэ|бэ)?\s*\??$/i,
+  /энэ\s*ямар\s*үнэтэй/i,
   /хамгийн\s*хямд(хан)?\s*нь/i,
   /хамгийн\s*хямдхан/i,
   /үнэ\s*боломжийн/i,
@@ -389,14 +390,25 @@ const PRICE_INQUIRY = [
   // Transliteration variants — bare "vne" / "une" (= үнэ) must come first
   /^vne\.?\s*\??$/i,
   /^une\.?\s*\??$/i,
-  /^une\s*hed\s*(ve|we|be|yu|vee|wee|we|vэ)?\s*\??$/i,
-  /^vne\s*hed\s*(ve|we|be|yu|vee|wee|we|vэ)?\s*\??$/i,
-  /^unehed\s*(ve|we|be|yu)?\s*\??$/i,
-  /^vnehed\s*(ve|we|be|yu)?\s*\??$/i,
-  /^hed\s*(ve|we|be|yum|vэ)?\s*\??$/i,
+  /^une\s*hed\s*(ve|we|be|vv|yu|vee|wee|we|vэ)?/i,
+  /^vne\s*hed\s*(ve|we|be|vv|yu|vee|wee|we|vэ)?/i,
+  /^unehed\s*(ve|we|be|vv|yu)?/i,
+  /^vnehed\s*(ve|we|be|vv|yu)?/i,
+  /^hed\s*(ve|we|be|vv|yum|vэ)?\s*\??$/i,
   /^heden\s*tugreg\s*\??$/i,
   /^heden\s*myanga\s*\??$/i,
+  /vne\s*hed\s*we/i, // Catch variations
 ];
+
+// Keywords that indicate a specific drone model or product name
+const PRODUCT_KEYWORDS = [
+  /neo/i, /mini/i, /mavic/i, /avata/i, /air/i, /phantom/i, /inspire/i, 
+  /agras/i, /matrice/i, /dji/i, /atom/i, /potensic/i
+];
+
+export function containsProductKeyword(text: string): boolean {
+  return PRODUCT_KEYWORDS.some(p => p.test(text));
+}
 
 const PRODUCT_SEARCH = [
   /^дрон$/i,
@@ -422,11 +434,21 @@ const PRODUCT_SEARCH = [
   /бүгдийг\s*харах/i,
   /танилцуулах/i,
   /юу\s*байна\s*вэ/i,
-  /мэдээлэл\s*авах/i,
-  /medeelel\s*avah/i,
-  /мэдээлэл\s*өг/i,
-  /medeelel\s*ug/i,
-  /dji.*мэдээлэл/i,
+  /мэдээл.*авах/i,
+  /medeelel.*avah/i,
+  /мэдээл.*авий/i,
+  /medeelel.*avii/i,
+  /мэдээл.*өг/i,
+  /medeelel.*ug/i,
+  /dji.*мэдээл/i,
+  /дрон.*мэдээл/i,
+  /мэдээл.*дрон/i,
+  // Sale / purchase condition in transliteration
+  /hudaldaalah/i,
+  /худалдах.*нөхцөл/i,
+  /нөхцөл.*худалдах/i,
+  /нухцул/i,
+  /nuhtsul/i,
   // Product type keywords — specific accessories / products
   /\bmic\b/i,
   /мик\b/i,
@@ -441,6 +463,12 @@ const PRODUCT_SEARCH = [
   /\bbnu\b/i,
   /\bbnuu\b/i,
   /\bavah\s*bolomjtoi\b/i,
+  // "How much is this" bare phrases → show drone carousel
+  /энэ.*хэд\s*(вэ|бэ)/i,
+  /энэ.*ямар\s*үнэ/i,
+  /ямар.*унаар.*вэ/i,
+  /дрон.*үнэ/i,
+  /үнэ.*дрон/i,
 ];
 
 // "Видео бичлэг хийх дрон" use-case → product_search (Дрон категори)
@@ -599,10 +627,22 @@ export function classifyIntent(message: string): Intent {
   if (matches(text, SHOW_PICTURES)) return "show_pictures";
   if (matches(text, WEBSITE_INFO)) return "website_info";
   if (matches(text, ORDER)) return "order_request";
+  
+  const hasProduct = containsProductKeyword(text);
+  
+  // If user mentions a specific product + price, it's a product search
+  if (hasProduct && matches(text, PRICE_INQUIRY)) return "product_search";
+
+  // If message has a purchase/browse context keyword (hudaldaalah, нөхцөл, etc.)
+  // route to product_search BEFORE the vague price_inquiry catch
+  if (matches(text, PRODUCT_SEARCH)) return "product_search";
+  
   // Check vague price inquiries BEFORE product_search to avoid false dumps
   if (matches(text, PRICE_INQUIRY)) return "price_inquiry";
+  
+  if (hasProduct) return "product_search";
+  
   if (matches(text, DRONE_USECASE)) return "product_search";
-  if (matches(text, PRODUCT_SEARCH)) return "product_search";
 
   return "unknown";
 }

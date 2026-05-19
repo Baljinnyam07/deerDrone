@@ -118,6 +118,40 @@ async function captureLead(
 }
 
 // ---------------------------------------------------------------------------
+// JSON repair — handles truncated AI output due to token cutoff
+// Closes any unclosed string and object so JSON.parse doesn't throw
+// ---------------------------------------------------------------------------
+function repairJson(raw: string): string {
+  let s = raw.trim();
+  // If it doesn't start with { it's not JSON at all
+  if (!s.startsWith("{")) return "{}";
+
+  // Count unclosed quotes to determine if we're inside a string
+  let inString = false;
+  let escaped = false;
+  for (const ch of s) {
+    if (escaped) { escaped = false; continue; }
+    if (ch === "\\") { escaped = true; continue; }
+    if (ch === "\"") inString = !inString;
+  }
+
+  // Close unterminated string first
+  if (inString) s += "\"";
+
+  // Close any unclosed arrays / objects
+  const opens = (s.match(/\[/g) || []).length - (s.match(/\]/g) || []).length;
+  const braces = (s.match(/\{/g) || []).length - (s.match(/\}/g) || []).length;
+
+  // Strip trailing comma before closing
+  s = s.replace(/,\s*$/, "");
+
+  for (let i = 0; i < opens; i++) s += "]";
+  for (let i = 0; i < braces; i++) s += "}";
+
+  return s;
+}
+
+// ---------------------------------------------------------------------------
 // AI fallback — only called for consultation / compare / unknown drone topics
 // ---------------------------------------------------------------------------
 async function callAI(
@@ -143,6 +177,7 @@ async function callAI(
     let prompt = basePrompt.replace("{productsContext}", productsContext);
     prompt += `\n\nЧУХАЛ ЗААВАР:
     - Хэрэглэгчтэй маш найрсаг, "амьд" харилцаа үүсгэ.
+    - Хэрэв хэрэглэгч ерөнхий үнэ эсвэл ямар дрон байгааг асуусан бол {productsContext}-д байгаа БҮХ бүтээгдэхүүнийг алгасалгүй, бүрэн жагсааж хариулаарай (товчлохгүйгээр).
     - Хэрэв хэрэглэгчийн хайсан онцгой зориулалтын бараа манайд байхгүй байвал "байхгүй" гэж шууд таслахын оронд, хамгийн ойр очих эсвэл өөр төстэй сайн загваруудыг ({productsContext}-д байгаа) санал болго.
     - Хариултдаа санал болгож буй барааны нэрийг заавал дурдаж, давуу талыг (heroNote) нь товч тайлбарла.
     - Хэрэглэгчийн асуугаагүй зүйлийг дурдах шаардлагагүй, зөвхөн асуултад нь яг тохируулж хариул.
@@ -160,7 +195,7 @@ async function callAI(
       model: "gpt-4o-mini",
       messages,
       response_format: { type: "json_object" },
-      max_tokens: 300,      // Hard cap — was 1000
+      max_tokens: 800,      // Increased — listing 10+ drones needs ~600 tokens
       temperature: 0.3,     // Lower = more deterministic = cheaper retries
     });
 
@@ -173,7 +208,7 @@ async function callAI(
 
     let parsed: z.infer<typeof AiResponseSchema>;
     try {
-      const json = JSON.parse(raw);
+      const json = JSON.parse(repairJson(raw));
       parsed = AiResponseSchema.parse(json);
     } catch (error) {
       console.error("AI Output Parse Error:", error);
@@ -228,8 +263,8 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   if (intent === "greeting") {
-    // Show featured / newest products (up to 6 for carousel)
-    const featured = await getFeaturedProductsTool(6);
+    // Show featured / newest products (up to 8 for carousel)
+    const featured = await getFeaturedProductsTool(8);
     const mapped = featured.map((p: any) => ({ ...p, heroNote: p.hero_note }));
     const cards = toChatCards(mapped);
     return reply(sessionId, STATIC.greeting, cards, CATEGORY_QUICK_REPLIES);
@@ -425,7 +460,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
         .from("products")
         .select("id, name, slug, price, hero_note, short_description, product_images(url)")
         .ilike("categories.name", `%${categoryKeyword}%`) // Note: this might need join
-        .limit(6);
+        .limit(8);
 
       // Since ilike on joined table categories.name might be tricky with Supabase JS sometimes 
       // without explicit join, let's use the tool we have or do a quick subquery
@@ -435,7 +470,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
           .from("products")
           .select("id, name, slug, price, hero_note, short_description, product_images(url)")
           .eq("category_id", cat.id)
-          .limit(6);
+          .limit(8);
 
         if (products && products.length > 0) {
           const cards = toChatCards(products);
@@ -444,8 +479,8 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
       }
     }
 
-    // No keyword match or category match → show featured products up to 6
-    const featured = await getFeaturedProductsTool(6);
+    // No keyword match or category match → show featured products up to 8
+    const featured = await getFeaturedProductsTool(8);
     if (featured.length === 0) return reply(sessionId, STATIC.noProducts, undefined, CATEGORY_QUICK_REPLIES);
     const mapped = featured.map((p: any) => ({ ...p, heroNote: p.hero_note }));
     const cards = toChatCards(mapped);
@@ -489,9 +524,9 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     intent === "compare_products" ||
     (intent === "unknown" && (looksLikeDroneRelated(message) || matched.length > 0))
   ) {
-    // Intercept ambiguous short numeric inputs (like "1") that would confuse the AI
-    if (intent === "unknown" && matched.length === 0 && /^\d+[\.\)]?$/.test(message.trim())) {
-      return reply(sessionId, STATIC.clarify);
+    // Intercept ambiguous short numeric inputs (like "1") or very short texts
+    if (intent === "unknown" && matched.length === 0 && (/^\d+[\.\)]?$/.test(message.trim()) || message.trim().length < 3)) {
+      return reply(sessionId, STATIC.priceInquiry, undefined, CATEGORY_QUICK_REPLIES);
     }
 
     // Get minimal context: try to match specific products first (1-3),
@@ -499,7 +534,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     const contextProducts =
       matched.length > 0
         ? matched.map((p) => ({ id: p.id, name: p.name, price: p.price, heroNote: p.heroNote }))
-        : await getMinimalCatalogContext(8);
+        : await getMinimalCatalogContext(30);
 
     const { reply: aiReply, cards: aiCards } = await callAI(
       sessionId,
