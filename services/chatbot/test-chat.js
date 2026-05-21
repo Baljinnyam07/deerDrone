@@ -37,9 +37,8 @@ async function testChat(message) {
 
 // Зарим туршилтын асуултууд - Бодит хэрэглэгчийн кэйсүүд
 const questions = [
-  "энэ хэд вэ",
-  "Дрон мэдээллүүд авий",
-  "vne hed we ? hudaldaalah nuhtsulvvd",
+  "drone hed ve",
+  "DJI NEO 2 FLYMORE COMBO"
 ];
 
 async function runTests() {
