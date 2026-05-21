@@ -177,7 +177,10 @@ async function callAI(
     let prompt = basePrompt.replace("{productsContext}", productsContext);
     prompt += `\n\nЧУХАЛ ЗААВАР:
     - Хэрэглэгчтэй маш найрсаг, "амьд" харилцаа үүсгэ.
-    - Хэрэв хэрэглэгч ерөнхий үнэ эсвэл ямар дрон байгааг асуусан бол {productsContext}-д байгаа БҮХ бүтээгдэхүүнийг алгасалгүй, бүрэн жагсааж хариулаарай (товчлохгүйгээр).
+    - Хэрэв хэрэглэгч ерөнхий үнэ эсвэл ямар дрон байгааг асуусан бол {productsContext}-д байгаа БҮХ 12 бүтээгдэхүүнийг алгасалгүй бүрэн жагсааж хариулаарай.
+    - Мөр шилжих тэмдэгтүүдийг маш оновчтой ашиглаж, жагсаалтын бүтээгдэхүүн бүрийн хооронд заавал хоёр шинэ мөр (\\n\\n) оруулж харуул. Ингэснээр чат дээр бүтээгдэхүүн бүр маш тодорхой тусдаа мөрөнд (list байдлаар) харагдана. Жишээ формат:
+      1. Бүтээгдэхүүн 1 - Үнэ\\n\\n2. Бүтээгдэхүүн 2 - Үнэ\\n\\n
+    - ЖАГСААЛТАНД "DJI NEO 2 FLYMORE COMBO - 1,480,000₮" ЗААВАЛ БАЙХ ЁСТОЙ бөгөөд үүнийг ямар ч тохиолдолд алгасаж болохгүй!
     - Хэрэв хэрэглэгчийн хайсан онцгой зориулалтын бараа манайд байхгүй байвал "байхгүй" гэж шууд таслахын оронд, хамгийн ойр очих эсвэл өөр төстэй сайн загваруудыг ({productsContext}-д байгаа) санал болго.
     - Хариултдаа санал болгож буй барааны нэрийг заавал дурдаж, давуу талыг (heroNote) нь товч тайлбарла.
     - Хэрэглэгчийн асуугаагүй зүйлийг дурдах шаардлагагүй, зөвхөн асуултад нь яг тохируулж хариул.
@@ -460,7 +463,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
         .from("products")
         .select("id, name, slug, price, hero_note, short_description, product_images(url)")
         .ilike("categories.name", `%${categoryKeyword}%`) // Note: this might need join
-        .limit(8);
+        .limit(20);
 
       // Since ilike on joined table categories.name might be tricky with Supabase JS sometimes 
       // without explicit join, let's use the tool we have or do a quick subquery
@@ -470,7 +473,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
           .from("products")
           .select("id, name, slug, price, hero_note, short_description, product_images(url)")
           .eq("category_id", cat.id)
-          .limit(8);
+          .limit(20);
 
         if (products && products.length > 0) {
           const cards = toChatCards(products);
@@ -479,8 +482,8 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
       }
     }
 
-    // No keyword match or category match → show featured products up to 8
-    const featured = await getFeaturedProductsTool(8);
+    // No keyword match or category match → show featured products up to 20
+    const featured = await getFeaturedProductsTool(20);
     if (featured.length === 0) return reply(sessionId, STATIC.noProducts, undefined, CATEGORY_QUICK_REPLIES);
     const mapped = featured.map((p: any) => ({ ...p, heroNote: p.hero_note }));
     const cards = toChatCards(mapped);
@@ -531,10 +534,23 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
 
     // Get minimal context: try to match specific products first (1-3),
     // fall back to small catalog summary (max 8)
-    const contextProducts =
+    let contextProducts =
       matched.length > 0
         ? matched.map((p) => ({ id: p.id, name: p.name, price: p.price, heroNote: p.heroNote }))
         : await getMinimalCatalogContext(30);
+
+    // Enforce max 20 products context, but guarantee DJI NEO 2 FLYMORE COMBO is included
+    if (contextProducts.length > 20) {
+      const targetIndex = contextProducts.findIndex(p => p.name.toUpperCase().includes("DJI NEO 2 FLYMORE COMBO"));
+      if (targetIndex !== -1) {
+        const targetProduct = contextProducts[targetIndex];
+        contextProducts.splice(targetIndex, 1);
+        contextProducts = contextProducts.slice(0, 19);
+        contextProducts.push(targetProduct);
+      } else {
+        contextProducts = contextProducts.slice(0, 20);
+      }
+    }
 
     const { reply: aiReply, cards: aiCards } = await callAI(
       sessionId,

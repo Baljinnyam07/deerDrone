@@ -149,7 +149,7 @@ export async function matchProducts(message: string): Promise<MatchedProduct[]> 
         .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
         .in("category_id", catIds)
         .ilike("name", `%${keyword}%`)
-        .limit(10);
+        .limit(20);
 
       if (byKeyword && byKeyword.length > 0) return normalise(byKeyword);
 
@@ -159,15 +159,15 @@ export async function matchProducts(message: string): Promise<MatchedProduct[]> 
         .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
         .in("category_id", catIds)
         .order("created_at", { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (allInCat && allInCat.length > 0) return normalise(allInCat);
     }
   }
 
   // Global fallback
-  const results = await searchProductsTool(keyword);
-  return normalise(results).slice(0, 10);
+  const results = await searchProductsTool(keyword, 20);
+  return normalise(results).slice(0, 20);
 }
 
 // ---------------------------------------------------------------------------
