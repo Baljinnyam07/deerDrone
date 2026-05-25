@@ -261,6 +261,11 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     return reply(sessionId, STATIC.spam);
   }
 
+  // Emoji-only messages (👍, ❤️, 😊 etc.) — show product/category menu
+  if (intent === "emoji_reaction") {
+    return reply(sessionId, STATIC.fallback, undefined, CATEGORY_QUICK_REPLIES);
+  }
+
   if (intent === "off_topic") {
     return reply(sessionId, STATIC.off_topic);
   }
@@ -355,8 +360,15 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   if (intent === "lease_request") {
-    await captureLead(sessionId, message, intent, "lease");
-    return reply(sessionId, STATIC.leaseAck);
+    const baseUrl = process.env.SITE_URL || "https://www.deerdrone.mn";
+    const rawImg = `${baseUrl}/aaaaaaa-01.jpg`;
+    const proxyImg = `https://wsrv.nl/?url=${encodeURIComponent(rawImg)}&w=1000&output=jpg`;
+
+    return {
+      sessionId,
+      reply: STATIC.loanInfo,
+      image: proxyImg
+    };
   }
 
   if (intent === "rental_request") {

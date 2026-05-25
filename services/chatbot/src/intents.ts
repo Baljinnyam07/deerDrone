@@ -6,6 +6,7 @@
 
 export type Intent =
   | "greeting"
+  | "emoji_reaction"
   | "off_topic"
   | "spam"
   | "product_search"
@@ -402,7 +403,7 @@ const PRICE_INQUIRY = [
 
 // Keywords that indicate a specific drone model or product name
 const PRODUCT_KEYWORDS = [
-  /neo/i, /mini/i, /mavic/i, /avata/i, /air/i, /phantom/i, /inspire/i, 
+  /neo/i, /mini/i, /mavic/i, /avata/i, /air/i, /phantom/i, /inspire/i,
   /agras/i, /matrice/i, /dji/i, /atom/i, /potensic/i
 ];
 
@@ -566,6 +567,19 @@ function matches(text: string, patterns: RegExp[]): boolean {
  * JavaScript's \W is ASCII-only and incorrectly treats Mongolian Cyrillic
  * characters as non-word characters, so we use \p{L} with the u flag instead.
  */
+/**
+ * Returns true if the message contains ONLY emoji/symbol characters
+ * (no Unicode letters or digits). e.g. 👍, ❤️, 😊, 🔥
+ */
+function isEmojiOnly(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  // Must have no Unicode letters or digits
+  if (/[\p{L}\d]/u.test(trimmed)) return false;
+  // Must contain at least one emoji character
+  return /\p{Emoji}/u.test(trimmed);
+}
+
 function isSpam(text: string): boolean {
   const trimmed = text.trim();
   if (!trimmed) return true;
@@ -575,7 +589,8 @@ function isSpam(text: string): boolean {
 
   // Empty / single char
   if (trimmed.length < 2) return true;
-  // No Unicode letter or digit at all (emoji-only, symbol-only, pure punctuation)
+  // No Unicode letter or digit at all (symbol-only, pure punctuation)
+  // NOTE: emoji-only is handled BEFORE isSpam via isEmojiOnly()
   // \p{L} with u flag correctly recognises Mongolian / Cyrillic as letters
   if (!/[\p{L}\d]/u.test(trimmed)) return true;
   // Single character repeated 5+ times (aaaaaaa, аааааааа, 111111)
@@ -596,6 +611,9 @@ function isSpam(text: string): boolean {
 export function classifyIntent(message: string): Intent {
   const text = message.trim();
   if (!text) return "spam";
+
+  // Emoji-only messages (👍, ❤️, 😊 etc.) — show product menu
+  if (isEmojiOnly(text)) return "emoji_reaction";
 
   if (isSpam(text)) return "spam";
   if (matches(text, GREETING)) return "greeting";
@@ -627,21 +645,21 @@ export function classifyIntent(message: string): Intent {
   if (matches(text, SHOW_PICTURES)) return "show_pictures";
   if (matches(text, WEBSITE_INFO)) return "website_info";
   if (matches(text, ORDER)) return "order_request";
-  
+
   const hasProduct = containsProductKeyword(text);
-  
+
   // If user mentions a specific product + price, it's a product search
   if (hasProduct && matches(text, PRICE_INQUIRY)) return "product_search";
 
   // If message has a purchase/browse context keyword (hudaldaalah, нөхцөл, etc.)
   // route to product_search BEFORE the vague price_inquiry catch
   if (matches(text, PRODUCT_SEARCH)) return "product_search";
-  
+
   // Check vague price inquiries BEFORE product_search to avoid false dumps
   if (matches(text, PRICE_INQUIRY)) return "price_inquiry";
-  
+
   if (hasProduct) return "product_search";
-  
+
   if (matches(text, DRONE_USECASE)) return "product_search";
 
   return "unknown";
