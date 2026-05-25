@@ -357,6 +357,15 @@ export async function handleWebhookEvent(event: any, pageToken: string, pageId?:
   // isEcho = true when: Facebook is_echo flag OR Instagram senderId === pageId
   if (isEcho) {
     const text = event.message?.text || "";
+
+    // ✅ Bot-ийн өөрийн илгээсэн мессежийг алгасах (app_id байгаа = bot илгээсэн)
+    // Human admin-ийн гараар бичсэн мессежид app_id байхгүй байдаг
+    const appId = event.message?.app_id;
+    if (appId) {
+      console.log(`[messenger] Ignoring bot-sent echo (app_id: ${appId})`);
+      return;
+    }
+
     // Facebook-ийн автомат хариултуудыг алгасах
     if (
       text.includes("Бид танд тун удахгүй мэдээлэл илгээнэ") || 
@@ -369,8 +378,6 @@ export async function handleWebhookEvent(event: any, pageToken: string, pageId?:
     }
 
     // Admin manually replied → pause bot for that customer for 10 minutes
-    // Facebook: recipientId = customer
-    // Instagram echo (senderId===pageId): recipientId = customer IGSID
     const recipientId = event.message?.recipient?.id ?? event.recipient?.id;
     if (recipientId) {
       console.log(`[messenger] Admin replied. Pausing bot for recipient=${recipientId}`);
@@ -386,50 +393,65 @@ export async function handleWebhookEvent(event: any, pageToken: string, pageId?:
     return;
   }
 
+  // ── Helper: like-д хариу өгөх ────────────────────────────────────────────
+  const CATEGORY_QUICK_REPLIES = [
+    { title: "Дрон", payload: "Дрон" },
+    { title: "Камер", payload: "Камер" },
+    { title: "Гар төхөөрөмж", payload: "Гар төхөөрөмж" },
+    { title: "Дагалдах хэрэгсэл", payload: "Дагалдах хэрэгсэл" },
+  ];
+
+  async function respondToLike() {
+    // Bot паузтай байвал хариу өгөхгүй
+    if (redis) {
+      const isPaused = await redis.get(`bot_paused_${senderId}`);
+      if (isPaused) { console.log(`[messenger] Paused. Ignoring like.`); return; }
+    } else {
+      const unpauseTime = botPausedState.get(senderId);
+      if (unpauseTime && Date.now() < unpauseTime) { console.log(`[messenger] Paused (mem). Ignoring like.`); return; }
+      else if (unpauseTime) botPausedState.delete(senderId);
+    }
+    await sendTyping(senderId, token);
+    await sendMessage(senderId, STATIC.fallback, token, CATEGORY_QUICK_REPLIES);
+  }
+
+  // ── Facebook Reaction event (long-press emoji reaction) ──────────────────
+  // event.reaction нь event.message-гүйгээр ТУСДАА event-ийн хэлбэрт ирдэг!
+  // { sender: {id}, reaction: { action: "react", reaction: "like", emoji: "👍" } }
+  if (event.reaction) {
+    const reactionType = event.reaction.reaction;
+    const reactionAction = event.reaction.action;
+    console.log("REACTION_EVENT", { senderId, reactionType, reactionAction });
+    // "react" = шинэ reaction, "unreact" = reaction буцаасан
+    if (reactionAction === "react" && (reactionType === "like" || reactionType === "thumbsup" || reactionType === "👍")) {
+      await respondToLike();
+    }
+    return;
+  }
+
   // ── Facebook native "Like" button (цэнхэр default like/thumb) ───────────
   // Facebook-ийн цэнхэр like товч дарахад text биш sticker/attachment ирдэг
   // Sticker ID-нууд: 369239263222822 (жижиг), 369239343222814 (дунд), 369239383222810 (том)
-  const FACEBOOK_LIKE_STICKER_IDS = [369239263222822, 369239343222814, 369239383222810];
+  const FACEBOOK_LIKE_STICKER_IDS = ["369239263222822", "369239343222814", "369239383222810"];
+  
+  const msgStickerId = event.message?.sticker_id?.toString();
+  const hasStickerAttachment = event.message?.attachments?.some((a: any) => {
+    const sId = a.payload?.sticker_id?.toString();
+    return sId && FACEBOOK_LIKE_STICKER_IDS.includes(sId);
+  });
+
   const isNativeLike =
     !event.message?.is_echo &&
     event.message &&
-    !event.message.text &&
     (
-      (event.message.sticker_id && FACEBOOK_LIKE_STICKER_IDS.includes(event.message.sticker_id)) ||
-      event.message.attachments?.some((a: any) => a.type === "like_heart") ||
-      // Instagram-д "liked a message" reaction ирдэг тул нэмэлт шалгалт
-      event.reaction?.reaction === "like"
+      (msgStickerId && FACEBOOK_LIKE_STICKER_IDS.includes(msgStickerId)) ||
+      hasStickerAttachment ||
+      event.message.attachments?.some((a: any) => a.type === "like_heart")
     );
 
   if (isNativeLike) {
-    console.log("NATIVE_LIKE", { senderId });
-
-    // Check if bot is paused
-    if (redis) {
-      const isPaused = await redis.get(`bot_paused_${senderId}`);
-      if (isPaused) {
-        console.log(`[messenger] Bot is paused for ${senderId}. Ignoring like.`);
-        return;
-      }
-    } else {
-      const unpauseTime = botPausedState.get(senderId);
-      if (unpauseTime && Date.now() < unpauseTime) {
-        console.log(`[messenger] Bot is paused (mem) for ${senderId}. Ignoring like.`);
-        return;
-      } else if (unpauseTime) {
-        botPausedState.delete(senderId);
-      }
-    }
-
-    await sendTyping(senderId, token);
-    // Like = emoji_reaction гэж үзнэ → fallback + category menu
-    const CATEGORY_QUICK_REPLIES = [
-      { title: "Дрон", payload: "Дрон" },
-      { title: "Камер", payload: "Камер" },
-      { title: "Гар төхөөрөмж", payload: "Гар төхөөрөмж" },
-      { title: "Дагалдах хэрэгсэл", payload: "Дагалдах хэрэгсэл" },
-    ];
-    await sendMessage(senderId, STATIC.fallback, token, CATEGORY_QUICK_REPLIES);
+    console.log("NATIVE_LIKE_STICKER", { senderId, stickerId: event.message.sticker_id });
+    await respondToLike();
     return;
   }
 
