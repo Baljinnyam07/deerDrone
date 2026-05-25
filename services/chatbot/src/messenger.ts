@@ -386,6 +386,53 @@ export async function handleWebhookEvent(event: any, pageToken: string, pageId?:
     return;
   }
 
+  // ── Facebook native "Like" button (цэнхэр default like/thumb) ───────────
+  // Facebook-ийн цэнхэр like товч дарахад text биш sticker/attachment ирдэг
+  // Sticker ID-нууд: 369239263222822 (жижиг), 369239343222814 (дунд), 369239383222810 (том)
+  const FACEBOOK_LIKE_STICKER_IDS = [369239263222822, 369239343222814, 369239383222810];
+  const isNativeLike =
+    !event.message?.is_echo &&
+    event.message &&
+    !event.message.text &&
+    (
+      (event.message.sticker_id && FACEBOOK_LIKE_STICKER_IDS.includes(event.message.sticker_id)) ||
+      event.message.attachments?.some((a: any) => a.type === "like_heart") ||
+      // Instagram-д "liked a message" reaction ирдэг тул нэмэлт шалгалт
+      event.reaction?.reaction === "like"
+    );
+
+  if (isNativeLike) {
+    console.log("NATIVE_LIKE", { senderId });
+
+    // Check if bot is paused
+    if (redis) {
+      const isPaused = await redis.get(`bot_paused_${senderId}`);
+      if (isPaused) {
+        console.log(`[messenger] Bot is paused for ${senderId}. Ignoring like.`);
+        return;
+      }
+    } else {
+      const unpauseTime = botPausedState.get(senderId);
+      if (unpauseTime && Date.now() < unpauseTime) {
+        console.log(`[messenger] Bot is paused (mem) for ${senderId}. Ignoring like.`);
+        return;
+      } else if (unpauseTime) {
+        botPausedState.delete(senderId);
+      }
+    }
+
+    await sendTyping(senderId, token);
+    // Like = emoji_reaction гэж үзнэ → fallback + category menu
+    const CATEGORY_QUICK_REPLIES = [
+      { title: "Дрон", payload: "Дрон" },
+      { title: "Камер", payload: "Камер" },
+      { title: "Гар төхөөрөмж", payload: "Гар төхөөрөмж" },
+      { title: "Дагалдах хэрэгсэл", payload: "Дагалдах хэрэгсэл" },
+    ];
+    await sendMessage(senderId, STATIC.fallback, token, CATEGORY_QUICK_REPLIES);
+    return;
+  }
+
   if (event.message?.text && !event.message.is_echo) {
     const text: string = event.message.text;
     const mid: string = event.message.mid;

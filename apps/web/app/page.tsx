@@ -2,11 +2,6 @@ import { getProducts, getSiteSettings, getCategories } from "../lib/supabase/que
 import { CategoryCircleGrid } from "../components/category/category-circle-grid";
 import { HeroSection } from "../components/home/hero-section";
 
-const CLOUD_NAME = "dx3ymrxfs";
-
-function cldVideo(publicId: string, width: number) {
-  return `https://res.cloudinary.com/${CLOUD_NAME}/video/upload/f_auto,q_auto,w_${width}/${publicId}.mp4`;
-}
 
 export default async function HomePage() {
   const [products, settings, categories] = await Promise.all([
@@ -22,28 +17,10 @@ export default async function HomePage() {
     featured[1] ||
     featured[0];
 
-  // Cloudinary fallback URLs
-  const fallbackVideos = {
-    home_hero: cldVideo(
-      "F75_WA150__DJI_home_page_Shot_on_Video_CLEAN_2400x1440_N_N_ulf8s0",
-      1600
-    ),
-    home_showcase_main: cldVideo(
-      "F81_OW001__E2_89_A410s_DJI_home_page_Shot_on_Video_CLEAN_2400x1440_N_N_zr8flp",
-      1400
-    ),
-    // 3 дахь side video-ны public id одоохондоо ирээгүй тул түр hero-г fallback болгож байна
-    home_showcase_side: cldVideo(
-      "F75_WA150__DJI_home_page_Shot_on_Video_CLEAN_2400x1440_N_N_ulf8s0",
-      900
-    ),
-  };
-
-  const heroVideo = settings.home_hero || fallbackVideos.home_hero;
-  const showcaseMainVideo =
-    settings.home_showcase_main || fallbackVideos.home_showcase_main;
-  const showcaseSideVideo =
-    settings.home_showcase_side || fallbackVideos.home_showcase_side;
+  // Static video URLs
+  const heroVideo = "https://pub-d35869f82a8446f7ae9101d79069e8b1.r2.dev/M77_WA150_30s_EN_1920x1080.mp4";
+  const showcaseMainVideo = "https://res.cloudinary.com/dx3ymrxfs/video/upload/f_auto,q_auto,w_1400/F81_OW001__E2_89_A410s_DJI_home_page_Shot_on_Video_CLEAN_2400x1440_N_N_zr8flp.mp4";
+  const showcaseSideVideo = "https://pub-d35869f82a8446f7ae9101d79069e8b1.r2.dev/M17_WA020_30s_EN_1080x1920.mp4";
 
   return (
     <div
