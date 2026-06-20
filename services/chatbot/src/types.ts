@@ -33,5 +33,6 @@ export interface ChatResponse {
   cards?: ChatCardProduct[];
   lead?: Partial<ChatLead>;
   image?: string;
+  video?: string;
   quickReplies?: { title: string; payload: string }[];
 }

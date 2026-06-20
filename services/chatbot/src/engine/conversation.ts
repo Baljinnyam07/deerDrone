@@ -288,7 +288,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   if (intent === "address") {
-    return reply(sessionId, STATIC.address);
+    return reply(sessionId, STATIC.address, undefined, undefined, "https://res.cloudinary.com/dx3ymrxfs/video/upload/q_auto,vc_h264,br_500k/v1781943142/IMG_7777_foedhx.mp4");
   }
 
   if (intent === "repair") {
@@ -593,13 +593,15 @@ function reply(
   sessionId: string,
   text: string,
   cards?: any[],
-  quickReplies?: { title: string; payload: string }[]
+  quickReplies?: { title: string; payload: string }[],
+  video?: string
 ): ChatResponse {
   return {
     sessionId,
     reply: text,
     cards: cards && cards.length > 0 ? cards : undefined,
-    quickReplies
+    quickReplies,
+    video,
   };
 }
 

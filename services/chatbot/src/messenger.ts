@@ -131,6 +131,40 @@ export async function sendImage(senderId: string, imageUrl: string, token: strin
 }
 
 // ---------------------------------------------------------------------------
+// Video sender
+// ---------------------------------------------------------------------------
+export async function sendVideo(senderId: string, videoUrl: string, token: string) {
+  if (!token || !videoUrl) return;
+  console.log("[sendVideo] Sending video:", videoUrl);
+  try {
+    const response = await fetch(`${BASE_URL}/messages?access_token=${token}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipient: { id: senderId },
+        message: {
+          attachment: {
+            type: "video",
+            payload: {
+              url: videoUrl,
+              is_reusable: true,
+            },
+          },
+        },
+      }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error("[sendVideo] Facebook API error:", JSON.stringify(err));
+    } else {
+      console.log("[sendVideo] Success");
+    }
+  } catch (err) {
+    console.error("sendVideo error:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Button template sender — shows a URL as a tappable button in Messenger
 // ---------------------------------------------------------------------------
 export async function sendButtonTemplate(
@@ -509,6 +543,9 @@ export async function handleWebhookEvent(event: any, pageToken: string, pageId?:
       }
       if (response.image) {
         await sendImage(senderId, response.image, token);
+      }
+      if (response.video) {
+        await sendVideo(senderId, response.video, token);
       }
       if (response.cards && response.cards.length > 0) {
         await sendProductCarousel(senderId, response.cards, token);

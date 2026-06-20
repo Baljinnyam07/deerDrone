@@ -403,7 +403,7 @@ const PRICE_INQUIRY = [
 
 // Keywords that indicate a specific drone model or product name
 const PRODUCT_KEYWORDS = [
-  /neo/i, /mini/i, /mavic/i, /avata/i, /air/i, /phantom/i, /inspire/i,
+  /neo/i, /mini/i, /mavic/i, /avata/i, /air/i, /phantom/i, /inspire/i, 
   /agras/i, /matrice/i, /dji/i, /atom/i, /potensic/i
 ];
 
@@ -498,6 +498,14 @@ const CHEAPEST_DRONE = [
   /дрон.*хямд/i,
   /хямдхан\s*дрон/i,
   /хямдхан.*дрон/i,
+  /hamgiin\s*hyamd.*dron/i,
+  /hamgiin\s*hymd.*dron/i,
+  /hyamd.*dron/i,
+  /hymd.*dron/i,
+  /dron.*hyamd/i,
+  /dron.*hymd/i,
+  /hyamdhan\s*dron/i,
+  /hymdhan\s*dron/i,
   /cheapest\s*drone/i,
   /budget\s*drone/i,
   /хамгийн\s*(бага|доод)\s*үнэтэй\s*дрон/i,
@@ -509,6 +517,14 @@ const CHEAPEST_ACCESSORY = [
   /дагалдах.*хямд/i,
   /хямдхан.*дагалдах/i,
   /хамгийн\s*хямд.*хэрэгсэл/i,
+  /hamgiin\s*hyamd.*dagaldah/i,
+  /hamgiin\s*hymd.*dagaldah/i,
+  /hyamd.*dagaldah/i,
+  /hymd.*dagaldah/i,
+  /dagaldah.*hyamd/i,
+  /dagaldah.*hymd/i,
+  /hyamdhan.*dagaldah/i,
+  /hymdhan.*dagaldah/i,
   /cheapest\s*accessor/i,
 ];
 
@@ -518,6 +534,14 @@ const CHEAPEST_CAMERA = [
   /камер.*хямд/i,
   /хямдхан.*камер/i,
   /хамгийн\s*(бага|доод)\s*үнэтэй\s*камер/i,
+  /hamgiin\s*hyamd.*kamer/i,
+  /hamgiin\s*hymd.*kamer/i,
+  /hyamd.*kamer/i,
+  /hymd.*kamer/i,
+  /kamer.*hyamd/i,
+  /kamer.*hymd/i,
+  /hyamdhan.*kamer/i,
+  /hymdhan.*kamer/i,
   /cheapest\s*camera/i,
 ];
 
@@ -526,6 +550,14 @@ const CHEAPEST_HANDHELD = [
   /хямд.*гар\s*төхөөрөмж/i,
   /гар\s*төхөөрөмж.*хямд/i,
   /хямдхан.*гар\s*төхөөрөмж/i,
+  /hamgiin\s*hyamd.*gar/i,
+  /hamgiin\s*hymd.*gar/i,
+  /hyamd.*gar/i,
+  /hymd.*gar/i,
+  /gar.*hyamd/i,
+  /gar.*hymd/i,
+  /hyamdhan.*gar/i,
+  /hymdhan.*gar/i,
   /cheapest\s*(handheld|gimbal|stabilizer)/i,
 ];
 
@@ -645,21 +677,21 @@ export function classifyIntent(message: string): Intent {
   if (matches(text, SHOW_PICTURES)) return "show_pictures";
   if (matches(text, WEBSITE_INFO)) return "website_info";
   if (matches(text, ORDER)) return "order_request";
-
+  
   const hasProduct = containsProductKeyword(text);
-
+  
   // If user mentions a specific product + price, it's a product search
   if (hasProduct && matches(text, PRICE_INQUIRY)) return "product_search";
 
   // If message has a purchase/browse context keyword (hudaldaalah, нөхцөл, etc.)
   // route to product_search BEFORE the vague price_inquiry catch
   if (matches(text, PRODUCT_SEARCH)) return "product_search";
-
+  
   // Check vague price inquiries BEFORE product_search to avoid false dumps
   if (matches(text, PRICE_INQUIRY)) return "price_inquiry";
-
+  
   if (hasProduct) return "product_search";
-
+  
   if (matches(text, DRONE_USECASE)) return "product_search";
 
   return "unknown";
