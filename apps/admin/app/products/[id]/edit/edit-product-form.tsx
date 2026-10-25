@@ -21,6 +21,7 @@ export function EditProductForm({ categories, initialProduct }: { categories: an
     description: initialProduct.description || "",
     hero_note: initialProduct.hero_note || "",
     is_leasable: initialProduct.is_leasable,
+    search_keywords: initialProduct.search_keywords || "",
   });
   const defaultSpecs = Array.isArray(initialProduct?.specs) && initialProduct.specs.length > 0
     ? [...initialProduct.specs]
@@ -135,6 +136,16 @@ export function EditProductForm({ categories, initialProduct }: { categories: an
               placeholder="Мөр тус бүрээр мэдээллээ оруулбал web дээр зөв форматтай харагдана."
             />
           </div>
+          <div>
+            <label style={labelStyle}>ХАЙЛТЫН ТҮЛХҮҮР ҮГ</label>
+            <textarea
+              style={{ ...inputStyle, minHeight: "70px" }}
+              value={form.search_keywords}
+              onChange={(e) => setForm({ ...form, search_keywords: e.target.value })}
+              placeholder="Таслалаар тусгаарлана. Жишээ: шилэн наалт, дэлгэц хамгаалагч, хатуу цүнх"
+            />
+            <p style={hintStyle}>Хэрэглэгч эдгээр үгээр хайхад (вэб сайт болон чатбот) энэ бараа гарч ирнэ.</p>
+          </div>
       </div>
 
       <div>
@@ -227,3 +238,4 @@ export function EditProductForm({ categories, initialProduct }: { categories: an
 
 const inputStyle = { width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" };
 const labelStyle = { display: "block", marginBottom: "6px", fontSize: "0.8rem", color: "#666" };
+const hintStyle = { marginTop: "6px", fontSize: "0.75rem", color: "#94a3b8" };

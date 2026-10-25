@@ -96,7 +96,18 @@ const CATEGORY_BANNERS: Record<
     desc: "Portable motion tools made for smooth, high-quality visual storytelling.",
     brands: [
       { src: "https://cdn.jsdelivr.net/npm/simple-icons@v16/icons/dji.svg", alt: "DJI", width: 48, height: 18 },
-      
+
+    ],
+  },
+  power: {
+    // DJI POWER 1000 MINI product photo
+    image:
+      "https://ik.imagekit.io/deerDrone/products/DPOW014_-_DJI_Power_1000_Mini_-_Tragbare_1000Wh_Powerstation_-_Bild_1_1920x1920_ZrcXcL_ze.jpg",
+    title: "POWER",
+    position: "center 50%",
+    desc: "Portable power stations that keep your gear charged in the field and at home.",
+    brands: [
+      { src: "https://cdn.jsdelivr.net/npm/simple-icons@v16/icons/dji.svg", alt: "DJI", width: 48, height: 18 },
     ],
   },
 };

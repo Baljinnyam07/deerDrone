@@ -20,11 +20,16 @@ import type { ChatRequest, ChatResponse } from "../types.js";
 import { OpenAI } from "openai";
 import { classifyIntent, looksLikeDroneRelated, type Intent } from "../intents.js";
 import { STATIC } from "../constants/staticResponses.js";
+import { resolveCategory } from "../categoryAliases.js";
 import { systemPrompt } from "../prompts/system.js";
 import {
   matchProducts,
+  matchByKeywords,
+  getProductsByCategory,
+  getSpecsSummary,
   getMinimalCatalogContext,
   getProductsByIds,
+  type MatchedProduct,
 } from "../productMatcher.js";
 import {
   captureLeadTool,
@@ -60,11 +65,60 @@ const AiResponseSchema = z.object({
   suggested_product_ids: z.array(z.union([z.string(), z.object({ id: z.string() })])).optional(),
 }).catchall(z.any());
 
+// ---------------------------------------------------------------------------
+// Product context sent to the AI
+// ---------------------------------------------------------------------------
+type ContextProduct = {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  heroNote: string;
+  specs?: string;
+};
+
+function toContextProduct(p: MatchedProduct): ContextProduct {
+  return {
+    id: p.id,
+    name: p.name.trim(),
+    category: p.categories?.name ?? "",
+    price: p.price,
+    description: (p.short_description ?? "").slice(0, 160),
+    heroNote: p.heroNote,
+  };
+}
+
+/**
+ * True when the message is made of whole words of the product name, or equals a run of
+ * consecutive name words with spaces dropped: "osmo360" ↔ "DJI OSMO 360", "lito x1" ↔
+ * "DJI LITO X1 …". Not true for a fragment inside a word: "camer" ↔ "camera lens protector".
+ */
+function isWholeNameMatch(message: string, name: string): boolean {
+  const norm = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  const msg = norm(message);
+  const words = norm(name).split(" ");
+  if (!msg) return false;
+
+  if (msg.split(" ").every((t) => words.includes(t))) return true;
+
+  const compact = msg.replace(/ /g, "");
+  for (let i = 0; i < words.length; i++) {
+    let run = "";
+    for (let j = i; j < words.length && run.length < compact.length; j++) {
+      run += words[j];
+      if (run === compact) return true;
+    }
+  }
+  return false;
+}
+
 const CATEGORY_QUICK_REPLIES = [
   { title: "Дрон", payload: "Дрон" },
   { title: "Камер", payload: "Камер" },
   { title: "Гар төхөөрөмж", payload: "Гар төхөөрөмж" },
-  { title: "Дагалдах хэрэгсэл", payload: "Дагалдах хэрэгсэл" }
+  { title: "Дагалдах хэрэгсэл", payload: "Дагалдах хэрэгсэл" },
+  { title: "Power", payload: "Power" }
 ];
 
 // ---------------------------------------------------------------------------
@@ -158,10 +212,10 @@ async function callAI(
   sessionId: string,
   message: string,
   intent: Intent,
-  contextProducts: { id: string; name: string; price: number; heroNote: string }[]
-): Promise<{ reply: string; cards: any[] }> {
+  contextProducts: ContextProduct[]
+): Promise<{ reply: string; cards: any[]; needsClarification: boolean }> {
   if (!openai) {
-    return { reply: STATIC.llmNotConfigured, cards: [] };
+    return { reply: STATIC.llmNotConfigured, cards: [], needsClarification: false };
   }
 
   try {
@@ -175,17 +229,15 @@ async function callAI(
         ? JSON.stringify(contextProducts)
         : "[]";
     let prompt = basePrompt.replace("{productsContext}", productsContext);
-    prompt += `\n\nЧУХАЛ ЗААВАР:
-    - Хэрэглэгчтэй маш найрсаг, "амьд" харилцаа үүсгэ.
-    - Хэрэв хэрэглэгч ерөнхий үнэ эсвэл ямар дрон байгааг асуусан бол {productsContext}-д байгаа БҮХ 12 бүтээгдэхүүнийг алгасалгүй бүрэн жагсааж хариулаарай.
-    - Мөр шилжих тэмдэгтүүдийг маш оновчтой ашиглаж, жагсаалтын бүтээгдэхүүн бүрийн хооронд заавал хоёр шинэ мөр (\\n\\n) оруулж харуул. Ингэснээр чат дээр бүтээгдэхүүн бүр маш тодорхой тусдаа мөрөнд (list байдлаар) харагдана. Жишээ формат:
-      1. Бүтээгдэхүүн 1 - Үнэ\\n\\n2. Бүтээгдэхүүн 2 - Үнэ\\n\\n
-    - ЖАГСААЛТАНД "DJI NEO 2 FLYMORE COMBO - 1,480,000₮" ЗААВАЛ БАЙХ ЁСТОЙ бөгөөд үүнийг ямар ч тохиолдолд алгасаж болохгүй!
-    - Хэрэв хэрэглэгчийн хайсан онцгой зориулалтын бараа манайд байхгүй байвал "байхгүй" гэж шууд таслахын оронд, хамгийн ойр очих эсвэл өөр төстэй сайн загваруудыг ({productsContext}-д байгаа) санал болго.
-    - Хариултдаа санал болгож буй барааны нэрийг заавал дурдаж, давуу талыг (heroNote) нь товч тайлбарла.
-    - Хэрэглэгчийн асуугаагүй зүйлийг дурдах шаардлагагүй, зөвхөн асуултад нь яг тохируулж хариул.
-    
-    Та зөвхөн дараах JSON форматаар хариулах ёстой: {"message": "таны хариулт...", "suggested_product_ids": ["id1", "id2"]}. Өөр ямар ч бүтэц ашиглаж болохгүй!`;
+    // Appended after any admin prompt so these grounding rules always apply
+    prompt += `\n\nЧУХАЛ ДҮРЭМ (дээрх бүх зааврыг давна):
+    - Бүтээгдэхүүний жагсаалтад зөвхөн дрон биш — камер, гар төхөөрөмж, дагалдах хэрэгсэл, Power зэрэг янз бүрийн ангиллын бараа байна. Бараа бүр юу болохыг "category" болон "description" талбараас нь тодорхойл. Дагалдах хэрэгслийг (линз хамгаалагч, цүнх, сэнс г.м.) хэзээ ч дрон гэж бүү нэрлэ.
+    - Зөвхөн жагсаалтад өгөгдсөн мэдээлэлд (name, category, description, price, heroNote, specs) үндэслэж хариул. Жагсаалтад байхгүй онцлог, үзүүлэлт, бараа, үнийг бүү зохио.
+    - Зөвхөн хэрэглэгчийн асуултад шууд хамаарах барааг санал болго. Асуултад хамааралгүй барааг нэмж бүү жагсаа.
+    - Хэрэглэгчийн асуулт тодорхойгүй эсвэл жагсаалтын аль ч бараа асуултад нь тохирохгүй бол ТААМАГЛАЖ БҮҮ ХАРИУЛ. Оронд нь нэг богино тодруулах асуулт асуу (жишээ нь: "Та дрон, камер, гар төхөөрөмж, дагалдах хэрэгслийн алийг нь сонирхож байна вэ?"), suggested_product_ids = [], needs_clarification = true.
+    - Найрсаг, товч, хүн шиг хариул. Messenger markdown харуулдаггүй тул **, # зэрэг тэмдэг бүү ашигла. Олон бараа жагсаахдаа бараа бүрийг "1. Нэр - Үнэ₮" хэлбэрээр, хооронд нь хоёр шинэ мөр (\\n\\n) тавьж бич.
+
+    Зөвхөн дараах JSON форматаар хариул: {"message": "таны хариулт...", "suggested_product_ids": ["id1"], "needs_clarification": false}. Өөр бүтэц ашиглаж болохгүй!`;
 
     const history = await getHistory(sessionId);
     const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
@@ -215,7 +267,7 @@ async function callAI(
       parsed = AiResponseSchema.parse(json);
     } catch (error) {
       console.error("AI Output Parse Error:", error);
-      return { reply: STATIC.fallback, cards: [] };
+      return { reply: STATIC.fallback, cards: [], needsClarification: false };
     }
 
     let reply =
@@ -223,6 +275,9 @@ async function callAI(
       parsed.response ||
       parsed.reply ||
       STATIC.fallback;
+
+    // Messenger shows markdown literally; the prompt asks for none but the model slips
+    reply = reply.replace(/\*\*/g, "").replace(/^#+\s*/gm, "");
 
     // Resolve any AI-suggested product IDs to cards
     const suggestedIds: string[] = Array.isArray(parsed.suggested_product_ids)
@@ -232,16 +287,18 @@ async function callAI(
         .slice(0, 3)
       : [];
 
+    const needsClarification = parsed.needs_clarification === true;
+
     let cards: any[] = [];
-    if (suggestedIds.length > 0) {
+    if (suggestedIds.length > 0 && !needsClarification) {
       const found = await getProductsByIds(suggestedIds);
       cards = toChatCards(found);
     }
 
-    return { reply, cards };
+    return { reply, cards, needsClarification };
   } catch (err) {
     console.error("OpenAI error:", err);
-    return { reply: STATIC.systemError, cards: [] };
+    return { reply: STATIC.systemError, cards: [], needsClarification: false };
   }
 }
 
@@ -268,6 +325,22 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
 
   if (intent === "off_topic") {
     return reply(sessionId, STATIC.off_topic);
+  }
+
+  // Bare category word, incl. Latin/typo variants ("Camer", "dron", "Gar tuhuurumj")
+  // → that category's products. Prevents a stray name hit (e.g. "camera lens protector")
+  // from reaching the AI with misleading context.
+  const category = resolveCategory(message);
+  if (category) {
+    const products = await getProductsByCategory(category);
+    if (products.length > 0) {
+      return reply(
+        sessionId,
+        `Манайд дараах ${category === "Power" ? "Power бүтээгдэхүүн" : category.toLowerCase()} бэлэн байна 👇`,
+        toChatCards(products),
+        CATEGORY_QUICK_REPLIES
+      );
+    }
   }
 
   if (intent === "greeting") {
@@ -304,7 +377,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
   }
 
   if (intent === "accessories_info") {
-    const matched = await matchProducts(message);
+    const matched = await matchProducts(message, { accessoryContext: true });
     if (matched.length > 0) {
       const siteUrl = process.env.SITE_URL || "https://www.deerdrone.mn";
       const cards = toChatCards(matched);
@@ -465,7 +538,8 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
     // by checking if the user mentioned a category name
     const lower = message.toLowerCase();
     let categoryKeyword = "";
-    if (lower.includes("камер") || lower.includes("camera") || lower.includes("kamer")) categoryKeyword = "Камер";
+    if (lower.includes("power") || lower.includes("пауэр")) categoryKeyword = "Power";
+    else if (lower.includes("камер") || lower.includes("camera") || lower.includes("kamer")) categoryKeyword = "Камер";
     else if (lower.includes("дагалдах") || lower.includes("accessory") || lower.includes("mic") || lower.includes("цүнх")) categoryKeyword = "Дагалдах хэрэгсэл";
     else if (lower.includes("гар төхөөрөмж") || lower.includes("handheld") || lower.includes("gimbal")) categoryKeyword = "Гар төхөөрөмж";
     else if (lower.includes("дрон") || lower.includes("dron") || lower.includes("drone")) categoryKeyword = "Дрон";
@@ -531,6 +605,14 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
 
   // ── Step 5: AI fallback — consultation, compare, or unknown drone topic ─
 
+  // Admin search keywords hit (e.g. "шилэн наалт", "хатуу цүнх") → show cards directly, no AI
+  if (intent === "unknown") {
+    const keywordHits = await matchByKeywords(message);
+    if (keywordHits.length > 0) {
+      return reply(sessionId, STATIC.productsIntro, toChatCards(keywordHits), CATEGORY_QUICK_REPLIES);
+    }
+  }
+
   // Try to match products first to see if it's drone-related even if keywords miss
   const matched = await matchProducts(message);
 
@@ -544,27 +626,47 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
       return reply(sessionId, STATIC.priceInquiry, undefined, CATEGORY_QUICK_REPLIES);
     }
 
-    // Get minimal context: try to match specific products first (1-3),
-    // fall back to small catalog summary (max 8)
-    let contextProducts =
-      matched.length > 0
-        ? matched.map((p) => ({ id: p.id, name: p.name, price: p.price, heroNote: p.heroNote }))
-        : await getMinimalCatalogContext(30);
-
-    // Enforce max 20 products context, but guarantee DJI NEO 2 FLYMORE COMBO is included
-    if (contextProducts.length > 20) {
-      const targetIndex = contextProducts.findIndex(p => p.name.toUpperCase().includes("DJI NEO 2 FLYMORE COMBO"));
-      if (targetIndex !== -1) {
-        const targetProduct = contextProducts[targetIndex];
-        contextProducts.splice(targetIndex, 1);
-        contextProducts = contextProducts.slice(0, 19);
-        contextProducts.push(targetProduct);
-      } else {
-        contextProducts = contextProducts.slice(0, 20);
+    // Weak match: a short message that isn't a known intent/category/keyword and only
+    // hit a product name by substring (e.g. "Camer" → "camera lens protector").
+    // Ask instead of letting the AI guess from misleading context.
+    // A whole-word / model-name hit ("osmo360" → "OSMO 360", "lito x1") is strong → show it.
+    const wordCount = message.trim().split(/\s+/).length;
+    if (intent === "unknown" && matched.length > 0 && wordCount <= 2) {
+      const strong = matched.filter((p) => isWholeNameMatch(message, p.name));
+      if (strong.length > 0) {
+        return reply(sessionId, STATIC.productsIntro, toChatCards(strong), CATEGORY_QUICK_REPLIES);
+      }
+      if (!looksLikeDroneRelated(message)) {
+        return reply(sessionId, STATIC.clarifyProduct, undefined, CATEGORY_QUICK_REPLIES);
       }
     }
 
-    const { reply: aiReply, cards: aiCards } = await callAI(
+    // Context: matched products, else a catalog summary. Each carries its category and
+    // description so the AI knows what the item actually is.
+    // Comparisons need every model mentioned, but matchProducts stops at the first
+    // alias ("Mini 5 Pro vs Air 3S" → minis only), so give the whole drone line-up.
+    const base =
+      intent === "compare_products"
+        ? [...matched, ...(await getProductsByCategory("Дрон", 20))]
+        : matched;
+    const seen = new Set<string>();
+    const contextProducts: ContextProduct[] = (
+      base.length > 0
+        ? base.filter((p) => !seen.has(p.id) && seen.add(p.id)).map(toContextProduct)
+        : await getMinimalCatalogContext(20)
+    ).slice(0, 20);
+
+    // Real specs so comparisons / technical answers come from data, not the model's memory
+    // Always attached: without them the AI wrongly said no drone flies 10 km+ (Air 3S does)
+    {
+      const specs = await getSpecsSummary(contextProducts.map((p) => p.id), 12);
+      for (const p of contextProducts) {
+        const s = specs.get(p.id);
+        if (s) p.specs = s;
+      }
+    }
+
+    const { reply: aiReply, cards: aiCards, needsClarification } = await callAI(
       sessionId,
       message,
       intent,
@@ -579,11 +681,15 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
       sessionId,
       reply: aiReply,
       cards: aiCards.length > 0 ? aiCards : undefined,
+      quickReplies: needsClarification ? CATEGORY_QUICK_REPLIES : undefined,
     };
   }
 
-  // ── Step 6: True unknown — off-topic rejection (ZERO AI) ─────────────
-  return reply(sessionId, STATIC.off_topic);
+  // ── Step 6: Unrecognised — ask, don't reject (ZERO AI) ────────────────
+  // Real customers write "medeelel", "nio2", "mavis 4 pro"… on a shop page; a
+  // clarifying question with category buttons beats "I only talk about drones".
+  // Explicit off-topic chatter is still caught earlier by the off_topic intent.
+  return reply(sessionId, STATIC.clarifyProduct, undefined, CATEGORY_QUICK_REPLIES);
 }
 
 // ---------------------------------------------------------------------------

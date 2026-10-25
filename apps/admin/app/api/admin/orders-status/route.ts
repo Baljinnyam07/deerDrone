@@ -16,6 +16,12 @@ export async function PATCH(request: NextRequest) {
 
     const supabase = createAdminClient();
 
+    const { data: previous } = await supabase
+      .from("orders")
+      .select("status")
+      .eq("id", orderId)
+      .single();
+
     // 1. Update Order Status
     const { data: order, error: orderError } = await supabase
       .from("orders")
@@ -28,19 +34,27 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: orderError.message }, { status: 500 });
     }
 
-    // ── Telegram Notification for "paid" status ──────────────────────
-    if (status === "paid") {
-      const tgMsg = 
-        `💳 <b>Захиалга төлөгдлөө! (Admin)</b>\n\n` +
+    // ── Telegram Notification: order became paid (e.g. bank transfer confirmed) ──
+    // Only on the transition to "paid", so re-saving a paid order doesn't notify again
+    if (status === "paid" && previous?.status !== "paid") {
+      const { data: items } = await supabase
+        .from("order_items")
+        .select("product_name, quantity")
+        .eq("order_id", orderId);
+      const lines = (items ?? []).map((i: any) => `• ${i.quantity}x ${i.product_name}`).join("\n");
+
+      const tgMsg =
+        `✅ <b>Төлбөр амжилттай төлөгдсөн захиалга! (Admin баталгаажуулсан)</b>\n\n` +
         `<b>Захиалга:</b> #${order.order_number}\n` +
         `<b>Хэрэглэгч:</b> ${order.contact_name}\n` +
+        `<b>Утас:</b> ${order.contact_phone ?? "—"}\n` +
+        `<b>Төлбөр:</b> ${order.payment_method === "qpay" ? "QPay" : "Дансаар"}\n` +
         `<b>Дүн:</b> ${order.total?.toLocaleString()}₮\n` +
-        `<b>Шинэ төлөв:</b> Төлөгдсөн\n` +
-        `<b>Админ:</b> ${auth.user.email}`;
-      
-      // Using global fetch or imported function
+        `<b>Админ:</b> ${auth.user.email}` +
+        (lines ? `\n\n<b>Бараа:</b>\n${lines}` : "");
+
       const { sendTelegramNotification } = await import("@/lib/telegram");
-      sendTelegramNotification(tgMsg).catch(e => console.error("Telegram error:", e));
+      await sendTelegramNotification(tgMsg).catch(e => console.error("Telegram error:", e));
     }
 
     // 2. Create Audit Log
@@ -52,7 +66,7 @@ export async function PATCH(request: NextRequest) {
         target_table: "orders",
         target_id: orderId,
         details: {
-          previous_status: order.status, 
+          previous_status: previous?.status ?? null,
           new_status: status,
           note: note || `Status updated to ${status}`
         },

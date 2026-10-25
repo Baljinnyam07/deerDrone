@@ -21,6 +21,7 @@ type ProductRecord = {
   is_featured?: boolean | null;
   status?: Product["status"] | null;
   tags?: string[] | null;
+  search_keywords?: string | null;
   category?: {
     name?: string | null;
     slug?: string | null;
@@ -62,6 +63,7 @@ export function mapProductRecord(item: ProductRecord): Product {
     isFeatured: !!item.is_featured,
     status: item.status || "active",
     tags: item.tags || [],
+    searchKeywords: item.search_keywords || "",
     images:
       item.images
         ?.sort((left, right) => (left.display_order ?? 0) - (right.display_order ?? 0))
@@ -96,6 +98,7 @@ export function matchesCatalogQuery(product: Product, query?: string): boolean {
     product.categorySlug,
     product.heroNote,
     ...product.tags,
+    product.searchKeywords,
   ]
     .map((value) => normalizeText(value))
     .join(" ");

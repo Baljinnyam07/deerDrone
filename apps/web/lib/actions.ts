@@ -1,6 +1,7 @@
 "use server";
 
 import { createPublicClient } from "./supabase/server";
+import { productSearchFilter } from "./supabase/search";
 
 export type SearchResult = {
   id: string;
@@ -13,6 +14,8 @@ export type SearchResult = {
 
 export async function searchProducts(q: string): Promise<SearchResult[]> {
   if (q.length < 2) return [];
+  const searchFilter = productSearchFilter(q);
+  if (!searchFilter) return [];
 
   const supabase = await createPublicClient();
   const { data, error } = await supabase
@@ -22,7 +25,7 @@ export async function searchProducts(q: string): Promise<SearchResult[]> {
       category:categories(name),
       images:product_images(url, display_order)
     `)
-    .ilike("name", `%${q}%`)
+    .or(searchFilter)
     .limit(8);
 
   if (error || !data) return [];

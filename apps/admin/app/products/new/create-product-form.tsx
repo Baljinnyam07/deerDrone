@@ -22,6 +22,7 @@ export function CreateProductForm({ categories }: { categories: any[] }) {
     description: "",
     hero_note: "",
     is_leasable: true,
+    search_keywords: "",
   });
 
   const [specs, setSpecs] = useState([{ label: "", value: "" }]);
@@ -273,6 +274,16 @@ export function CreateProductForm({ categories }: { categories: any[] }) {
               placeholder="Жишээ: Шинэ, Онцгой, Bestseller"
             />
           </div>
+          <div>
+            <label style={labelStyle}>ХАЙЛТЫН ТҮЛХҮҮР ҮГ</label>
+            <textarea
+              style={{ ...inputStyle, minHeight: "70px" }}
+              value={form.search_keywords}
+              onChange={(event) => setForm({ ...form, search_keywords: event.target.value })}
+              placeholder="Таслалаар тусгаарлана. Жишээ: шилэн наалт, дэлгэц хамгаалагч, хатуу цүнх"
+            />
+            <p style={hintStyle}>Хэрэглэгч эдгээр үгээр хайхад (вэб сайт болон чатбот) энэ бараа гарч ирнэ.</p>
+          </div>
         </div>
       </div>
 
@@ -442,3 +453,5 @@ const labelStyle = {
   color: "#64748b",
   textTransform: "uppercase" as const,
 };
+
+const hintStyle = { marginTop: "6px", fontSize: "0.75rem", color: "#94a3b8" };

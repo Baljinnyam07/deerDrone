@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { requireAdminApi, withAuthCookies } from "../../../../lib/auth";
 import { createAdminClient } from "../../../../lib/supabase";
 import { revalidateTag } from "../../../../lib/revalidate";
+import { normalizeKeywords } from "../../../../lib/format";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,6 +36,8 @@ export async function POST(request: NextRequest) {
         description: product.description,
         hero_note: product.hero_note,
         is_leasable: product.is_leasable,
+        // Only touch keywords when the form sent them, so other forms don't wipe them
+        ...(product.search_keywords !== undefined && { search_keywords: normalizeKeywords(product.search_keywords) }),
       })
       .select()
       .single();

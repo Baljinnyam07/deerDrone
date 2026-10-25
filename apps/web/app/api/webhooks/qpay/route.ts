@@ -1,76 +1,52 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "../../../../lib/supabase/service";
+import { isQPayInvoicePaid, markOrderPaid } from "../../../../lib/order-payment";
 
+/**
+ * QPay payment webhook (by order_number).
+ *
+ * The request body is only a hint about WHICH order to look at. Whether it is
+ * paid is decided by asking QPay about the order's own invoice — a body saying
+ * "payment_status: PAID" proves nothing, since anyone can POST it.
+ */
 export async function POST(request: Request) {
   try {
-    // Expected QPay Webhook Payload (simplified for mock purposes)
-    // QPay officially might have specific headers or payload structure
-    const body = await request.json();
-    const { order_number, payment_status } = body;
+    const body = await request.json().catch(() => ({}));
+    const orderNumber = typeof body?.order_number === "string" ? body.order_number.trim() : "";
 
-    if (!order_number) {
+    if (!orderNumber) {
       return NextResponse.json({ error: "order_number is required" }, { status: 400 });
-    }
-
-    if (payment_status !== "PAID") {
-      return NextResponse.json({ ok: true, message: "Ignored non-paid status" });
     }
 
     const supabase = createServiceClient();
 
-    // 1. Fetch Order and check status to prevent double-processing
     const { data: order, error: orderError } = await supabase
       .from("orders")
-      .select("id, status")
-      .eq("order_number", order_number)
-      .single();
+      .select("id, status, total, payment_reference")
+      .eq("order_number", orderNumber)
+      .maybeSingle();
 
     if (orderError || !order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    if (order.status !== "pending") {
-      return NextResponse.json({ ok: true, message: "Order already processed" });
+    if (order.status === "paid") {
+      return NextResponse.json({ ok: true, paid: true, message: "Order already paid" });
     }
 
-    // 2. Update order status to 'paid'
-    const { error: updateError } = await supabase
-      .from("orders")
-      .update({ status: "paid", updated_at: new Date().toISOString() })
-      .eq("id", order.id);
-
-    if (updateError) {
-      throw updateError;
+    if (!order.payment_reference) {
+      return NextResponse.json({ ok: false, paid: false, message: "Order has no QPay invoice" }, { status: 400 });
     }
 
-    // 3. Decrement stock for each item in the order
-    const { data: orderItems } = await supabase
-      .from("order_items")
-      .select("product_id, quantity")
-      .eq("order_id", order.id);
-
-    if (orderItems && orderItems.length > 0) {
-      for (const item of orderItems) {
-        // We use a database RPC or just a direct query. 
-        // Here we read current stock and decrement.
-        const { data: product } = await supabase
-          .from("products")
-          .select("stock_qty")
-          .eq("id", item.product_id)
-          .single();
-
-        if (product && product.stock_qty > 0) {
-          await supabase
-            .from("products")
-            .update({ stock_qty: Math.max(0, product.stock_qty - item.quantity) })
-            .eq("id", item.product_id);
-        }
-      }
+    const paid = await isQPayInvoicePaid(order.payment_reference, Number(order.total ?? 0));
+    if (!paid) {
+      return NextResponse.json({ ok: true, paid: false, message: "QPay reports the invoice as not paid" });
     }
 
-    return NextResponse.json({ ok: true, message: "Order marked as paid and stock updated" });
+    await markOrderPaid(supabase, order.id);
+    return NextResponse.json({ ok: true, paid: true });
   } catch (err) {
-    console.error("QPay Webhook handling error:", err);
+    console.error("QPay webhook handling error:", err);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

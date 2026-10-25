@@ -2,6 +2,7 @@ import { createPublicClient } from "./server";
 import { unstable_cache } from "next/cache";
 import type { Product } from "@deer-drone/types";
 import { mapProductRecord } from "./catalog";
+import { productSearchFilter } from "./search";
 import type { SortOption } from "../products-config";
 
 export const getProducts = unstable_cache(
@@ -40,8 +41,9 @@ export const getProducts = unstable_cache(
       query = query.eq("brand", options.brand);
     }
 
-    if (options.search) {
-      query = query.ilike("name", `%${options.search}%`);
+    const searchFilter = options.search ? productSearchFilter(options.search) : null;
+    if (searchFilter) {
+      query = query.or(searchFilter);
     }
 
     // Sorting

@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { createAdminClient } from "../../../../lib/supabase";
 import { requireAdminApi, withAuthCookies } from "../../../../lib/auth";
 import { revalidateTag } from "../../../../lib/revalidate";
+import { normalizeKeywords } from "../../../../lib/format";
 
 export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
@@ -39,6 +40,8 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
         description: product.description,
         hero_note: product.hero_note,
         is_leasable: product.is_leasable,
+        // Only touch keywords when the form sent them, so other forms don't wipe them
+        ...(product.search_keywords !== undefined && { search_keywords: normalizeKeywords(product.search_keywords) }),
       })
       .eq("id", params.id);
 

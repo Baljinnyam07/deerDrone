@@ -21,11 +21,20 @@ if (!supabaseUrl || !supabaseKey) {
 export const supabase = createClient(supabaseUrl || "https://placeholder.supabase.co", supabaseKey || "placeholder");
 
 
+/**
+ * PostgREST `.or()` filter: product name OR admin-entered search_keywords.
+ */
+export function nameOrKeywordFilter(term: string): string {
+  // Characters that break PostgREST's or=(...) syntax or act as ilike wildcards
+  const safe = term.replace(/[,()%_*\\"]/g, " ").replace(/\s+/g, " ").trim();
+  return `name.ilike.%${safe}%,search_keywords.ilike.%${safe}%`;
+}
+
 export async function searchProductsTool(query: string, limit = 6) {
   const { data, error } = await supabase
     .from("products")
     .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
-    .ilike("name", `%${query}%`)
+    .or(nameOrKeywordFilter(query))
     .limit(limit);
 
   if (error) {
@@ -39,7 +48,7 @@ export async function searchProductsTool(query: string, limit = 6) {
 export async function getAllProductsTool() {
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, slug, price, short_description, description, category_id, hero_note, product_images(url)");
+    .select("id, name, slug, price, short_description, description, category_id, hero_note, product_images(url), categories(name)");
 
   if (error) {
     console.error("getAllProductsTool error", error);
@@ -133,7 +142,7 @@ export async function getFeaturedProductsTool(limit = 8) {
   for (const namePat of pinnedNames) {
     let q = supabase
       .from("products")
-      .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+      .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
       .ilike("name", namePat)
       .limit(1);
     const { data } = await q;
@@ -150,7 +159,7 @@ export async function getFeaturedProductsTool(limit = 8) {
   const remaining = limit - pinnedProducts.length;
   let featuredQuery = supabase
     .from("products")
-    .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+    .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
     .eq("is_featured", true)
     .order("price", { ascending: false })
     .limit(limit);
@@ -170,7 +179,7 @@ export async function getFeaturedProductsTool(limit = 8) {
   if (finalProducts.length < limit && categoryId) {
     const { data: drones } = await supabase
       .from("products")
-      .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+      .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
       .eq("category_id", categoryId)
       .order("price", { ascending: false })
       .limit(limit);
@@ -240,7 +249,7 @@ export async function getCheapestByCategory(categoryKeyword: string) {
 
   let query = supabase
     .from("products")
-    .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+    .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
     .order("price", { ascending: true })
     .limit(1);
 

@@ -39,8 +39,8 @@ async function getCategories() {
   return data || [];
 }
 
-export default async function ProductsPage() {
-  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
+export default async function ProductsPage(props: { searchParams: Promise<{ stock?: string }> }) {
+  const [products, categories, searchParams] = await Promise.all([getProducts(), getCategories(), props.searchParams]);
 
   return (
     <section>
@@ -50,7 +50,12 @@ export default async function ProductsPage() {
         description="Бүтээгдэхүүний каталог удирдах, үнэ болон үлдэгдэл шинэчлэх."
       />
 
-      <ProductsClient initialProducts={products} categories={categories} />
+      <ProductsClient
+        initialProducts={products}
+        categories={categories}
+        initialStockFilter={searchParams.stock}
+        siteUrl={(process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "https://www.deerdrone.mn").replace(/\/$/, "")}
+      />
     </section>
   );
 }

@@ -23,8 +23,8 @@ async function getOrders() {
   return data || [];
 }
 
-export default async function OrdersPage() {
-  const orders = await getOrders();
+export default async function OrdersPage(props: { searchParams: Promise<{ status?: string; open?: string }> }) {
+  const [orders, searchParams] = await Promise.all([getOrders(), props.searchParams]);
 
   return (
     <section>
@@ -34,7 +34,11 @@ export default async function OrdersPage() {
         description="Бүх захиалгыг харах, төлөв шинэчлэх, дэлгэрэнгүй мэдээлэл хянах."
       />
 
-      <OrdersClient initialOrders={orders} />
+      <OrdersClient
+        initialOrders={orders}
+        initialFilter={searchParams.status}
+        initialOpenId={searchParams.open}
+      />
     </section>
   );
 }

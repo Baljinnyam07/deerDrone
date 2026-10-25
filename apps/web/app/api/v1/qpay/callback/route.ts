@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { checkQPayPayment } from "../../../../../lib/qpay";
 import { createServiceClient } from "../../../../../lib/supabase/service";
-import { sendTelegramNotification } from "../../../../../lib/telegram";
+import { isQPayInvoicePaid, markOrderPaid } from "../../../../../lib/order-payment";
 
 // QPay calls this URL after the customer pays.
 // It sends a POST with payment_id in the body, and we pass order_id via query param.
@@ -39,33 +38,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Төлбөрийн мэдээлэл (invoice_id) олдсонгүй" }, { status: 400 });
   }
 
-  // Verify with QPay that payment actually succeeded
+  // Verify with QPay that payment actually succeeded (and in full)
   try {
-    const check = await checkQPayPayment(order.payment_reference);
-    const isPaid = check.count > 0 && check.rows.some(r => r.payment_status === "PAID");
+    const isPaid = await isQPayInvoicePaid(order.payment_reference, Number(order.total ?? 0));
 
     if (isPaid) {
-      await supabase
-        .from("orders")
-        .update({ status: "paid" })
-        .eq("id", orderId);
-
-      // Notify via Telegram
-      const { data: updatedOrder } = await supabase
-        .from("orders")
-        .select("order_number, total, contact_name")
-        .eq("id", orderId)
-        .single();
-
-      if (updatedOrder) {
-        const tgMsg = 
-          `✅ <b>Төлбөр амжилттай хийгдлээ!</b>\n\n` +
-          `<b>Захиалга:</b> #${updatedOrder.order_number}\n` +
-          `<b>Хэрэглэгч:</b> ${updatedOrder.contact_name}\n` +
-          `<b>Дүн:</b> ${updatedOrder.total?.toLocaleString()}₮\n` +
-          `<b>Төлөв:</b> Төлөгдсөн (QPay)`;
-        sendTelegramNotification(tgMsg).catch(e => console.error("Telegram notification error:", e));
-      }
+      // Marks paid + notifies Telegram exactly once, even when QPay's callback and
+      // the checkout page's polling hit this route at the same time
+      await markOrderPaid(supabase, orderId);
     }
 
     return NextResponse.json({ paid: isPaid });

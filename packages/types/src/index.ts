@@ -57,6 +57,7 @@ export interface Product {
   status: ProductStatus;
   heroNote: string;
   tags: string[];
+  searchKeywords?: string;
   images: ProductImage[];
   specs: ProductSpec[];
 }

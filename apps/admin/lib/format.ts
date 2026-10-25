@@ -77,3 +77,20 @@ export function safeQuantity(qty: any): string {
     return "0";
   }
 }
+
+/**
+ * Normalise admin-entered search keywords: split on commas/newlines,
+ * trim, lowercase, dedupe. Returns a comma-separated string or null.
+ */
+export function normalizeKeywords(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const keywords = Array.from(
+    new Set(
+      value
+        .split(/[,\n]/)
+        .map((k) => k.trim().toLowerCase())
+        .filter(Boolean)
+    )
+  );
+  return keywords.length > 0 ? keywords.join(", ") : null;
+}

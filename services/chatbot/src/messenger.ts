@@ -8,6 +8,7 @@
  *  - Long text split safely at ≤ 1900 chars
  */
 
+import { createHash } from "node:crypto";
 import { runConversation } from "./engine/conversation.js";
 import { Redis } from "@upstash/redis";
 
@@ -17,6 +18,58 @@ const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisTo
 
 // Fallback in-memory pause state
 const botPausedState = new Map<string, number>();
+
+// ---------------------------------------------------------------------------
+// Human takeover
+// ---------------------------------------------------------------------------
+// Every message the bot sends carries this metadata; Facebook returns it on the
+// echo. An echo WITHOUT it was typed by a staff member (Page Inbox, Business
+// Suite, phone app — those echoes carry Facebook's own app_id, so app_id can't
+// tell bot from human).
+const BOT_METADATA = "DEER_BOT";
+const HUMAN_PAUSE_SECONDS = 15 * 60;
+const memStore = new Map<string, number>(); // key → expiry ms, used when Redis is absent
+
+async function kvSet(key: string, seconds: number) {
+  if (redis) await redis.set(key, "1", { ex: seconds });
+  else memStore.set(key, Date.now() + seconds * 1000);
+}
+
+async function kvHas(key: string): Promise<boolean> {
+  if (redis) return !!(await redis.get(key));
+  const exp = memStore.get(key);
+  if (exp && exp > Date.now()) return true;
+  memStore.delete(key);
+  return false;
+}
+
+function textKey(text: string): string {
+  return createHash("sha1").update(text.trim()).digest("hex").slice(0, 16);
+}
+
+/** Remember what the bot just sent, for echoes that come back without metadata (e.g. Instagram). */
+async function rememberBotSend(recipientId: string, text?: string) {
+  await kvSet(`bot_active_${recipientId}`, 60);
+  if (text) await kvSet(`bot_text_${recipientId}_${textKey(text)}`, 120);
+}
+
+async function isOwnEcho(event: any, recipientId: string): Promise<boolean> {
+  if (event.message?.metadata === BOT_METADATA) return true;
+  const text: string = event.message?.text ?? "";
+  if (text) return kvHas(`bot_text_${recipientId}_${textKey(text)}`);
+  // Facebook always returns metadata, so a text-less FB echo without it is staff (e.g. an image).
+  // Instagram echoes (no is_echo flag) may drop metadata: ours if the bot sent something just now.
+  const isInstagramEcho = !event.message?.is_echo;
+  return isInstagramEcho && kvHas(`bot_active_${recipientId}`);
+}
+
+export async function pauseBotFor(customerId: string) {
+  await kvSet(`bot_paused_${customerId}`, HUMAN_PAUSE_SECONDS);
+}
+
+export async function isBotPausedFor(customerId: string): Promise<boolean> {
+  return kvHas(`bot_paused_${customerId}`);
+}
 import {
   captureLeadTool,
   supabase,
@@ -77,13 +130,15 @@ export async function sendMessage(senderId: string, text: string, token: string,
     })) : undefined;
 
     try {
+      await rememberBotSend(senderId, chunk);
       const response = await fetch(`${BASE_URL}/messages?access_token=${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           recipient: { id: senderId },
-          message: { 
+          message: {
             text: chunk,
+            metadata: BOT_METADATA,
             ...(qr ? { quick_replies: qr } : {})
           },
         }),
@@ -109,12 +164,14 @@ export async function sendMessage(senderId: string, text: string, token: string,
 export async function sendImage(senderId: string, imageUrl: string, token: string) {
   if (!token || !imageUrl) return;
   try {
+    await rememberBotSend(senderId);
     await fetch(`${BASE_URL}/messages?access_token=${token}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         recipient: { id: senderId },
         message: {
+          metadata: BOT_METADATA,
           attachment: {
             type: "image",
             payload: {
@@ -137,12 +194,14 @@ export async function sendVideo(senderId: string, videoUrl: string, token: strin
   if (!token || !videoUrl) return;
   console.log("[sendVideo] Sending video:", videoUrl);
   try {
+    await rememberBotSend(senderId);
     const response = await fetch(`${BASE_URL}/messages?access_token=${token}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         recipient: { id: senderId },
         message: {
+          metadata: BOT_METADATA,
           attachment: {
             type: "video",
             payload: {
@@ -175,12 +234,14 @@ export async function sendButtonTemplate(
 ) {
   if (!token) return;
   try {
+    await rememberBotSend(senderId, text.substring(0, 640));
     await fetch(`${BASE_URL}/messages?access_token=${token}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         recipient: { id: senderId },
         message: {
+          metadata: BOT_METADATA,
           attachment: {
             type: "template",
             payload: {
@@ -234,12 +295,14 @@ export async function sendProductCarousel(
   }));
 
   try {
+    await rememberBotSend(senderId);
     await fetch(`${BASE_URL}/messages?access_token=${token}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         recipient: { id: senderId },
         message: {
+          metadata: BOT_METADATA,
           attachment: {
             type: "template",
             payload: { template_type: "generic", elements },
@@ -365,6 +428,11 @@ export async function handleWebhookEvent(event: any, pageToken: string, pageId?:
 
   // ── Postback handling (ORDER / DETAIL) — deterministic, NO AI ──────────
   if (event.postback) {
+    // Staff is talking to this customer → old carousel buttons stay quiet too
+    if (await isBotPausedFor(senderId)) {
+      console.log(`[messenger] Bot is paused for ${senderId}. Ignoring postback.`);
+      return;
+    }
     const payload: string = event.postback.payload ?? "";
 
     if (payload.startsWith("ORDER_")) {
@@ -391,12 +459,14 @@ export async function handleWebhookEvent(event: any, pageToken: string, pageId?:
   // isEcho = true when: Facebook is_echo flag OR Instagram senderId === pageId
   if (isEcho) {
     const text = event.message?.text || "";
+    const recipientId: string | undefined = event.recipient?.id;
+    if (!recipientId) return;
 
-    // ✅ Bot-ийн өөрийн илгээсэн мессежийг алгасах (app_id байгаа = bot илгээсэн)
-    // Human admin-ийн гараар бичсэн мессежид app_id байхгүй байдаг
-    const appId = event.message?.app_id;
-    if (appId) {
-      console.log(`[messenger] Ignoring bot-sent echo (app_id: ${appId})`);
+    // ✅ Bot-ийн өөрийн мессеж (metadata = DEER_BOT, эсвэл саяхан илгээсэн текст)
+    // app_id-аар ялгах боломжгүй: Page Inbox / Business Suite-ээс ажилтны бичсэн
+    // мессежид ч Facebook-ийн app_id ирдэг.
+    if (await isOwnEcho(event, recipientId)) {
+      console.log(`[messenger] Ignoring bot-sent echo for ${recipientId}`);
       return;
     }
 
@@ -411,19 +481,11 @@ export async function handleWebhookEvent(event: any, pageToken: string, pageId?:
       return;
     }
 
-    // Admin manually replied → pause bot for that customer for 10 minutes
-    const recipientId = event.message?.recipient?.id ?? event.recipient?.id;
-    if (recipientId) {
-      console.log(`[messenger] Admin replied. Pausing bot for recipient=${recipientId}`);
-      if (text) {
-        await logConversation(recipientId, "admin", text);
-      }
-      if (redis) {
-        await redis.set(`bot_paused_${recipientId}`, "1", { ex: 10 * 60 });
-      } else {
-        botPausedState.set(recipientId, Date.now() + 10 * 60 * 1000);
-      }
-    }
+    // Staff replied by hand → bot stays silent for this customer for 15 minutes.
+    // Each further staff message restarts the 15 minutes.
+    console.log(`[messenger] Staff replied. Pausing bot ${HUMAN_PAUSE_SECONDS / 60} min for ${recipientId}`);
+    await pauseBotFor(recipientId);
+    if (text) await logConversation(recipientId, "admin", text);
     return;
   }
 
@@ -437,14 +499,7 @@ export async function handleWebhookEvent(event: any, pageToken: string, pageId?:
 
   async function respondToLike() {
     // Bot паузтай байвал хариу өгөхгүй
-    if (redis) {
-      const isPaused = await redis.get(`bot_paused_${senderId}`);
-      if (isPaused) { console.log(`[messenger] Paused. Ignoring like.`); return; }
-    } else {
-      const unpauseTime = botPausedState.get(senderId);
-      if (unpauseTime && Date.now() < unpauseTime) { console.log(`[messenger] Paused (mem). Ignoring like.`); return; }
-      else if (unpauseTime) botPausedState.delete(senderId);
-    }
+    if (await isBotPausedFor(senderId)) { console.log(`[messenger] Paused. Ignoring like.`); return; }
     await sendTyping(senderId, token);
     await sendMessage(senderId, STATIC.fallback, token, CATEGORY_QUICK_REPLIES);
   }
@@ -496,12 +551,12 @@ export async function handleWebhookEvent(event: any, pageToken: string, pageId?:
     // ── Deduplicate messages to prevent double replies ──────────
     if (mid) {
       if (redis) {
-        const isProcessed = await redis.get(`msg_processed_${mid}`);
-        if (isProcessed) {
+        // Atomic claim (NX): two concurrent deliveries of the same mid can't both pass
+        const claimed = await redis.set(`msg_processed_${mid}`, "1", { ex: 60 * 60 * 24, nx: true });
+        if (!claimed) {
           console.log(`[messenger] Duplicate message skipped (redis): ${mid}`);
           return;
         }
-        await redis.set(`msg_processed_${mid}`, "1", { ex: 60 * 60 * 24 }); // expire in 24h
       } else {
         const isProcessed = botPausedState.has(`msg_${mid}`);
         if (isProcessed) {
@@ -516,21 +571,10 @@ export async function handleWebhookEvent(event: any, pageToken: string, pageId?:
 
     await logConversation(senderId, "user", text);
 
-    // Check if bot is paused
-    if (redis) {
-      const isPaused = await redis.get(`bot_paused_${senderId}`);
-      if (isPaused) {
-        console.log(`[messenger] Bot is paused for ${senderId}. Ignoring message.`);
-        return;
-      }
-    } else {
-      const unpauseTime = botPausedState.get(senderId);
-      if (unpauseTime && Date.now() < unpauseTime) {
-        console.log(`[messenger] Bot is paused (mem) for ${senderId}. Ignoring message.`);
-        return;
-      } else if (unpauseTime) {
-        botPausedState.delete(senderId);
-      }
+    // Staff is handling this customer → bot stays silent (message is still logged above)
+    if (await isBotPausedFor(senderId)) {
+      console.log(`[messenger] Bot is paused for ${senderId}. Ignoring message.`);
+      return;
     }
 
     await sendTyping(senderId, token);

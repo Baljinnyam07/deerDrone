@@ -31,6 +31,7 @@ const menuItems: MenuItem[] = [
       { label: "Камер", href: "/products?category=cameras" },
       { label: "Гар төхөөрөмж", href: "/products?category=handheld" },
       { label: "Дагалдах хэрэгсэл", href: "/products?category=accessories" },
+      { label: "Power", href: "/products?category=power" },
     ],
   },
   {

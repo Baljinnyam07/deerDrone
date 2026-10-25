@@ -12,22 +12,54 @@ import { FieldGrid } from "../../components/field-grid";
 import { Eye, Clock, CheckCircle, Package, Truck, Check, X, CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { TODO_STATUSES } from "../../lib/order-status";
 
 interface OrdersClientProps {
   initialOrders: any[];
+  /** From ?status= — "todo" = paid but not yet shipped */
+  initialFilter?: string;
+  /** From ?open= — opens that order's drawer on load (dashboard links) */
+  initialOpenId?: string;
 }
 
-export function OrdersClient({ initialOrders }: OrdersClientProps) {
+
+const FILTERS: { key: string; label: string; match: (s: string) => boolean }[] = [
+  { key: "todo", label: "Хүргэх", match: (s) => TODO_STATUSES.includes(s) },
+  { key: "all", label: "Бүгд", match: () => true },
+  { key: "pending", label: "Төлөгдөөгүй", match: (s) => s === "pending" },
+  { key: "shipped", label: "Илгээсэн", match: (s) => s === "shipped" },
+  { key: "delivered", label: "Хүргэгдсэн", match: (s) => s === "delivered" },
+  { key: "cancelled", label: "Цуцлагдсан", match: (s) => s === "cancelled" },
+];
+
+export function OrdersClient({ initialOrders, initialFilter, initialOpenId }: OrdersClientProps) {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [filter, setFilter] = useState(
+    FILTERS.some((f) => f.key === initialFilter) ? initialFilter! : "all"
+  );
   const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!initialOpenId) return;
+    const order = initialOrders.find((o) => o.id === initialOpenId);
+    if (order) {
+      setSelectedOrder(order);
+      setIsDrawerOpen(true);
+    }
+    // Only on first load — later refreshes shouldn't reopen the drawer
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const activeFilter = FILTERS.find((f) => f.key === filter) ?? FILTERS[1];
+  const visibleOrders = initialOrders.filter((o) => activeFilter.match(o.status));
 
   const statusMap: Record<string, { label: string; variant: any; icon: any }> = {
     pending: { label: "Хүлээгдэж буй", variant: "warning", icon: Clock },
@@ -84,6 +116,47 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
           <h2>Сүүлийн захиалгууд</h2>
         </div>
 
+        <div className="orders-chips" role="tablist" aria-label="Төлөвөөр шүүх">
+          {FILTERS.map((f) => {
+            const count = initialOrders.filter((o) => f.match(o.status)).length;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                role="tab"
+                aria-selected={filter === f.key}
+                className={`orders-chip ${filter === f.key ? "is-active" : ""}`}
+                onClick={() => setFilter(f.key)}
+              >
+                {f.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+        <style jsx>{`
+          .orders-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+          }
+          .orders-chip {
+            border: 1px solid var(--admin-border);
+            background: transparent;
+            color: var(--admin-text-secondary, var(--admin-muted));
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+          }
+          .orders-chip.is-active {
+            background: var(--admin-primary);
+            border-color: var(--admin-primary);
+            color: #fff;
+          }
+        `}</style>
+
         {/* Orders Table */}
         <div className="admin-table">
           {/* Table Header */}
@@ -97,7 +170,10 @@ export function OrdersClient({ initialOrders }: OrdersClientProps) {
           </div>
 
           {/* Order Rows */}
-          {initialOrders.map((order) => {
+          {visibleOrders.length === 0 && (
+            <p className="admin-muted" style={{ padding: "24px 16px", margin: 0 }}>Энэ төлөвтэй захиалга алга.</p>
+          )}
+          {visibleOrders.map((order) => {
             const status = statusMap[order.status] || { label: order.status, variant: "neutral", icon: Clock };
             return (
               <div 

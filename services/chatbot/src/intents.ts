@@ -99,6 +99,8 @@ const LOAN_INFO = [
   /zeel\s*gardag\s*uu/i,
   /лизинг/i,
   /lizing/i,
+  /store\s*pay/i,
+  /сторпэй/i,
   /leasing/i,
 ];
 
@@ -200,8 +202,10 @@ const ADDRESS = [
   /plaza/i,
   /плаза/i,
   /очих/i,
-  /утас/i,
-  /utas/i,
+  // Bare "утас" only — "утастайгаа холбож", "utas togtoogch" are product questions
+  /^утас\s*\??$/i,
+  /^utas\s*\??$/i,
+  /утасны\s*дугаар/i,
   /utasni\s*dugaar/i,
   /\bphone\b/i,
   /\bnumber\b/i,
@@ -288,6 +292,8 @@ const ACCESSORIES_INFO = [
   // Propeller / guard
   /пропеллер/i,
   /далавч/i,
+  /сэнс/i,
+  /\bsens\b/i,
   /propeller/i,
   /prop\b/i,
   /guard/i,
@@ -404,7 +410,7 @@ const PRICE_INQUIRY = [
 // Keywords that indicate a specific drone model or product name
 const PRODUCT_KEYWORDS = [
   /neo/i, /mini/i, /mavic/i, /avata/i, /air/i, /phantom/i, /inspire/i, 
-  /agras/i, /matrice/i, /dji/i, /atom/i, /potensic/i
+  /agras/i, /matrice/i, /dji/i, /atom/i, /potensic/i, /\bpower\b/i, /пауэр/i
 ];
 
 export function containsProductKeyword(text: string): boolean {
@@ -417,11 +423,17 @@ const PRODUCT_SEARCH = [
   /^гар\s*төхөөрөмж$/i,
   /^дагалдах\s*хэрэгсэл$/i,
   /^дагалдах$/i,
+  // Latin-typed category names (e.g. "Drone", "dron", "camera")
+  /^(drone|drones|dron|drona|dronuud)$/i,
+  /^(camera|cameras|kamer|kamera)$/i,
+  /^(power|пауэр|power station|цахилгаан станц)$/i,
   // Price with a category/product keyword attached — specific enough
   /үнэ.*(дрон|камер|гар\s*төхөөрөмж|дагалдах)/i,
   /(дрон|камер|гар\s*төхөөрөмж|дагалдах).*үнэ/i,
   /price.*(dron|drone|kamer)/i,
   /(dron|drone|kamer).*price/i,
+  // Latin-typed "дрон ямар үнэтэй вэ" → "dron ymr vntei we", "drone une hed"
+  /\b(dron|drone|kamer|camer)\w*\b.*\b(vne|une|vntei|unetei|hed|xed)/i,
   /хэдэн\s*төгрөг/i,
   /хэдэн\s*мянга/i,
   /үнэ\s*нь/i,
@@ -648,7 +660,12 @@ export function classifyIntent(message: string): Intent {
   if (isEmojiOnly(text)) return "emoji_reaction";
 
   if (isSpam(text)) return "spam";
-  if (matches(text, GREETING)) return "greeting";
+  if (matches(text, GREETING)) {
+    // "Сайн байна уу, хөдөө мал хархад ямар дрон..." → answer the question, not just the hello
+    const rest = GREETING.reduce((t, p) => t.replace(p, ""), text).replace(/^[\s,.!?]+/, "").trim();
+    if (rest.length >= 6) return classifyIntent(rest);
+    return "greeting";
+  }
   if (matches(text, OFF_TOPIC)) return "off_topic";
 
   // Finance / handoff routes (high priority — must capture leads)
@@ -772,6 +789,11 @@ export function looksLikeDroneRelated(message: string): boolean {
     /zahialga/i,
     /hurgelt/i,
     /hurgeltiin/i,
+    // Latin / typo spellings seen in real customer messages
+    /dron/i, /нано/i, /nano/i, /osmo/i, /осмо/i, /pocket/i, /покет/i, /\b360\b/,
+    /camer/i, /kamer/i, /камер/i, /selfie/i, /линз/i, /linz/i, /хамгаал/i, /hamgaal/i,
+    /vntei/i, /unetei/i, /үнэтэй/i, /\bnio/i, /нио/i, /mavi/i, /mavei/i, /lito/i, /power/i,
+    /filter/i, /шүүлтүүр/i, /togtoogch/i, /тогтоогч/i, /stick/i, /минут/i, /minut/i, /\bkm\b/i, /км/i, /нисэ/i,
     /^\d+[\.\)]?$/, // Route standalone numbers to AI (e.g., when replying to menus)
   ];
   return droneKeywords.some((p) => p.test(message.trim()));
