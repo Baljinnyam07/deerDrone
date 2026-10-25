@@ -76,7 +76,8 @@ const OFF_TOPIC = [
   /цаг\s*агаар/i,
   /хоол\s*жор/i,
   /рецепт/i,
-  /мем/i,
+  // Whole word only — "мемори карт" (memory card) is a product question
+  /(^|\s)мем(ийн|үүд|ээ)?(\s|$|[?!.,])/i,
   /joke/i,
   /анекдот/i,
   /шив\s*шив/i,
