@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, Search, ShoppingCart, User, X, LogOut, Settings, Package, ShoppingBag, ArrowRight, CreditCard } from "lucide-react";
+import { Menu, Search, ShoppingCart, User, X, LogOut, ShoppingBag, ArrowRight, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { useStore } from "../../store/useStore";
 import { SearchOverlay } from "./search-overlay";
+import type { Series } from "../../lib/showcase";
 
 type MenuChild = {
   href: string;
@@ -32,6 +33,7 @@ const menuItems: MenuItem[] = [
       { label: "Гар төхөөрөмж", href: "/products?category=handheld" },
       { label: "Дагалдах хэрэгсэл", href: "/products?category=accessories" },
       { label: "Power", href: "/products?category=power" },
+      { label: "Лизинг", href: "/leasing" },
     ],
   },
   {
@@ -56,6 +58,29 @@ const menuItems: MenuItem[] = [
   },
 ];
 
+type NavItem = {
+  id: string;
+  label: string;
+  href: string;
+  /** Category slug: hovering shows that category's series in the mega menu. */
+  category?: string;
+  /** Plain text links shown in the mega menu instead of series. */
+  links?: MenuChild[];
+};
+
+const navItems: NavItem[] = [
+  { id: "drones", label: "Дрон", href: "/products?category=drones", category: "drones" },
+  { id: "cameras", label: "Камер", href: "/products?category=cameras", category: "cameras" },
+  { id: "handheld", label: "Гар төхөөрөмж", href: "/products?category=handheld", category: "handheld" },
+  { id: "power", label: "Power", href: "/products?category=power", category: "power" },
+  { id: "accessories", label: "Дагалдах хэрэгсэл", href: "/products?category=accessories" },
+  { id: "leasing", label: "Лизинг", href: "/leasing" },
+  { id: "help", label: "Тусламж", href: "/help/terms", links: menuItems[2].children },
+  { id: "about", label: "Бидний тухай", href: "/about", links: menuItems[1].children },
+];
+
+const ANNOUNCE_KEY = "dj-announce-dismissed";
+
 // Detect Facebook, Instagram, Twitter, Line and other in-app browsers
 // that block Google OAuth (Error 403: disallowed_useragent)
 function isInAppBrowser(): boolean {
@@ -64,8 +89,10 @@ function isInAppBrowser(): boolean {
   return /FB_IAB|FBAN|FBAV|Instagram|Twitter|Line\/|MicroMessenger|LinkedInApp|GSA\/|KAKAOTALK/i.test(ua);
 }
 
-export function SiteHeader() {
+export function SiteHeader({ navSeries = [] }: { navSeries?: Series[] }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeCategory = searchParams?.get("category") ?? null;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
@@ -75,7 +102,7 @@ export function SiteHeader() {
   const [isDesktop, setIsDesktop] = useState(true);
   const [inAppBrowser, setInAppBrowser] = useState(false);
   const [openMobileSection, setOpenMobileSection] = useState<string | null>(null);
-  const [isHeaderHovered, setIsHeaderHovered] = useState(false);
+  const [showAnnounce, setShowAnnounce] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [activeDropdown, setActiveDropdown] = useState<"user" | "cart" | null>(null);
@@ -90,8 +117,28 @@ export function SiteHeader() {
     return () => window.removeEventListener('open-login-modal', handleOpenLogin);
   }, []);
 
-  const isHomePage = pathname === "/";
-  const shouldShowDarkHeader = isScrolled || !isHomePage || isHeaderHovered || !!hoveredItem;
+  const megaContent = (item: NavItem) => {
+    const series = item.category ? navSeries.filter((s) => s.category === item.category) : [];
+    const links = item.links ?? [];
+    return series.length > 0 || links.length > 0 ? { series, links } : null;
+  };
+
+  useEffect(() => {
+    try {
+      setShowAnnounce(window.localStorage.getItem(ANNOUNCE_KEY) !== "1");
+    } catch {
+      setShowAnnounce(true);
+    }
+  }, []);
+
+  const dismissAnnounce = () => {
+    setShowAnnounce(false);
+    try {
+      window.localStorage.setItem(ANNOUNCE_KEY, "1");
+    } catch {
+      /* storage unavailable: hide for this visit only */
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -116,11 +163,10 @@ export function SiteHeader() {
 
   useEffect(() => {
     setHoveredItem(null);
-    setIsHeaderHovered(false);
-  }, [pathname]);
+  }, [pathname, activeCategory]);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50);
+    const handleScroll = () => setIsScrolled(window.scrollY > 8);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -194,79 +240,87 @@ export function SiteHeader() {
 
   return (
     <>
+      {showAnnounce && (
+        <div className="dj-announce">
+          DJI-ийн Монгол дахь албан ёсны борлуулагч — шинэ бүтээгдэхүүнүүд ирлээ.
+          <Link href="/products?category=drones">Дэлгүүр хэсэх ›</Link>
+          <button className="dj-announce-close" aria-label="Хаах" onClick={dismissAnnounce}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
       <header
-        onMouseEnter={() => setIsHeaderHovered(true)}
-        onMouseLeave={() => {
-          setIsHeaderHovered(false);
-          setHoveredItem(null);
-        }}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: shouldShowDarkHeader ? "rgba(255, 255, 255, 0.5)" : "transparent",
-          backdropFilter: shouldShowDarkHeader ? "blur(30px)" : "none",
-          // borderBottom: shouldShowDarkHeader ? "1px solid #E2E8F0" : "none",
-          zIndex: 1050,
-          transition: "all 300ms cubic-bezier(0.4, 0, 0.2, 1)",
-          paddingTop: isScrolled ? "8px" : "16px",
-          paddingBottom: isScrolled ? "8px" : "16px",
-        }}
+        className={`dj-header${isScrolled ? " is-scrolled" : ""}${pathname === "/" ? " is-home" : ""}${pathname === "/" && !isScrolled && !hoveredItem ? " is-overlay" : ""}`}
+        onMouseLeave={() => setHoveredItem(null)}
       >
-        <div style={{ maxWidth: "1440px", margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "32px", height: "48px" }}>
-          {/* Logo */}
-          <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}>
-            <Image alt="DEER" src="/assets/brand/deer-logo.svg" width={110} height={32} style={{ filter: !shouldShowDarkHeader ? "invert(1)" : "none", width: "auto", height: "32px", transition: "filter 300ms" }} priority />
+        <div className="dj-header-inner">
+          <Link href="/" className="dj-logo" aria-label="DEER Drone">
+            <Image alt="DEER" src="/assets/brand/deer-logo.svg" width={110} height={32} priority />
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav style={{ display: isDesktop ? "flex" : "none", alignItems: "center", gap: "40px", position: "absolute", left: "50%", transform: "translateX(-50%)", height: "100%" }}>
-            {menuItems.map((item) => (
-              <div
-                key={item.id}
-                onMouseEnter={() => setHoveredItem(item.id)}
-                style={{ height: "100%", display: "flex", alignItems: "center" }}
-              >
-                <Link
-                  href={item.href}
-                  style={{
-                    textDecoration: "none",
-                    fontWeight: 700,
-                    fontSize: "0.95rem",
-                    color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A",
-                    transition: "all 200ms",
-                    opacity: hoveredItem === item.id ? 0.6 : 1
-                  }}
+          <nav className="dj-nav" aria-label="Үндсэн цэс">
+            {navItems.map((item) => {
+              const isActive = item.category
+                ? pathname.startsWith("/products") && activeCategory === item.category
+                : pathname === item.href;
+              return (
+                <div
+                  key={item.id}
+                  className={`dj-nav-item${hoveredItem === item.id ? " is-open" : ""}`}
+                  onMouseEnter={() => setHoveredItem(megaContent(item) ? item.id : null)}
                 >
-                  {item.label}
-                </Link>
-              </div>
-            ))}
+                  <Link href={item.href} className={`dj-nav-link${isActive ? " is-active" : ""}`}>
+                    {item.label}
+                  </Link>
+                </div>
+              );
+            })}
           </nav>
 
-          {/* Icons & Actions */}
-          <div style={{ display: "flex", alignItems: "center", gap: isDesktop ? "24px" : "16px" }}>
-            <button onClick={() => setIsSearchOpen(true)} style={{ background: "none", border: "none", padding: "8px", cursor: "pointer", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}><Search size={22} strokeWidth={1.5} /></button>
-            
+          <div className="dj-actions">
+            <button className="dj-icon-btn" aria-label="Хайх" onClick={() => setIsSearchOpen(true)}>
+              <Search size={20} strokeWidth={1.6} />
+            </button>
+
+            {isDesktop && mounted && (
+              <div style={{ position: "relative" }} onClick={(e) => e.stopPropagation()}>
+                <button
+                  className="dj-icon-btn"
+                  aria-label={user ? "Миний бүртгэл" : "Нэвтрэх"}
+                  onClick={() => (user ? setActiveDropdown(activeDropdown === "user" ? null : "user") : setIsLoginPopupOpen(true))}
+                >
+                  <User size={20} strokeWidth={1.6} />
+                </button>
+                {activeDropdown === "user" && user && (
+                  <div style={{ position: "absolute", top: "100%", right: 0, marginTop: "10px", width: "240px", background: "#fff", borderRadius: "8px", boxShadow: "0 12px 32px rgba(0,0,0,0.12)", padding: "16px", zIndex: 1100 }}>
+                    <p style={{ margin: "0 0 2px", fontWeight: 600, fontSize: "14px" }}>Миний бүртгэл</p>
+                    <p style={{ margin: "0 0 12px", fontSize: "12px", color: "var(--dj-text-3)", overflow: "hidden", textOverflow: "ellipsis" }}>{user.email}</p>
+                    <button
+                      onClick={async () => {
+                        const { createClient } = await import("../../lib/supabase/client");
+                        await createClient().auth.signOut();
+                        window.location.reload();
+                      }}
+                      style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%", background: "var(--dj-bg-soft)", border: 0, borderRadius: "6px", padding: "8px 12px", fontSize: "13px", color: "#d4380d", cursor: "pointer" }}
+                    >
+                      <LogOut size={16} /> Гарах
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Cart Icon & Dropdown - Desktop Only */}
             {isDesktop && mounted && (
               <div style={{ position: "relative" }} onClick={(e) => e.stopPropagation()}>
                 <button
+                  className="dj-icon-btn"
+                  aria-label="Сагс"
                   onClick={() => setActiveDropdown(activeDropdown === "cart" ? null : "cart")}
-                  style={{ background: "none", border: "none", padding: "8px", cursor: "pointer", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}
                 >
-                  <div style={{ position: "relative" }}>
-                    <ShoppingCart size={22} strokeWidth={1.5} />
-                    {mounted && cartItemCount > 0 && (
-                      <span style={{ position: "absolute", top: "-8px", right: "-8px", backgroundColor: "#2563EB", color: "#FFFFFF", borderRadius: "10px", padding: "2px 6px", fontSize: "0.65rem", fontWeight: 700 }}>
-                        {cartItemCount}
-                      </span>
-                    )}
-                  </div>
+                  <ShoppingCart size={20} strokeWidth={1.6} />
+                  {cartItemCount > 0 && <span className="dj-badge">{cartItemCount}</span>}
                 </button>
-
                 <AnimatePresence>
                   {activeDropdown === "cart" && (
                     <motion.div
@@ -390,76 +444,70 @@ export function SiteHeader() {
 
             {/* Cart Icon - Mobile Only */}
             {!isDesktop && mounted && (
-              <Link
-                href="/cart"
-                style={{ display: "flex", position: "relative", padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}
-              >
-                <ShoppingCart size={22} strokeWidth={1.5} />
-                {cartItemCount > 0 && (
-                  <span style={{ position: "absolute", top: "2px", right: "2px", backgroundColor: "#2563EB", color: "#FFFFFF", borderRadius: "10px", padding: "1px 5px", fontSize: "0.6rem", fontWeight: 700, lineHeight: 1.4 }}>
-                    {cartItemCount}
-                  </span>
-                )}
+              <Link href="/cart" className="dj-icon-btn" aria-label="Сагс">
+                <ShoppingCart size={20} strokeWidth={1.6} />
+                {cartItemCount > 0 && <span className="dj-badge">{cartItemCount}</span>}
               </Link>
             )}
 
-            <button onClick={() => setIsMenuOpen(true)} style={{ display: isDesktop ? "none" : "flex", background: "none", border: "none", padding: "8px", color: !shouldShowDarkHeader ? "#FFFFFF" : "#0F172A" }}><Menu size={24} /></button>
+            <Link href="/products?category=drones" className="dj-btn dj-btn-primary dj-store-btn">
+              <ShoppingBag size={14} /> Дэлгүүр
+            </Link>
+
+            {!isDesktop && (
+              <button className="dj-icon-btn" aria-label="Цэс" onClick={() => setIsMenuOpen(true)}>
+                <Menu size={22} />
+              </button>
+            )}
           </div>
         </div>
 
-      </header>
-
-      {/* Hover Category Bar */}
-      <AnimatePresence>
-        {hoveredItem && isDesktop && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "46px", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-            style={{
-              position: "fixed",
-              top: isScrolled ? "64px" : "80px",
-              left: 0,
-              right: 0,
-              backgroundColor: "rgba(255, 255, 255, 0.5)",
-              backdropFilter: "blur(30px)",
-              WebkitBackdropFilter: "blur(30px)",
-              zIndex: 1049,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.03)"
-            }}
-            onMouseEnter={() => setHoveredItem(hoveredItem)}
-            onMouseLeave={() => setHoveredItem(null)}
-          >
-            <div style={{ maxWidth: "1440px", margin: "0 auto", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "center", gap: "32px", height: "100%" }}>
-              {menuItems.find(i => i.id === hoveredItem)?.children.map((link, idx) => (
-                <Link
-                  key={idx}
-                  href={link.href}
-                  onClick={(e) => {
-                    if (link.label === "Холбоо барих") {
-                      e.preventDefault();
-                      setIsContactOpen(true);
+        {/* Mega menu */}
+        {isDesktop && hoveredItem && (() => {
+          const item = navItems.find((i) => i.id === hoveredItem);
+          const content = item && megaContent(item);
+          if (!item || !content) return null;
+          return (
+            <div className="dj-mega" onMouseEnter={() => setHoveredItem(item.id)}>
+              <div className="dj-mega-inner">
+                {content.series.map((s) => (
+                  <Link key={s.id} href={`/products/${s.slug}`} className="dj-mega-item" onClick={() => setHoveredItem(null)}>
+                    <span className="dj-mega-thumb">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={s.image} alt="" className="dj-cutout" loading="lazy" />
+                    </span>
+                    {s.shortName}
+                  </Link>
+                ))}
+                {content.links.map((link) => (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    className="dj-mega-item"
+                    style={{ width: "auto", padding: "8px 16px" }}
+                    onClick={(e) => {
+                      if (link.label === "Холбоо барих") {
+                        e.preventDefault();
+                        setIsContactOpen(true);
+                      }
                       setHoveredItem(null);
-                    }
-                  }}
-                  style={{
-                    textDecoration: "none",
-                    fontSize: "0.85rem",
-                    fontWeight: 650,
-                    color: "#475569",
-                    padding: "0 4px",
-                    transition: "color 200ms"
-                  }}
-                  className="category-nav-link"
-                >
-                  {link.label}
-                </Link>
-              ))}
+                    }}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+                {item.category && (
+                  <div className="dj-mega-all">
+                    <Link href={item.href} className="dj-link" style={{ fontSize: "14px" }} onClick={() => setHoveredItem(null)}>
+                      Бүгдийг үзэх <ChevronRight size={14} />
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          );
+        })()}
+      </header>
 
       {/* Side Contact Drawer (Exact same as Footer) */}
       <div
@@ -553,7 +601,6 @@ export function SiteHeader() {
           <SearchOverlay onClose={() => setIsSearchOpen(false)} />
         )}
       </AnimatePresence>
-      {!isHomePage && <div style={{ height: "65px" }} />}
 
       {/* Login Popup Window */}
       <AnimatePresence>

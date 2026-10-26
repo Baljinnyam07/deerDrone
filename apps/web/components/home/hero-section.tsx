@@ -1,109 +1,139 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
-import { ArrowRight } from "lucide-react";
-import type { Product } from "@deer-drone/types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronRight } from "lucide-react";
+import type { Series } from "../../lib/showcase";
 
 interface HeroSectionProps {
-  heroVideo: string;
-  heroProduct: Product | null;
+  slides: Series[];
 }
 
-export function HeroSection({ heroVideo, heroProduct }: HeroSectionProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+const SLIDE_MS = 7000;
+
+export function HeroSection({ slides }: HeroSectionProps) {
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+
+  const go = useCallback(
+    (index: number) => setActive((index + slides.length) % slides.length),
+    [slides.length],
+  );
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    if (paused || slides.length < 2) return;
+    const timer = window.setTimeout(() => go(active + 1), SLIDE_MS);
+    return () => window.clearTimeout(timer);
+  }, [active, paused, go, slides.length]);
 
-    const onScroll = () => {
-      video.style.transform = `translateY(${window.scrollY * 0.35}px)`;
+  // Only the visible slide's video plays.
+  useEffect(() => {
+    videoRefs.current.forEach((video, i) => {
+      if (!video) return;
+      if (i === active) video.play().catch(() => {});
+      else video.pause();
+    });
+  }, [active]);
+
+  // The home header sits transparently on the hero and takes its text colour
+  // from the visible slide (white on dark video, dark on light renders).
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.heroTheme = slides[active]?.theme === "dark" ? "dark" : "light";
+    return () => {
+      delete root.dataset.heroTheme;
     };
+  }, [active, slides]);
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  if (slides.length === 0) return null;
+  const activeTheme = slides[active]?.theme === "dark" ? "dark" : "light";
 
   return (
     <section
-      className="position-relative w-100 overflow-hidden bg-black"
-      style={{ height: "100vh" }}
+      className="dj-hero"
+      aria-roledescription="carousel"
+      aria-label="Онцлох бүтээгдэхүүн"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
     >
-      <video
-        ref={videoRef}
-        className="position-absolute w-100"
-        style={{
-          objectFit: "cover",
-          top: "-10%",
-          left: 0,
-          height: "120%",
-          zIndex: 0,
-          willChange: "transform",
-        }}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        key={heroVideo}
-      >
-        <source src={heroVideo} type="video/mp4" />
-      </video>
-
-      <div
-        className="position-absolute w-100 h-100"
-        style={{
-          background:
-            "linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)",
-          zIndex: 1,
-          top: 0,
-          left: 0,
-        }}
-      />
-
-      <div
-        className="position-absolute w-100 h-100 d-flex align-items-center text-white px-4 px-md-5"
-        style={{ zIndex: 2, left: 0 }}
-      >
-        <div className="container">
-          <div className="row">
-            <div className="col-12 col-md-6">
-              <h2
-                className="fw-bold mb-3"
-                style={{
-                  fontSize: "clamp(2.5rem, 6vw, 4.5rem)",
-                  letterSpacing: "-0.03em",
-                  lineHeight: 1.05,
-                }}
-              >
-                {heroProduct?.name || "DEER ACTION CAM"}
-              </h2>
-
-              <p
-                className="fs-5 mb-4"
-                style={{
-                  fontWeight: 300,
-                  fontSize: "clamp(1rem, 1.8vw, 1.3rem)",
-                  maxWidth: "500px",
-                  lineHeight: 1.6,
-                }}
-              >
-                {heroProduct?.shortDescription || "Адал явдалд бэлэн"}
-              </p>
-
-              <div className="d-flex flex-wrap gap-3">
-                <Link
-                  href={`/products/${heroProduct?.slug || "action-4"}`}
-                  className="dji-border-btn"
+      {slides.map((slide, i) => {
+        const theme = slide.theme === "dark" ? "dark" : "light";
+        return (
+          <div
+            key={slide.id}
+            className={`dj-hero-slide dj-theme-${theme}${slide.video ? " has-video" : ""}${i === active ? " is-active" : ""}`}
+            aria-hidden={i !== active}
+          >
+            {slide.video ? (
+              <>
+                <video
+                  ref={(el) => {
+                    videoRefs.current[i] = el;
+                  }}
+                  className="dj-hero-media"
+                  muted
+                  loop
+                  playsInline
+                  autoPlay={i === 0}
+                  preload={i === 0 ? "auto" : "none"}
                 >
-                  Дэлгэрэнгүй <ArrowRight size={16} className="ms-2 mt-1" />
+                  <source src={slide.video} type="video/mp4" />
+                </video>
+                <div className="dj-hero-shade" />
+              </>
+            ) : null}
+
+            <div className="dj-hero-copy">
+              <p className="dj-eyebrow">{slide.eyebrow}</p>
+              {i === 0 ? (
+                <h1 className="dj-hero-title">{slide.title}</h1>
+              ) : (
+                <h2 className="dj-hero-title">{slide.title}</h2>
+              )}
+              <p className="dj-hero-tagline">{slide.tagline}</p>
+              <div className="dj-hero-ctas">
+                <Link href={`/products/${slide.slug}`} className="dj-btn" tabIndex={i === active ? 0 : -1}>
+                  Дэлгэрэнгүй <ChevronRight size={14} />
+                </Link>
+                <Link href={`/products/${slide.slug}`} className="dj-btn" tabIndex={i === active ? 0 : -1}>
+                  Худалдаж авах <ChevronRight size={14} />
                 </Link>
               </div>
             </div>
+
+            {!slide.video && (
+              <div className="dj-hero-product">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={slide.image}
+                  alt={slide.title}
+                  className="dj-cutout"
+                  loading={i === 0 ? "eager" : "lazy"}
+                />
+              </div>
+            )}
           </div>
-        </div>
-      </div>
+        );
+      })}
+
+      {slides.length > 1 && (
+        <ul className={`dj-hero-index on-${activeTheme}`}>
+          {slides.map((slide, i) => (
+            <li key={slide.id}>
+              <button
+                type="button"
+                className={i === active ? "is-active" : ""}
+                aria-label={slide.shortName}
+                aria-current={i === active}
+                onClick={() => go(i)}
+              >
+                {slide.shortName}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

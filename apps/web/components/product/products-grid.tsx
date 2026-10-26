@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef } from "react";
 import type { Product } from "@deer-drone/types";
-import { PremiumProductCard } from "./premium-product-card";
+import { DjProductCard } from "./dj-product-card";
 import { SkeletonCard } from "../ui/skeleton-card";
 import { PAGE_SIZE, type SortOption } from "../../lib/products-config";
 
@@ -55,12 +55,12 @@ export function ProductsGrid({
   }
 
   if (products.length === 0 && !isPending) {
-    return <div className="p-empty"><p>Үр дүн олдсонгүй</p></div>;
+    return <div className="p-empty" style={{ maxWidth: 1392, margin: "0 auto 96px", padding: "100px 0", textAlign: "center", color: "var(--dj-text-2)", background: "var(--dj-bg-soft)" }}><p style={{ margin: 0 }}>Үр дүн олдсонгүй</p></div>;
   }
 
   return (
     <>
-      <div className="p-grid">
+      <div className="dj-product-grid">
         {products.map((product, idx) => (
           <div
             key={product.id}
@@ -69,13 +69,7 @@ export function ProductsGrid({
               ? { animationDelay: `${(idx - animateFromRef.current) * 0.04}s` }
               : undefined}
           >
-            <PremiumProductCard
-              product={product}
-              badge={idx === 0 ? "new" : idx === 1 ? "best-seller" : undefined}
-              discount={idx === 2 ? 15 : undefined}
-              rating={Number((4.2 + (idx % 5) * 0.16).toFixed(1))}
-              reviewCount={20 + (idx % 8) * 19}
-            />
+            <DjProductCard product={product} />
           </div>
         ))}
 
@@ -107,28 +101,25 @@ export function ProductsGrid({
         .pg-wrap {
           display: flex;
           justify-content: center;
-          margin-top: 48px;
+          margin: -48px 0 96px;
         }
         .pg-btn {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 0 36px;
-          height: 50px;
+          padding: 0 32px;
+          height: 40px;
           border-radius: 999px;
-          border: 1.5px solid #0f172a;
+          border: 1px solid rgba(0,0,0,0.25);
           background: #fff;
-          color: #0f172a;
-          font-size: 0.92rem;
+          color: rgba(0,0,0,0.85);
+          font-size: 14px;
           font-weight: 600;
-          letter-spacing: 0.04em;
           cursor: pointer;
           transition: background 160ms, color 160ms, transform 140ms;
         }
         .pg-btn:hover:not(:disabled) {
-          background: #0f172a;
-          color: #fff;
-          transform: translateY(-2px);
+          border-color: rgba(0,0,0,0.85);
         }
         .pg-btn:disabled { opacity: 0.55; cursor: not-allowed; }
         .pg-arrow { font-size: 1rem; }

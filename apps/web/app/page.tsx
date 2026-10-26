@@ -1,134 +1,92 @@
-import { getProducts, getSiteSettings, getCategories } from "../lib/supabase/queries";
-import { CategoryCircleGrid } from "../components/category/category-circle-grid";
+import Link from "next/link";
+import { ChevronRight, CreditCard, MapPin, Truck } from "lucide-react";
+import { getProducts, getCategories } from "../lib/supabase/queries";
+import { resolveSeries, SHOT_ON_VIDEOS } from "../lib/showcase";
 import { HeroSection } from "../components/home/hero-section";
+import { ProductBannerGrid } from "../components/home/product-banner-grid";
+import { ShotOnCarousel } from "../components/home/shot-on-carousel";
 
+const HERO_SLIDE_COUNT = 4;
+
+const FIELDS = [
+  { slug: "drones", title: "Дрон", text: "Аэро зураг авалтаас мэргэжлийн кино бүтээл хүртэл" },
+  { slug: "cameras", title: "Камер", text: "Халаасны гимбал, экшн, 360° камерууд" },
+  { slug: "handheld", title: "Гар төхөөрөмж", text: "Тогтворжуулагч, утасгүй микрофон" },
+];
+
+const STORE_MAP_URL = "https://www.google.com/maps/search/?api=1&query=Ikh+Naytad+Plaza+Ulaanbaatar";
 
 export default async function HomePage() {
-  const [products, settings, categories] = await Promise.all([
-    getProducts(),
-    getSiteSettings(),
-    getCategories(),
-  ]);
+  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
 
-  const featured = products.slice(0, 6);
+  const series = resolveSeries(products);
+  const heroSlides = series.slice(0, HERO_SLIDE_COUNT);
+  const gridSeries = series.slice(HERO_SLIDE_COUNT);
 
-  const heroProduct =
-    products.find((p) => p.slug === settings.home_hero_product_slug) ||
-    featured[1] ||
-    featured[0];
-
-  // Static video URLs
-  const heroVideo = "https://pub-d35869f82a8446f7ae9101d79069e8b1.r2.dev/M77_WA150_30s_EN_1920x1080.mp4";
-  const showcaseMainVideo = "https://res.cloudinary.com/dx3ymrxfs/video/upload/f_auto,q_auto,w_1400/F81_OW001__E2_89_A410s_DJI_home_page_Shot_on_Video_CLEAN_2400x1440_N_N_zr8flp.mp4";
-  const showcaseSideVideo = "https://pub-d35869f82a8446f7ae9101d79069e8b1.r2.dev/M17_WA020_30s_EN_1080x1920.mp4";
+  const categoryImage = (slug: string) =>
+    (categories as { slug: string; image_url?: string | null }[]).find((c) => c.slug === slug)?.image_url ??
+    series.find((s) => s.category === slug)?.image ??
+    "/assets/drone-product.png";
 
   return (
-    <div
-      className="home-page text-sans-serif"
-      style={{
-        backgroundColor: "#000",
-        fontFamily: "var(--font-ui), sans-serif",
-        letterSpacing: "normal",
-      }}
-    >
-      {/* Hero Section */}
-      <HeroSection heroVideo={heroVideo} heroProduct={heroProduct} />
+    <div className="home-page" style={{ background: "#fff" }}>
+      <HeroSection slides={heroSlides} />
 
-      {/* Product Grid */}
-      <section
-        style={{
-          backgroundColor: "#fff",
-          paddingTop: "40px",
-          paddingBottom: "40px",
-        }}
-      >
-        <div className="container-fluid w-100">
-          <div className="text-center mb-4">
-            <h2
-              style={{
-                fontSize: "clamp(1.6rem, 4vw, 2.4rem)",
-                fontWeight: 700,
-                letterSpacing: "-0.03em",
-                color: "#111827",
-                margin: 0,
-                fontFamily:
-                  "var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', sans-serif",
-              }}
-            >
-              Бүтээгдэхүүн
-            </h2>
-          </div>
+      <ProductBannerGrid series={gridSeries} />
 
-          <CategoryCircleGrid categories={categories} />
+      <div className="dj-compare">
+        <h3>Бүх бүтээгдэхүүн</h3>
+        <p>Дрон, камер, гар төхөөрөмж болон дагалдах хэрэгслийн бүрэн жагсаалт</p>
+        <Link href="/products?category=drones" className="dj-link" style={{ color: "var(--dj-blue)" }}>
+          Дэлгүүр хэсэх <ChevronRight size={16} />
+        </Link>
+      </div>
+
+      <ShotOnCarousel videos={SHOT_ON_VIDEOS} />
+
+      <section className="dj-block" aria-label="Ангиллууд">
+        <h2 className="dj-section-title">DJI бүтээгдэхүүнийг ангиллаар нь</h2>
+        <p className="dj-section-sub">Таны хэрэгцээнд тохирох төхөөрөмжийг сонгоорой.</p>
+        <div className="dj-fields">
+          {FIELDS.map((field) => (
+            <Link key={field.slug} href={`/products?category=${field.slug}`} className="dj-field">
+              <h3>{field.title}</h3>
+              <p>{field.text}</p>
+              <span className="dj-link">
+                Дэлгэрэнгүй <ChevronRight size={14} />
+              </span>
+              <div className="dj-field-media">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={categoryImage(field.slug)} alt="" loading="lazy" />
+              </div>
+            </Link>
+          ))}
         </div>
       </section>
 
-      {/* Video Showcase Section */}
-      <section className="bg-black py-5">
-        <div className="container py-5">
-          <div className="row g-3">
-            <div className="col-12 col-md-8">
-              <div
-                className="position-relative rounded overflow-hidden"
-                style={{ aspectRatio: "16/9" }}
-              >
-                <video
-                  className="w-100 h-100"
-                  style={{ objectFit: "cover" }}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="none"
-                  key={showcaseMainVideo}
-                >
-                  <source src={showcaseMainVideo} type="video/mp4" />
-                </video>
-              </div>
-
-              <div className="text-center mt-5">
-                <span
-                  className="text-uppercase fw-semibold mb-3 d-block"
-                  style={{
-                    fontSize: "0.85rem",
-                    letterSpacing: "0.2em",
-                    color: "#666",
-                  }}
-                >
-                  Shot on DEER
-                </span>
-                <h2
-                  className="fw-bold text-white mb-3"
-                  style={{
-                    fontSize: "clamp(2rem, 4vw, 3rem)",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  Standing at the Forefront of Innovation
-                </h2>
-              </div>
-            </div>
-
-            <div className="col-12 col-md-4">
-              <div
-                className="position-relative rounded overflow-hidden h-100"
-                style={{ aspectRatio: "9/16" }}
-              >
-                <video
-                  className="w-100 h-100"
-                  style={{ objectFit: "cover" }}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="none"
-                  key={showcaseSideVideo}
-                >
-                  <source src={showcaseSideVideo} type="video/mp4" />
-                </video>
-              </div>
-            </div>
-          </div>
+      <section className="dj-service" aria-label="Үйлчилгээ">
+        <div className="dj-service-inner">
+          <a href={STORE_MAP_URL} target="_blank" rel="noreferrer" className="dj-service-item">
+            <MapPin size={40} strokeWidth={1.2} />
+            <h4>Манай дэлгүүр</h4>
+            <span>
+              Их Наяд Плаза, 3 давхар <ChevronRight size={14} />
+            </span>
+          </a>
+          <Link href="/help/delivery" className="dj-service-item">
+            <Truck size={40} strokeWidth={1.2} />
+            <h4>Хүргэлт</h4>
+            <span>
+              Хүргэлтийн нөхцөл <ChevronRight size={14} />
+            </span>
+          </Link>
+          <Link href="/leasing" className="dj-service-item">
+            <CreditCard size={40} strokeWidth={1.2} />
+            <h4>Лизинг</h4>
+            <span>
+              Хувааж төлөх <ChevronRight size={14} />
+            </span>
+          </Link>
         </div>
       </section>
     </div>
