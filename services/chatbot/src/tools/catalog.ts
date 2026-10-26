@@ -34,6 +34,7 @@ export async function searchProductsTool(query: string, limit = 6) {
   const { data, error } = await supabase
     .from("products")
     .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
+    .gt("stock_qty", 0) // out of stock → never recommend
     .or(nameOrKeywordFilter(query))
     .limit(limit);
 
@@ -48,7 +49,8 @@ export async function searchProductsTool(query: string, limit = 6) {
 export async function getAllProductsTool() {
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, slug, price, short_description, description, category_id, hero_note, product_images(url), categories(name)");
+    .select("id, name, slug, price, short_description, description, category_id, hero_note, product_images(url), categories(name)")
+    .gt("stock_qty", 0); // out of stock → never recommend
 
   if (error) {
     console.error("getAllProductsTool error", error);
@@ -57,12 +59,14 @@ export async function getAllProductsTool() {
   return data || [];
 }
 
-export async function getProductsByIdsTool(ids: string[]) {
+export async function getProductsByIdsTool(ids: string[], inStockOnly = false) {
   if (!ids || ids.length === 0) return [];
-  const { data, error } = await supabase
+  let query = supabase
     .from("products")
     .select("id, name, slug, price, hero_note, short_description, description, product_images(url)")
     .in("id", ids);
+  if (inStockOnly) query = query.gt("stock_qty", 0);
+  const { data, error } = await query;
 
   if (error) {
     console.error("getProductsByIdsTool error", error);
@@ -143,6 +147,7 @@ export async function getFeaturedProductsTool(limit = 8) {
     let q = supabase
       .from("products")
       .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
+      .gt("stock_qty", 0) // out of stock → never recommend
       .ilike("name", namePat)
       .limit(1);
     const { data } = await q;
@@ -160,6 +165,7 @@ export async function getFeaturedProductsTool(limit = 8) {
   let featuredQuery = supabase
     .from("products")
     .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
+    .gt("stock_qty", 0) // out of stock → never recommend
     .eq("is_featured", true)
     .order("price", { ascending: false })
     .limit(limit);
@@ -180,6 +186,7 @@ export async function getFeaturedProductsTool(limit = 8) {
     const { data: drones } = await supabase
       .from("products")
       .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
+      .gt("stock_qty", 0) // out of stock → never recommend
       .eq("category_id", categoryId)
       .order("price", { ascending: false })
       .limit(limit);
@@ -250,6 +257,7 @@ export async function getCheapestByCategory(categoryKeyword: string) {
   let query = supabase
     .from("products")
     .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
+    .gt("stock_qty", 0) // out of stock → never recommend
     .order("price", { ascending: true })
     .limit(1);
 

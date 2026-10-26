@@ -184,6 +184,7 @@ export async function matchProducts(
       const { data: byKeyword } = await supabase
         .from("products")
         .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
+        .gt("stock_qty", 0) // out of stock → never recommend
         .in("category_id", catIds)
         .or(nameOrKeywordFilter(keyword))
         .limit(20);
@@ -194,6 +195,7 @@ export async function matchProducts(
       const { data: allInCat } = await supabase
         .from("products")
         .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
+        .gt("stock_qty", 0) // out of stock → never recommend
         .in("category_id", catIds)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -241,6 +243,7 @@ export async function getProductsByCategory(category: string, limit = 20): Promi
   const { data } = await supabase
     .from("products")
     .select("id, name, slug, price, hero_note, short_description, product_images(url), categories(name)")
+    .gt("stock_qty", 0) // out of stock → never recommend
     .in("category_id", catIds)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -266,6 +269,7 @@ export async function matchByKeywords(message: string): Promise<MatchedProduct[]
   const { data, error } = await supabase
     .from("products")
     .select("id, name, slug, price, hero_note, short_description, search_keywords, product_images(url), categories(name)")
+    .gt("stock_qty", 0) // out of stock → never recommend
     .not("search_keywords", "is", null);
 
   // Column missing (migration not run yet) or other DB error → no keyword hits
@@ -308,7 +312,7 @@ export async function getProductById(id: string): Promise<MatchedProduct | null>
 // Multiple products by IDs (for AI suggestions)
 // ---------------------------------------------------------------------------
 export async function getProductsByIds(ids: string[]): Promise<MatchedProduct[]> {
-  const results = await getProductsByIdsTool(ids);
+  const results = await getProductsByIdsTool(ids, true);
   return normalise(results);
 }
 

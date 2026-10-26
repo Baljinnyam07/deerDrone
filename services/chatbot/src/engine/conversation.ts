@@ -558,6 +558,7 @@ export async function runConversation(request: ChatRequest): Promise<ChatRespons
         const { data: products } = await supabase
           .from("products")
           .select("id, name, slug, price, hero_note, short_description, product_images(url)")
+          .gt("stock_qty", 0) // out of stock → never recommend
           .eq("category_id", cat.id)
           .limit(20);
 
