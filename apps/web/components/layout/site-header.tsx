@@ -74,7 +74,6 @@ const navItems: NavItem[] = [
   { id: "handheld", label: "Гар төхөөрөмж", href: "/products?category=handheld", category: "handheld" },
   { id: "power", label: "Power", href: "/products?category=power", category: "power" },
   { id: "accessories", label: "Дагалдах хэрэгсэл", href: "/products?category=accessories" },
-  { id: "leasing", label: "Лизинг", href: "/leasing" },
   { id: "help", label: "Тусламж", href: "/help/terms", links: menuItems[2].children },
   { id: "about", label: "Бидний тухай", href: "/about", links: menuItems[1].children },
 ];
@@ -240,15 +239,6 @@ export function SiteHeader({ navSeries = [] }: { navSeries?: Series[] }) {
 
   return (
     <>
-      {showAnnounce && (
-        <div className="dj-announce">
-          DJI-ийн Монгол дахь албан ёсны борлуулагч — шинэ бүтээгдэхүүнүүд ирлээ.
-          <Link href="/products?category=drones">Дэлгүүр хэсэх ›</Link>
-          <button className="dj-announce-close" aria-label="Хаах" onClick={dismissAnnounce}>
-            <X size={14} />
-          </button>
-        </div>
-      )}
       <header
         className={`dj-header${isScrolled ? " is-scrolled" : ""}${pathname === "/" ? " is-home" : ""}${pathname === "/" && !isScrolled && !hoveredItem ? " is-overlay" : ""}`}
         onMouseLeave={() => setHoveredItem(null)}
@@ -281,34 +271,6 @@ export function SiteHeader({ navSeries = [] }: { navSeries?: Series[] }) {
             <button className="dj-icon-btn" aria-label="Хайх" onClick={() => setIsSearchOpen(true)}>
               <Search size={20} strokeWidth={1.6} />
             </button>
-
-            {isDesktop && mounted && (
-              <div style={{ position: "relative" }} onClick={(e) => e.stopPropagation()}>
-                <button
-                  className="dj-icon-btn"
-                  aria-label={user ? "Миний бүртгэл" : "Нэвтрэх"}
-                  onClick={() => (user ? setActiveDropdown(activeDropdown === "user" ? null : "user") : setIsLoginPopupOpen(true))}
-                >
-                  <User size={20} strokeWidth={1.6} />
-                </button>
-                {activeDropdown === "user" && user && (
-                  <div style={{ position: "absolute", top: "100%", right: 0, marginTop: "10px", width: "240px", background: "#fff", borderRadius: "8px", boxShadow: "0 12px 32px rgba(0,0,0,0.12)", padding: "16px", zIndex: 1100 }}>
-                    <p style={{ margin: "0 0 2px", fontWeight: 600, fontSize: "14px" }}>Миний бүртгэл</p>
-                    <p style={{ margin: "0 0 12px", fontSize: "12px", color: "var(--dj-text-3)", overflow: "hidden", textOverflow: "ellipsis" }}>{user.email}</p>
-                    <button
-                      onClick={async () => {
-                        const { createClient } = await import("../../lib/supabase/client");
-                        await createClient().auth.signOut();
-                        window.location.reload();
-                      }}
-                      style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%", background: "var(--dj-bg-soft)", border: 0, borderRadius: "6px", padding: "8px 12px", fontSize: "13px", color: "#d4380d", cursor: "pointer" }}
-                    >
-                      <LogOut size={16} /> Гарах
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Cart Icon & Dropdown - Desktop Only */}
             {isDesktop && mounted && (

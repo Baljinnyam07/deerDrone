@@ -1,15 +1,25 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, Truck, ShieldCheck, Share2, ChevronRight } from "lucide-react";
+import { ChevronRight, Minus, Play, Plus, Share2, ShieldCheck, Truck, X } from "lucide-react";
 import type { Product } from "@deer-drone/types";
 import { formatMoney } from "@deer-drone/utils";
 import { useStore } from "../../../../store/useStore";
-import { useEffect, useState } from "react";
-import { MinimalProductCarousel } from "../../../../components/product/minimal-product-carousel";
-import { createClient } from "../../../../lib/supabase/client";
+import { DjProductCard } from "../../../../components/product/dj-product-card";
+import { getProductMedia, mediaSrcSet, mediaUrl, mediaVideoUrl } from "../../../../lib/product-media";
+
+const NAV_LINKS = [
+  { id: "features", label: "Онцлох" },
+  { id: "gallery", label: "Зураг" },
+  { id: "specs", label: "Үзүүлэлт" },
+  { id: "similar", label: "Төстэй бараа" },
+];
+
+function scrollToSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 export default function ProductDetailView({
   product,
@@ -22,590 +32,382 @@ export default function ProductDetailView({
   const { addToCart } = useStore();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState("info");
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    async function getUser() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    }
-    getUser();
-  }, []);
+  const [filmOpen, setFilmOpen] = useState(false);
 
   const images =
     product.images?.length > 0
       ? product.images
       : [{ url: "/assets/drone-product.png", alt: product.name }];
-  const imageUrl = images[currentImageIndex]?.url || "/assets/drone-product.png";
+  const heroImage = (product.images?.find((img) => img.isThumbnail) ?? images[0]).url;
+  const buyImage = images[currentImageIndex]?.url || heroImage;
 
-  const descriptionLines = (product.description || "")
+  const features = (product.description || "")
     .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
+    .map((line) => line.replace(/^[\s•·\-–*]+/, "").trim())
+    .filter(Boolean)
+    .slice(0, 8);
 
-  const groupedSpecs = product.specs?.reduce<Record<string, typeof product.specs>>((acc, spec) => {
-    const group = spec.group || "Ерөнхий";
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(spec);
-    return acc;
-  }, {}) ?? {};
+  const groupedSpecs =
+    product.specs?.reduce<Record<string, typeof product.specs>>((acc, spec) => {
+      const group = spec.group || "Ерөнхий";
+      (acc[group] ??= []).push(spec);
+      return acc;
+    }, {}) ?? {};
+  const specGroups = Object.entries(groupedSpecs);
 
-  async function addCurrentProductToCart() {
+  const media = getProductMedia(product.slug, product.categorySlug);
+
+  useEffect(() => {
+    if (!filmOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setFilmOpen(false);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [filmOpen]);
+  const inStock = product.stockQty > 0;
+  const onSale = !!product.comparePrice && product.comparePrice > product.price;
+  const discount = onSale ? Math.round((1 - product.price / product.comparePrice!) * 100) : 0;
+
+  const navLinks = NAV_LINKS.filter((link) => {
+    if (link.id === "features") return !!media || features.length > 0;
+    if (link.id === "gallery") return media ? media.gallery.length > 0 : images.length > 1;
+    if (link.id === "specs") return specGroups.length > 0;
+    if (link.id === "similar") return similarProducts.length > 0;
+    return true;
+  });
+
+  function addCurrentProductToCart() {
     for (let i = 0; i < quantity; i++) {
-      addToCart({ id: product.id, slug: product.slug, name: product.name, price: product.price, image: imageUrl, brand: product.brand, stockQty: product.stockQty, categorySlug: product.categorySlug });
+      addToCart({
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        price: product.price,
+        image: buyImage,
+        brand: product.brand,
+        stockQty: product.stockQty,
+        categorySlug: product.categorySlug,
+      });
     }
   }
 
-  async function handleBuyNow() {
-    for (let i = 0; i < quantity; i++) {
-      addToCart({ id: product.id, slug: product.slug, name: product.name, price: product.price, image: imageUrl, brand: product.brand, stockQty: product.stockQty, categorySlug: product.categorySlug });
-    }
+  function handleBuyNow() {
+    addCurrentProductToCart();
     router.push("/checkout");
   }
 
-  const inStock = product.stockQty > 0;
-
   return (
-    <div style={{ backgroundColor: "#fff", minHeight: "100vh" }}>
-      <style dangerouslySetInnerHTML={{ __html: styles }} />
-
-      {/* Breadcrumb */}
-      <div className="pd-breadcrumb">
-        <Link href="/" className="pd-bc-link">Нүүр</Link>
-        <ChevronRight size={14} className="pd-bc-sep" />
-        <Link href={`/products?category=${product.categorySlug}`} className="pd-bc-link">
-          {product.categoryName}
-        </Link>
-        <ChevronRight size={14} className="pd-bc-sep" />
-        <span className="pd-bc-current">{product.name}</span>
+    <div className="dp">
+      {/* Sticky product sub-nav */}
+      <div className="dp-subnav">
+        <div className="dp-subnav-inner">
+          <span className="dp-subnav-name">{product.name.trim()}</span>
+          <nav className="dp-subnav-links" aria-label="Хуудасны хэсгүүд">
+            {navLinks.map((link) => (
+              <button key={link.id} type="button" onClick={() => scrollToSection(link.id)}>
+                {link.label}
+              </button>
+            ))}
+          </nav>
+          <button type="button" className="dp-pill dp-pill-sm" onClick={() => scrollToSection("buy")}>
+            Худалдан авах
+          </button>
+        </div>
       </div>
 
-      {/* Main Grid */}
-      <div className="pd-container">
-        <div className="pd-grid">
+      {/* Hero */}
+      <section
+        className={`dp-hero${media ? " dp-hero-kv" : ""}${media?.heroVideo || media?.heroDark ? " has-video" : ""}${media?.heroDark && !media.heroVideo ? " is-still" : ""}`}
+        style={
+          media
+            ? {
+                backgroundImage: `url(${mediaUrl(media.folder, media.heroVideo?.poster ?? media.hero.id, 2400)})`,
+              }
+            : undefined
+        }
+        aria-label={media?.hero.alt}
+      >
+        {media?.heroDark && !media.heroVideo && <div className="dp-hero-scrim" aria-hidden="true" />}
+        {media?.heroVideo && (
+          <>
+            <video
+              className="dp-hero-video"
+              src={mediaVideoUrl(media.folder, media.heroVideo.id)}
+              poster={mediaUrl(media.folder, media.heroVideo.poster, 1600)}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-hidden="true"
+            />
+            <div className="dp-hero-scrim" aria-hidden="true" />
+          </>
+        )}
+        <div className="dp-crumbs">
+          <Link href="/">Нүүр</Link>
+          <ChevronRight size={12} />
+          <Link href={`/products?category=${product.categorySlug}`}>{product.categoryName}</Link>
+        </div>
+        <h1 className="dp-hero-title">{product.name.trim()}</h1>
+        {product.shortDescription && product.shortDescription.trim() !== product.name.trim() && (
+          <p className="dp-hero-tagline">{product.shortDescription}</p>
+        )}
+        <div className="dp-hero-price">
+          <strong>{formatMoney(product.price)}</strong>
+          {onSale && <s>{formatMoney(product.comparePrice!)}</s>}
+          {onSale && <span className="dp-discount">-{discount}%</span>}
+        </div>
+        <div className="dp-hero-actions">
+          <button type="button" className="dp-pill" onClick={() => scrollToSection("buy")}>
+            {inStock ? "Худалдан авах" : "Дэлгэрэнгүй"}
+          </button>
+          {media?.film ? (
+            <button type="button" className="dp-pill dp-pill-outline" onClick={() => setFilmOpen(true)}>
+              <Play size={14} fill="currentColor" /> Бичлэг үзэх
+            </button>
+          ) : (
+            specGroups.length > 0 && (
+              <button type="button" className="dp-text-link" onClick={() => scrollToSection("specs")}>
+                Үзүүлэлт <ChevronRight size={16} />
+              </button>
+            )
+          )}
+        </div>
+        {media ? (
+          !inStock && <span className="dp-soldout dp-soldout-kv">Дууссан</span>
+        ) : (
+          <div className="dp-hero-media">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={heroImage} alt={product.name} className="dj-cutout" />
+            {!inStock && <span className="dp-soldout">Дууссан</span>}
+          </div>
+        )}
+      </section>
 
-          {/* ── Left: Gallery ── */}
-          <div className="pd-gallery">
-            {/* Thumbnail strip */}
+      {/* Chapters: dji.com-style text-over-image sections */}
+      {media && (
+        <div id="features">
+          {media.chapters.map((chapter, i) => (
+            <section key={chapter.title} className={`dp-chapter${i % 2 === 1 ? " is-soft" : ""}`}>
+              <div className="dp-chapter-head">
+                <h2>{chapter.title}</h2>
+                <p>{chapter.text}</p>
+              </div>
+              <div className={`dp-chapter-media${chapter.images.length > 1 ? " is-pair" : ""}`}>
+                {chapter.images.map((img) => (
+                  <figure key={img.id}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={mediaUrl(media.folder, img.id, 1400)}
+                      srcSet={mediaSrcSet(media.folder, img.id)}
+                      sizes={chapter.images.length > 1 ? "(min-width: 1200px) 600px, 92vw" : "(min-width: 1440px) 1392px, 96vw"}
+                      alt={img.alt}
+                      loading="lazy"
+                    />
+                    {img.caption && <figcaption>{img.caption}</figcaption>}
+                  </figure>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
+      {/* "Shot on" sample gallery */}
+      {media && media.gallery.length > 0 && (
+        <section id="gallery" className="dp-section dp-section-dark">
+          <div className="dp-wrap">
+            <h2 className="dp-h2">{media.galleryTitle}</h2>
+          </div>
+          <div className="dp-strip dp-strip-photos">
+            {media.gallery.map((img) => (
+              <div key={img.id} className="dp-strip-photo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={mediaUrl(media.folder, img.id, 1200)}
+                  srcSet={mediaSrcSet(media.folder, img.id, [600, 1200, 1800])}
+                  sizes="(min-width: 768px) 640px, 84vw"
+                  alt={img.alt}
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Features from the description */}
+      {!media && features.length > 0 && (
+        <section id="features" className="dp-section">
+          <div className="dp-wrap">
+            <h2 className="dp-h2">Онцлох шинж чанар</h2>
+            <div className="dp-features">
+              {features.map((text, i) => (
+                <article key={i} className="dp-feature">
+                  <span className="dp-feature-no">{String(i + 1).padStart(2, "0")}</span>
+                  <p>{text}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Image strip */}
+      {!media && images.length > 1 && (
+        <section id="gallery" className="dp-section dp-section-soft">
+          <div className="dp-wrap">
+            <h2 className="dp-h2">Зураг</h2>
+          </div>
+          <div className="dp-strip">
+            {images.map((img, i) => (
+              <div key={i} className="dp-strip-tile">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.url} alt={img.alt || `${product.name} ${i + 1}`} className="dj-cutout" loading="lazy" />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Purchase */}
+      <section id="buy" className="dp-section">
+        <div className="dp-wrap dp-buy">
+          <div className="dp-buy-media">
+            <div className="dp-buy-main">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={buyImage} alt={product.name} className="dj-cutout" />
+            </div>
             {images.length > 1 && (
-              <div className="pd-thumbs">
-                {images.map((img, idx) => (
+              <div className="dp-thumbs">
+                {images.map((img, i) => (
                   <button
-                    key={idx}
-                    className={`pd-thumb ${idx === currentImageIndex ? "pd-thumb-active" : ""}`}
-                    onClick={() => setCurrentImageIndex(idx)}
+                    key={i}
+                    type="button"
+                    className={i === currentImageIndex ? "is-active" : ""}
+                    onClick={() => setCurrentImageIndex(i)}
+                    aria-label={`Зураг ${i + 1}`}
                   >
-                    <Image src={img.url} alt={`${idx + 1}`} fill style={{ objectFit: "contain", padding: "4px" }} />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img.url} alt="" className="dj-cutout" loading="lazy" />
                   </button>
                 ))}
               </div>
             )}
-
-            {/* Main image */}
-            <div className="pd-main-image">
-              <Image
-                src={imageUrl}
-                alt={product.name}
-                fill
-                style={{ objectFit: "contain", transition: "opacity 200ms" }}
-              />
-              {/* Stock badge on image */}
-              {!inStock && (
-                <div className="pd-out-of-stock-badge">Дууссан</div>
-              )}
-            </div>
           </div>
 
-          {/* ── Right: Info ── */}
-          <div className="pd-info">
-
-            {/* Brand + category chips */}
-            <div className="pd-chips">
-              {product.brand && <span className="pd-chip pd-chip-brand">{product.brand}</span>}
-              {product.categoryName && <span className="pd-chip pd-chip-cat">{product.categoryName}</span>}
-              {product.isLeasable && <span className="pd-chip pd-chip-lease">Лизингтэй</span>}
+          <div className="dp-buy-info">
+            <h2 className="dp-buy-title">{product.name.trim()}</h2>
+            <div className="dp-buy-price">
+              <strong>{formatMoney(product.price)}</strong>
+              {onSale && <s>{formatMoney(product.comparePrice!)}</s>}
             </div>
-
-            {/* Title */}
-            <h1 className="pd-title">{product.name}</h1>
-
-            {/* Short description */}
-            {product.shortDescription && (
-              <p className="pd-short-desc">{product.shortDescription}</p>
-            )}
-
-            {/* Price */}
-            <div className="pd-price-block">
-              <div className="pd-price-main">{formatMoney(product.price)}</div>
-              {product.comparePrice && product.comparePrice > product.price && (
-                <div className="pd-price-compare-row">
-                  <span className="pd-price-compare">{formatMoney(product.comparePrice)}</span>
-                  <span className="pd-price-discount">
-                    -{Math.round((1 - product.price / product.comparePrice) * 100)}%
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Stock */}
-            <div className={`pd-stock ${inStock ? "pd-stock-in" : "pd-stock-out"}`}>
-              <span className="pd-stock-dot" />
+            <div className={`dp-stock ${inStock ? "is-in" : "is-out"}`}>
+              <span />
               {inStock ? `Нөөцтэй · ${product.stockQty} ширхэг` : "Нөөц дууссан"}
             </div>
 
-            {/* Quantity */}
-            <div className="pd-qty-row">
-              <span className="pd-qty-label">Тоо ширхэг</span>
-              <div className="pd-qty-ctrl">
-                <button className="pd-qty-btn" onClick={() => quantity > 1 && setQuantity(q => q - 1)}>
+            <div className="dp-qty-row">
+              <span>Тоо ширхэг</span>
+              <div className="dp-qty">
+                <button type="button" aria-label="Хасах" onClick={() => quantity > 1 && setQuantity((q) => q - 1)}>
                   <Minus size={14} />
                 </button>
-                <span className="pd-qty-val">{quantity}</span>
-                <button className="pd-qty-btn" onClick={() => quantity < (product.stockQty || 99) && setQuantity(q => q + 1)}>
+                <span>{quantity}</span>
+                <button
+                  type="button"
+                  aria-label="Нэмэх"
+                  onClick={() => quantity < (product.stockQty || 99) && setQuantity((q) => q + 1)}
+                >
                   <Plus size={14} />
                 </button>
               </div>
             </div>
 
-            {/* CTA buttons */}
-            <div className="pd-cta" style={{ gridTemplateColumns: "1fr 1fr" }}>
-              <button
-                className="pd-btn-secondary"
-                disabled={!inStock}
-                onClick={() => void addCurrentProductToCart()}
-              >
-                Сагсанд хийх
-              </button>
-              <button
-                className="pd-btn-primary"
-                disabled={!inStock}
-                onClick={() => void handleBuyNow()}
-              >
+            <div className="dp-buy-actions">
+              <button type="button" className="dp-pill" disabled={!inStock} onClick={handleBuyNow}>
                 Худалдан авах
               </button>
-            </div>
-
-            {/* Trust badges */}
-            <div className="pd-trust">
-              <div className="pd-trust-item">
-                <Truck size={16} />
-                <span>Хүргэлт 24 цаг</span>
-              </div>
-              <div className="pd-trust-item">
-                <ShieldCheck size={16} />
-                <span>Баталгаат бараа</span>
-              </div>
-              <button
-                className="pd-trust-item pd-share-btn"
-                onClick={() => navigator.share?.({ title: product.name, url: window.location.href })}
-              >
-                <Share2 size={16} />
-                <span>Хуваалцах</span>
+              <button type="button" className="dp-pill dp-pill-ghost" disabled={!inStock} onClick={addCurrentProductToCart}>
+                Сагсанд хийх
               </button>
             </div>
+
+            <ul className="dp-trust">
+              <li>
+                <Truck size={16} /> Хүргэлт 24 цаг
+              </li>
+              <li>
+                <ShieldCheck size={16} /> Баталгаат бараа
+              </li>
+              <li>
+                <button type="button" onClick={() => navigator.share?.({ title: product.name, url: window.location.href })}>
+                  <Share2 size={16} /> Хуваалцах
+                </button>
+              </li>
+            </ul>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Specs */}
-      {product.specs && product.specs.length > 0 && (
-        <div className="pd-section">
-          <div className="pd-section-inner">
-            <h2 className="pd-section-title">Техникийн үзүүлэлт</h2>
-            <div className="pd-specs-wrap">
-              {Object.entries(groupedSpecs).map(([group, specs]) => (
-                <div key={group} className="pd-spec-group">
-                  {Object.keys(groupedSpecs).length > 1 && (
-                    <div className="pd-spec-group-label">{group}</div>
-                  )}
-                  {specs.map((spec, i) => (
-                    <div key={i} className={`pd-spec-row ${i % 2 === 0 ? "pd-spec-even" : ""}`}>
-                      <span className="pd-spec-label">{spec.label}</span>
-                      <span className="pd-spec-value">{spec.value}</span>
-                    </div>
-                  ))}
+      {specGroups.length > 0 && (
+        <section id="specs" className="dp-section dp-section-soft">
+          <div className="dp-wrap">
+            <h2 className="dp-h2">Техникийн үзүүлэлт</h2>
+            <div className="dp-specs">
+              {specGroups.map(([group, specs]) => (
+                <div key={group} className="dp-spec-group">
+                  <h3>{group}</h3>
+                  <dl>
+                    {specs.map((spec, i) => (
+                      <div key={i} className="dp-spec-row">
+                        <dt>{spec.label}</dt>
+                        <dd>{spec.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </section>
       )}
-
-      {/* Tabs: description */}
-      <div className="pd-section">
-        <div className="pd-section-inner">
-          <div className="pd-tabs">
-            {["info"].map((tab) => (
-              <button
-                key={tab}
-                className={`pd-tab ${activeTab === tab ? "pd-tab-active" : ""}`}
-                onClick={() => setActiveTab(tab)}
-              >
-                Бүтээгдэхүүний тайлбар
-              </button>
-            ))}
-          </div>
-          <div className="pd-tab-body">
-            {descriptionLines.length > 0 ? (
-              descriptionLines.map((line, i) => (
-                <p key={i} className="pd-desc-line">{line}</p>
-              ))
-            ) : (
-              <p className="pd-desc-line" style={{ color: "#94A3B8" }}>
-                Дэлгэрэнгүй мэдээлэл одоогоор байхгүй байна.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Similar products */}
       {similarProducts.length > 0 && (
-        <div className="pd-section">
-          <div className="pd-section-inner">
-            <h2 className="pd-section-title">Төстэй бараа</h2>
-            <MinimalProductCarousel products={similarProducts} />
+        <section id="similar" className="dp-section">
+          <div className="dp-wrap">
+            <h2 className="dp-h2">Төстэй бараа</h2>
           </div>
+          <div className="dj-product-grid dp-similar">
+            {similarProducts.slice(0, 4).map((item) => (
+              <DjProductCard key={item.id} product={item} />
+            ))}
+          </div>
+        </section>
+      )}
+      {media?.film && filmOpen && (
+        <div className="dp-film" role="dialog" aria-modal="true" aria-label={`${product.name} — бичлэг`} onClick={() => setFilmOpen(false)}>
+          <button type="button" className="dp-film-close" aria-label="Хаах" onClick={() => setFilmOpen(false)}>
+            <X size={22} />
+          </button>
+          <video
+            className="dp-film-video"
+            src={mediaVideoUrl(media.folder, media.film)}
+            poster={media.heroVideo ? mediaUrl(media.folder, media.heroVideo.poster, 1600) : undefined}
+            controls
+            autoPlay
+            playsInline
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
   );
 }
-
-const styles = `
-  .pd-breadcrumb {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 20px 32px 0;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.85rem;
-    flex-wrap: wrap;
-  }
-  .pd-bc-link {
-    color: #94A3B8;
-    text-decoration: none;
-    transition: color 150ms;
-  }
-  .pd-bc-link:hover { color: #0F172A; }
-  .pd-bc-sep { color: #CBD5E1; flex-shrink: 0; }
-  .pd-bc-current { color: #0F172A; font-weight: 500; }
-
-  .pd-container {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 32px 32px 48px;
-  }
-  .pd-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 64px;
-    align-items: start;
-  }
-
-  /* Gallery */
-  .pd-gallery { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 100px; }
-  .pd-thumbs {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .pd-thumbs::-webkit-scrollbar { display: none; }
-  .pd-thumb {
-    flex: 0 0 64px;
-    height: 64px;
-    position: relative;
-    border-radius: 8px;
-    border: 1.5px solid #E2E8F0;
-    background: #F8FAFC;
-    cursor: pointer;
-    transition: border-color 150ms;
-    overflow: hidden;
-    padding: 0;
-  }
-  .pd-thumb:hover { border-color: #94A3B8; }
-  .pd-thumb-active { border-color: #0F172A !important; }
-  .pd-main-image {
-    width: 100%;
-    aspect-ratio: 1;
-    background: #F8FAFC;
-    border-radius: 16px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-  }
-  .pd-out-of-stock-badge {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    background: #0F172A;
-    color: #fff;
-    font-size: 0.75rem;
-    font-weight: 700;
-    padding: 4px 12px;
-    border-radius: 20px;
-    letter-spacing: 0.04em;
-  }
-
-  /* Info */
-  .pd-info { display: flex; flex-direction: column; gap: 20px; }
-
-  .pd-chips { display: flex; gap: 8px; flex-wrap: wrap; }
-  .pd-chip {
-    font-size: 0.72rem;
-    font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 20px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .pd-chip-brand { background: #0F172A; color: #fff; }
-  .pd-chip-cat { background: #F1F5F9; color: #475569; }
-  .pd-chip-lease { background: #EFF6FF; color: #2563EB; }
-
-  .pd-title {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #0F172A;
-    line-height: 1.2;
-    letter-spacing: -0.03em;
-    margin: 0;
-  }
-  .pd-short-desc {
-    font-size: 0.95rem;
-    color: #64748B;
-    line-height: 1.65;
-    margin: 0;
-  }
-
-  .pd-price-block { display: flex; flex-direction: column; gap: 4px; }
-  .pd-price-main {
-    font-size: 2.2rem;
-    font-weight: 800;
-    color: #0F172A;
-    letter-spacing: -0.04em;
-    line-height: 1;
-  }
-  .pd-price-compare-row { display: flex; align-items: center; gap: 10px; }
-  .pd-price-compare {
-    font-size: 1rem;
-    color: #94A3B8;
-    text-decoration: line-through;
-  }
-  .pd-price-discount {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #16A34A;
-    background: #DCFCE7;
-    padding: 2px 8px;
-    border-radius: 20px;
-  }
-
-  .pd-stock {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    padding: 6px 14px;
-    border-radius: 20px;
-    width: fit-content;
-  }
-  .pd-stock-in { background: #F0FDF4; color: #16A34A; }
-  .pd-stock-out { background: #FEF2F2; color: #DC2626; }
-  .pd-stock-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: currentColor;
-    flex-shrink: 0;
-  }
-
-  .pd-qty-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 0;
-    border-top: 1px solid #F1F5F9;
-    border-bottom: 1px solid #F1F5F9;
-  }
-  .pd-qty-label { font-size: 0.9rem; font-weight: 600; color: #0F172A; }
-  .pd-qty-ctrl {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    border: 1.5px solid #E2E8F0;
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  .pd-qty-btn {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #F8FAFC;
-    border: none;
-    cursor: pointer;
-    color: #475569;
-    transition: background 150ms;
-  }
-  .pd-qty-btn:hover { background: #E2E8F0; }
-  .pd-qty-val {
-    width: 52px;
-    text-align: center;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #0F172A;
-    border-left: 1.5px solid #E2E8F0;
-    border-right: 1.5px solid #E2E8F0;
-    line-height: 40px;
-  }
-
-  .pd-cta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .pd-btn-primary, .pd-btn-secondary {
-    padding: 14px;
-    border-radius: 10px;
-    font-size: 0.95rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 200ms;
-    border: none;
-  }
-  .pd-btn-primary:disabled, .pd-btn-secondary:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-  .pd-btn-secondary {
-    background: #F1F5F9;
-    color: #0F172A;
-    border: 1.5px solid #E2E8F0;
-  }
-  .pd-btn-secondary:hover:not(:disabled) { background: #E2E8F0; }
-  .pd-btn-primary {
-    background: #0F172A;
-    color: #fff;
-  }
-  .pd-btn-primary:hover:not(:disabled) { background: #1E293B; }
-
-  .pd-trust {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-  .pd-trust-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.82rem;
-    color: #475569;
-    background: #F8FAFC;
-    border: 1px solid #E2E8F0;
-    border-radius: 8px;
-    padding: 7px 12px;
-  }
-  .pd-share-btn {
-    cursor: pointer;
-    background: #F8FAFC;
-    transition: background 150ms;
-  }
-  .pd-share-btn:hover { background: #E2E8F0; }
-
-  /* Sections */
-  .pd-section {
-    border-top: 1px solid #F1F5F9;
-    padding: 48px 0;
-  }
-  .pd-section-inner {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 0 32px;
-  }
-  .pd-section-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #0F172A;
-    margin: 0 0 24px;
-    letter-spacing: -0.02em;
-  }
-
-  /* Specs */
-  .pd-specs-wrap { border: 1.5px solid #E2E8F0; border-radius: 12px; overflow: hidden; }
-  .pd-spec-group-label {
-    padding: 10px 20px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #94A3B8;
-    background: #F8FAFC;
-    border-bottom: 1px solid #E2E8F0;
-  }
-  .pd-spec-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 13px 20px;
-    font-size: 0.9rem;
-    border-bottom: 1px solid #F1F5F9;
-  }
-  .pd-spec-row:last-child { border-bottom: none; }
-  .pd-spec-even { background: #FAFAFA; }
-  .pd-spec-label { color: #64748B; }
-  .pd-spec-value { font-weight: 600; color: #0F172A; text-align: right; max-width: 55%; }
-
-  /* Tabs */
-  .pd-tabs {
-    display: flex;
-    gap: 0;
-    border-bottom: 2px solid #F1F5F9;
-    margin-bottom: 24px;
-  }
-  .pd-tab {
-    padding: 10px 0;
-    margin-right: 32px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #94A3B8;
-    background: none;
-    border: none;
-    cursor: pointer;
-    position: relative;
-    transition: color 150ms;
-  }
-  .pd-tab-active { color: #0F172A; }
-  .pd-tab-active::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background: #0F172A;
-    border-radius: 2px 2px 0 0;
-  }
-  .pd-tab-body { display: flex; flex-direction: column; gap: 10px; }
-  .pd-desc-line { font-size: 0.95rem; line-height: 1.75; color: #475569; margin: 0; }
-
-  @media (max-width: 991px) {
-    .pd-breadcrumb { padding: 16px 20px 0; }
-    .pd-container { padding: 24px 20px 40px; }
-    .pd-grid { grid-template-columns: 1fr; gap: 32px; }
-    .pd-gallery { position: static; }
-    .pd-title { font-size: 1.5rem !important; }
-    .pd-price-main { font-size: 1.8rem !important; }
-    .pd-section-inner { padding: 0 20px; }
-  }
-
-  @media (max-width: 480px) {
-    .pd-cta { grid-template-columns: 1fr; }
-    .pd-title { font-size: 1.3rem !important; }
-    .pd-price-main { font-size: 1.6rem !important; }
-  }
-`;

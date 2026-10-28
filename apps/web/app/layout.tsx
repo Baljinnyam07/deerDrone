@@ -24,6 +24,7 @@ const sora = Sora({
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
 import "./dji-theme.css";
+import "./product-detail.css";
 import { ChatbotWidget } from "../components/chatbot/chatbot-widget";
 import { NavProgress } from "../components/layout/nav-progress";
 import { SiteFooter } from "../components/layout/site-footer";
