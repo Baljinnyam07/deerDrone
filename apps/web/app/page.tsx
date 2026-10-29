@@ -47,7 +47,7 @@ export default async function HomePage() {
       <div className="dj-compare">
         <h3>Бүх бүтээгдэхүүн</h3>
         <p>Дрон, камер, гар төхөөрөмж болон дагалдах хэрэгслийн бүрэн жагсаалт</p>
-        <Link href="/products?category=drones" className="dj-link" style={{ color: "var(--dj-blue)" }}>
+        <Link href="/products" className="dj-btn dj-btn-primary dj-btn-lg">
           Дэлгүүр хэсэх <ChevronRight size={16} />
         </Link>
       </div>
