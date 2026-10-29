@@ -317,26 +317,44 @@ const CSS = `
 
   /* Empty state */
   .cart-empty {
-    min-height: 60vh;
+    min-height: 70vh;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    text-align: center; padding: 40px 16px;
+    text-align: center; padding: 48px 20px 64px;
   }
   .cart-empty-icon {
-    width: 80px; height: 80px; border-radius: 50%;
-    background: #F1F5F9;
+    width: 96px; height: 96px; border-radius: 50%;
+    background: #fff; border: 1px solid #E2E8F0;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 20px;
+    margin: 0 auto 24px;
   }
-  .cart-empty h2 { font-size: 1.5rem; font-weight: 800; color: #0F172A; margin: 0 0 8px; }
-  .cart-empty p { color: #64748B; margin: 0 0 24px; }
+  .cart-empty h2 { font-size: 1.75rem; font-weight: 800; color: #0F172A; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .cart-empty p { color: #64748B; margin: 0 auto 28px; max-width: 420px; line-height: 1.6; }
+  .cart-empty-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
   .cart-empty-btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 12px 24px; background: #2563EB; color: #fff;
-    border-radius: 10px; font-weight: 700;
-    text-decoration: none; transition: all 200ms;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 46px; padding: 0 28px; background: #1f7ae0; color: #fff;
+    border-radius: 999px; font-weight: 700;
+    text-decoration: none; transition: background 200ms;
   }
-  .cart-empty-btn:hover { background: #1d4ed8; }
+  .cart-empty-btn:hover { background: #1667c2; }
+  .cart-empty-btn.is-ghost { background: #fff; color: #0F172A; border: 1px solid #CBD5E1; }
+  .cart-empty-btn.is-ghost:hover { background: #F1F5F9; }
+  .cart-empty-cats { margin-top: 40px; width: 100%; max-width: 560px; }
+  .cart-empty-cats span { display: block; font-size: 0.8rem; color: #94A3B8; margin-bottom: 12px; }
+  .cart-empty-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .cart-empty-chips a {
+    padding: 8px 16px; border-radius: 999px; background: #fff; border: 1px solid #E2E8F0;
+    color: #334155; font-size: 0.9rem; text-decoration: none; transition: border-color 200ms, color 200ms;
+  }
+  .cart-empty-chips a:hover { border-color: #1f7ae0; color: #1f7ae0; }
+  @media (max-width: 575.98px) {
+    .cart-empty { min-height: 60vh; padding-top: 32px; }
+    .cart-empty h2 { font-size: 1.4rem; }
+    .cart-empty-actions { flex-direction: column; width: 100%; max-width: 320px; }
+    .cart-empty-btn { width: 100%; }
+  }
 
   /* Mobile header (hidden on desktop) */
   .cart-mobile-header {
@@ -462,8 +480,19 @@ export default function CartPage() {
           </motion.div>
           <motion.h2 initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }}>Сагс хоосон байна</motion.h2>
           <motion.p initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.18 }}>Та хүссэн бараагаа сонгон сагсандаа нэмэх боломжтой.</motion.p>
-          <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.26 }}>
+          <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.26 }} className="cart-empty-actions">
             <Link href="/products" className="cart-empty-btn">Дэлгүүр хэсэх</Link>
+            <a href="tel:+97688157242" className="cart-empty-btn is-ghost">Зөвлөгөө авах · 8815-7242</a>
+          </motion.div>
+          <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.34 }} className="cart-empty-cats">
+            <span>Ангиллаар үзэх</span>
+            <div className="cart-empty-chips">
+              <Link href="/products?category=drones">Дрон</Link>
+              <Link href="/products?category=cameras">Камер</Link>
+              <Link href="/products?category=handheld">Гар төхөөрөмж</Link>
+              <Link href="/products?category=power">Power</Link>
+              <Link href="/products?category=accessories">Дагалдах хэрэгсэл</Link>
+            </div>
           </motion.div>
         </div>
       </div>

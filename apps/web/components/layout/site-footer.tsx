@@ -25,7 +25,6 @@ const footerColumns: { title: string; links: FooterLink[] }[][] = [
       title: "Худалдан авалт",
       links: [
         { label: "Онлайн дэлгүүр", href: "/products?category=drones" },
-        { label: "Лизинг", href: "/leasing" },
         { label: "Сагс", href: "/cart" },
         { label: "Хүргэлтийн нөхцөл", href: "/help/delivery" },
       ],
@@ -131,7 +130,6 @@ export function SiteFooter() {
           <Link href="/about">Бидний тухай</Link>
           <button type="button" className="dj-footer-link" onClick={openContact}>Холбоо барих</button>
           <Link href="/help/cooperate">Хамтран ажиллах</Link>
-          <Link href="/leasing">Лизинг</Link>
         </div>
         <div className="dj-footer-social">
           <a aria-label="Facebook" href="https://www.facebook.com/Deerdroneshop2" target="_blank" rel="noreferrer">

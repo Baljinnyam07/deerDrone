@@ -765,113 +765,79 @@ export function SiteHeader({ navSeries = [] }: { navSeries?: Series[] }) {
       {/* Mobile Drawer */}
       <AnimatePresence>
         {isMenuOpen && (
-          <motion.div animate={{ opacity: 1 }} exit={{ opacity: 0 }} initial={{ opacity: 0 }} style={{ position: "fixed", inset: 0, zIndex: 2000 }}>
-            <div onClick={() => setIsMenuOpen(false)} style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.5)" }} />
-            <motion.div animate={{ x: 0 }} initial={{ x: "-100%" }} transition={{ type: "spring", damping: 25 }} style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "300px", backgroundColor: "#FFFFFF", padding: "30px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "40px" }}>
-                <Image alt="Logo" src="/assets/brand/deer-logo.svg" width={100} height={28} />
-                <button onClick={() => setIsMenuOpen(false)} style={{ background: "none", border: "none" }}><X size={24} /></button>
+          <motion.div
+            className="dj-drawer"
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="dj-drawer-backdrop" onClick={() => setIsMenuOpen(false)} />
+            <motion.aside
+              className="dj-drawer-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Цэс"
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              initial={{ x: "-100%" }}
+              transition={{ type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.32 }}
+            >
+              <div className="dj-drawer-head">
+                <Link href="/" aria-label="DEER Drone" onClick={() => setIsMenuOpen(false)}>
+                  <Image alt="DEER Drone" src="/assets/brand/deer-logo.svg" width={96} height={26} />
+                </Link>
+                <button type="button" className="dj-icon-btn" aria-label="Хаах" onClick={() => setIsMenuOpen(false)}>
+                  <X size={22} />
+                </button>
               </div>
-              {menuItems.map(item => (
-                <div key={item.id} style={{ marginBottom: "20px" }}>
-                  <div onClick={() => setOpenMobileSection(openMobileSection === item.id ? null : item.id)} style={{ fontSize: "1.1rem", fontWeight: 700, display: "flex", justifyContent: "space-between", cursor: "pointer" }}>
-                    {item.label} <span>{item.children.length > 0 ? "+" : ""}</span>
-                  </div>
-                  {openMobileSection === item.id && (
-                    <div style={{ paddingLeft: "15px", marginTop: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                      {item.children.map((c, idx) => (
-                        <Link
-                          key={idx}
-                          href={c.href}
-                          onClick={(e) => {
-                            if (c.label === "Холбоо барих") {
-                              e.preventDefault();
-                              setIsContactOpen(true);
-                              setIsMenuOpen(false);
-                            } else {
-                              setIsMenuOpen(false);
-                            }
-                          }}
-                          style={{ color: "#64748b", textDecoration: "none" }}
-                        >
-                          {c.label}
+
+              <nav className="dj-drawer-body" aria-label="Үндсэн цэс">
+                <ul className="dj-drawer-list">
+                  {navItems
+                    .filter((item) => item.category || item.id === "accessories")
+                    .map((item) => (
+                      <li key={item.id}>
+                        <Link href={item.href} className="dj-drawer-link" onClick={() => setIsMenuOpen(false)}>
+                          {item.label}
+                          <ChevronRight size={18} />
                         </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                      </li>
+                    ))}
+                </ul>
 
-              <div style={{ marginTop: "40px", paddingTop: "30px", borderTop: "1px solid #F1F5F9" }}>
-                {user && (
-                  <Link
-                    href="/cart"
-                    onClick={() => setIsMenuOpen(false)}
-                    style={{ display: "flex", alignItems: "center", gap: "12px", textDecoration: "none", color: "#0F172A", marginBottom: "24px" }}
-                  >
-                    <div style={{ position: "relative" }}>
-                      <ShoppingCart size={22} strokeWidth={1.5} />
-                      {mounted && cartItemCount > 0 && (
-                        <span style={{ position: "absolute", top: "-8px", right: "-8px", backgroundColor: "#2563EB", color: "#FFFFFF", borderRadius: "10px", padding: "2px 6px", fontSize: "0.65rem", fontWeight: 700 }}>
-                          {cartItemCount}
-                        </span>
-                      )}
-                    </div>
-                    <span style={{ fontWeight: 700, fontSize: "1.1rem" }}>Миний сагс</span>
-                  </Link>
-                )}
-
-                {user ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#0F172A" }}>
-                      <User size={22} strokeWidth={1.5} />
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span style={{ fontWeight: 700, fontSize: "1.1rem", fontFamily: "var(--font-display)" }}>Миний бүртгэл</span>
-                        <span style={{ fontSize: "0.8rem", color: "#64748B", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "200px", fontFamily: "var(--font-body)" }}>{user.email}</span>
-                      </div>
-                    </div>
-                    
-                    <button 
-                      onClick={async () => {
-                        const { createClient } = await import("../../lib/supabase/client");
-                        const supabase = createClient();
-                        await supabase.auth.signOut();
+                <ul className="dj-drawer-list is-secondary">
+                  <li>
+                    <Link href="/about" className="dj-drawer-link" onClick={() => setIsMenuOpen(false)}>
+                      Бидний тухай
+                    </Link>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      className="dj-drawer-link"
+                      onClick={() => {
                         setIsMenuOpen(false);
-                        window.location.reload();
-                      }}
-                      style={{ 
-                        display: "flex", 
-                        alignItems: "center", 
-                        gap: "12px", 
-                        background: "#FEF2F2", 
-                        border: "none", 
-                        padding: "12px 16px", 
-                        borderRadius: "12px",
-                        cursor: "pointer", 
-                        color: "#EF4444", 
-                        fontWeight: 700, 
-                        fontSize: "1rem",
-                        fontFamily: "var(--font-body)"
+                        setIsContactOpen(true);
                       }}
                     >
-                      <LogOut size={20} strokeWidth={2} />
-                      Гарах
+                      Холбоо барих
                     </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      setIsLoginPopupOpen(true);
-                    }}
-                    style={{ display: "flex", alignItems: "center", gap: "12px", background: "none", border: "none", padding: 0, cursor: "pointer", color: "#0F172A", textAlign: "left", fontFamily: "var(--font-display)" }}
-                  >
-                    <User size={22} strokeWidth={1.5} />
-                    <span style={{ fontWeight: 700, fontSize: "1.1rem" }}>Нэвтрэх / Бүртгүүлэх</span>
-                  </button>
-                )}
+                  </li>
+                  {menuItems[2].children.map((c) => (
+                    <li key={c.href}>
+                      <Link href={c.href} className="dj-drawer-link" onClick={() => setIsMenuOpen(false)}>
+                        {c.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+
+              <div className="dj-drawer-foot">
+                <a href="tel:+97688157242" className="dj-drawer-phone">8815-7242</a>
               </div>
-            </motion.div>
+            </motion.aside>
           </motion.div>
         )}
       </AnimatePresence>

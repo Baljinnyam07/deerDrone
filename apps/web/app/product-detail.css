@@ -23,7 +23,7 @@
 }
 .dp-pill:hover:not(:disabled) { background: var(--dj-blue-hover); border-color: var(--dj-blue-hover); }
 .dp-pill:disabled { opacity: 0.4; cursor: not-allowed; }
-.dp-pill-sm { height: 32px; padding: 0 18px; font-size: 13px; }
+.dp-pill-sm { height: 32px; padding: 0 18px; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
 .dp-pill-ghost { background: #fff; color: var(--dj-text); border-color: rgba(0, 0, 0, 0.25); }
 .dp-pill-ghost:hover:not(:disabled) { background: #fff; color: var(--dj-text); border-color: var(--dj-text); }
 .dp-text-link {
@@ -113,7 +113,7 @@
   position: relative;
   margin: 32px auto 0;
   max-width: 980px;
-  height: clamp(280px, 46vh, 520px);
+  height: clamp(280px, 46svh, 520px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -268,7 +268,17 @@
   .dp-h2 { margin-bottom: 32px; }
   .dp-subnav-links { display: none; }
   .dp-subnav-inner { justify-content: space-between; gap: 12px; }
-  .dp-subnav-name { overflow: hidden; text-overflow: ellipsis; }
+  .dp-subnav-name {
+    min-width: 0;
+    font-size: 13px;
+    line-height: 1.25;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    text-transform: none;
+  }
   .dp-features { grid-template-columns: 1fr; }
   .dp-feature { padding: 24px; min-height: 0; }
   .dp-feature p { font-size: 16px; }
@@ -282,6 +292,9 @@
   .dp-subnav-inner { padding: 0 16px; }
   .dp-hero { padding: 20px 16px 0; }
   .dp-hero-title { margin-top: 24px; }
+  /* two equal pills that never wrap their label */
+  .dp-hero-actions { gap: 12px; width: 100%; max-width: 360px; margin-left: auto; margin-right: auto; }
+  .dp-hero-actions .dp-pill { flex: 1 1 0; min-width: 0; height: 46px; padding: 0 12px; font-size: 14px; white-space: nowrap; }
   .dp-buy-actions { grid-template-columns: 1fr; }
   .dp-spec-row { grid-template-columns: 1fr; gap: 2px; }
   .dp-strip { padding-left: 16px; padding-right: 16px; }
@@ -292,7 +305,7 @@
 /* Full-bleed key-visual hero */
 .dp-hero-kv {
   position: relative;
-  min-height: max(720px, calc(100vh - var(--dj-header-h) - 52px));
+  min-height: max(720px, calc(100svh - var(--dj-header-h) - 52px));
   background-color: #cfe6f5;
   background-size: cover;
   background-position: 50% 62%;
@@ -313,7 +326,7 @@
 .dp-chapter-media.is-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .dp-chapter-media figure { margin: 0; position: relative; border-radius: 16px; overflow: hidden; background: var(--dj-card); }
 .dp-chapter-media img { display: block; width: 100%; height: auto; }
-.dp-chapter-media:not(.is-pair) img { max-height: 82vh; object-fit: cover; }
+.dp-chapter-media:not(.is-pair) img { max-height: 82svh; object-fit: cover; }
 .dp-chapter-media.is-pair img { aspect-ratio: 4 / 3; object-fit: cover; }
 .dp-chapter-media figcaption {
   position: absolute;
@@ -391,7 +404,8 @@
   justify-content: center;
   padding: 24px;
 }
-.dp-film-video { width: min(1280px, 100%); max-height: 86vh; border-radius: 8px; background: #000; outline: none; }
+.dp-film-video { width: min(1280px, 100%); max-height: 86svh; border-radius: 8px; background: #000; outline: none; }
+.dp-film-frame { width: min(1280px, 100%); aspect-ratio: 16 / 9; max-height: 86svh; border: 0; border-radius: 8px; background: #000; }
 .dp-film-close {
   position: absolute;
   top: 16px;
@@ -410,9 +424,19 @@
 .dp-film-close:hover { background: rgba(255, 255, 255, 0.28); }
 
 /* Still-image hero: subject stays visible above, text sits at the bottom */
-.dp-hero.is-still { display: flex; flex-direction: column; justify-content: flex-end; min-height: max(780px, calc(100vh - var(--dj-header-h) - 52px)); padding-bottom: 64px; background-position: 50% 30%; }
+.dp-hero.is-still { display: flex; flex-direction: column; justify-content: flex-end; min-height: max(780px, calc(100svh - var(--dj-header-h) - 52px)); padding-bottom: 64px; background-position: 50% 30%; }
 .dp-hero.is-still .dp-crumbs { position: absolute; top: 28px; left: 0; right: 0; }
 .dp-hero.is-still .dp-hero-title { margin-top: 0; font-size: clamp(32px, 4.4vw, 60px); }
 .dp-hero.is-still .dp-hero-scrim {
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.15) 55%, rgba(0, 0, 0, 0.75) 100%);
+}
+
+/* Stop the iOS/Android rubber-band overscroll from dragging the sticky header and sub-nav on product pages. */
+html:has(.dp),
+html:has(.dp) body {
+  overscroll-behavior-y: none;
+}
+.dp-subnav {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }

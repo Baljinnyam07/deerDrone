@@ -96,7 +96,7 @@ export function HeroSection({ slides }: HeroSectionProps) {
                 <Link href={`/products/${slide.slug}`} className="dj-btn" tabIndex={i === active ? 0 : -1}>
                   Дэлгэрэнгүй <ChevronRight size={14} />
                 </Link>
-                <Link href={`/products/${slide.slug}`} className="dj-btn" tabIndex={i === active ? 0 : -1}>
+                <Link href={`/products/${slide.slug}/buy`} className="dj-btn" tabIndex={i === active ? 0 : -1}>
                   Худалдаж авах <ChevronRight size={14} />
                 </Link>
               </div>

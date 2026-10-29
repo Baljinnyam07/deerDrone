@@ -18,7 +18,7 @@ export function ProductBannerGrid({ series }: { series: Series[] }) {
               <Link href={`/products/${item.slug}`} className="dj-link">
                 Дэлгэрэнгүй <ChevronRight size={16} />
               </Link>
-              <Link href={`/products/${item.slug}`} className="dj-link">
+              <Link href={`/products/${item.slug}/buy`} className="dj-link">
                 Худалдаж авах <ChevronRight size={16} />
               </Link>
             </div>

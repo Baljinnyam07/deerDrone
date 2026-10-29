@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, CreditCard, MapPin, Truck } from "lucide-react";
+import { ChevronRight, MapPin, Phone, Truck } from "lucide-react";
 import { getProducts, getCategories } from "../lib/supabase/queries";
 import { resolveSeries, SHOT_ON_VIDEOS } from "../lib/showcase";
 import { HeroSection } from "../components/home/hero-section";
@@ -12,6 +12,8 @@ const FIELDS = [
   { slug: "drones", title: "Дрон", text: "Аэро зураг авалтаас мэргэжлийн кино бүтээл хүртэл" },
   { slug: "cameras", title: "Камер", text: "Халаасны гимбал, экшн, 360° камерууд" },
   { slug: "handheld", title: "Гар төхөөрөмж", text: "Тогтворжуулагч, утасгүй микрофон" },
+  { slug: "power", title: "Power", text: "Зөөврийн цахилгаан станц, цэнэглэгч" },
+  { slug: "accessories", title: "Дагалдах хэрэгсэл", text: "Батерей, сэнс, цүнх, шүүлтүүр" },
 ];
 
 const STORE_MAP_URL = "https://www.google.com/maps/search/?api=1&query=Ikh+Naytad+Plaza+Ulaanbaatar";
@@ -23,9 +25,17 @@ export default async function HomePage() {
   const heroSlides = series.slice(0, HERO_SLIDE_COUNT);
   const gridSeries = series.slice(HERO_SLIDE_COUNT);
 
+  // Prefer a stocked product's photo so categories without a showcase series still get a real image.
+  const productImage = (slug: string) => {
+    const inCategory = products.filter((p) => p.categorySlug === slug && p.images?.length > 0);
+    const pick = inCategory.find((p) => p.stockQty > 0) ?? inCategory[0];
+    return (pick?.images.find((img) => img.isThumbnail) ?? pick?.images[0])?.url;
+  };
+
   const categoryImage = (slug: string) =>
     (categories as { slug: string; image_url?: string | null }[]).find((c) => c.slug === slug)?.image_url ??
     series.find((s) => s.category === slug)?.image ??
+    productImage(slug) ??
     "/assets/drone-product.png";
 
   return (
@@ -80,13 +90,13 @@ export default async function HomePage() {
               Хүргэлтийн нөхцөл <ChevronRight size={14} />
             </span>
           </Link>
-          <Link href="/leasing" className="dj-service-item">
-            <CreditCard size={40} strokeWidth={1.2} />
-            <h4>Лизинг</h4>
+          <a href="tel:+97688157242" className="dj-service-item">
+            <Phone size={40} strokeWidth={1.2} />
+            <h4>Холбоо барих</h4>
             <span>
-              Хувааж төлөх <ChevronRight size={14} />
+              8815-7242 <ChevronRight size={14} />
             </span>
-          </Link>
+          </a>
         </div>
       </section>
     </div>
