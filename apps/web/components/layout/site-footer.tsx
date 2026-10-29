@@ -3,29 +3,87 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Mail, Phone, MapPin } from "lucide-react";
 import { usePathname } from "next/navigation";
 
-type FooterLink = { label: string; href: string; action?: string; };
+type FooterLink = { label: string; href: string; action?: "contact"; external?: boolean };
 
-const footerSections: { title: string; links: FooterLink[] }[] = [
-  {
-    title: "Танилцуулга",
-    links: [
-      { label: "Бидний тухай", href: "/about" },
-      { label: "Холбоо барих", href: "#", action: "contact" },
-    ],
-  },
-  {
-    title: "Тусламж",
-    links: [
-      { label: "Үйлчилгээний нөхцөл", href: "/help/terms" },
-      { label: "Нууцлалын бодлого", href: "/help/privacy" },
-      { label: "Хамтран ажиллах", href: "/help/cooperate" },
-      { label: "Хүргэлтийн нөхцөл", href: "/help/delivery" },
-    ],
-  },
+const footerColumns: { title: string; links: FooterLink[] }[][] = [
+  [
+    {
+      title: "Бүтээгдэхүүн",
+      links: [
+        { label: "Дрон", href: "/products?category=drones" },
+        { label: "Камер", href: "/products?category=cameras" },
+        { label: "Гар төхөөрөмж", href: "/products?category=handheld" },
+        { label: "Power", href: "/products?category=power" },
+        { label: "Дагалдах хэрэгсэл", href: "/products?category=accessories" },
+      ],
+    },
+  ],
+  [
+    {
+      title: "Худалдан авалт",
+      links: [
+        { label: "Онлайн дэлгүүр", href: "/products?category=drones" },
+        { label: "Сагс", href: "/cart" },
+        { label: "Хүргэлтийн нөхцөл", href: "/help/delivery" },
+      ],
+    },
+    {
+      title: "Хамтын ажиллагаа",
+      links: [{ label: "Хамтран ажиллах", href: "/help/cooperate" }],
+    },
+  ],
+  [
+    {
+      title: "Тусламж",
+      links: [
+        { label: "Холбоо барих", href: "#", action: "contact" },
+        { label: "Үйлчилгээний нөхцөл", href: "/help/terms" },
+        { label: "Нууцлалын бодлого", href: "/help/privacy" },
+      ],
+    },
+  ],
+  [
+    {
+      title: "Бидний тухай",
+      links: [
+        { label: "DEER Drone", href: "/about" },
+        { label: "Facebook", href: "https://www.facebook.com/Deerdroneshop2", external: true },
+        { label: "Instagram", href: "https://www.instagram.com/deer_drone_shop/", external: true },
+      ],
+    },
+  ],
+  [
+    {
+      title: "Холбоо барих",
+      links: [
+        { label: "8815-7242", href: "tel:88157242" },
+        { label: "9997-7242", href: "tel:99977242" },
+        { label: "Deer.Drone.Shop@gmail.com", href: "mailto:deer.drone.shop@gmail.com" },
+        { label: "Даваа – Ням: 11:00 – 19:00", href: "#", action: "contact" },
+      ],
+    },
+  ],
 ];
+
+function FooterAnchor({ link, onContact }: { link: FooterLink; onContact: () => void }) {
+  if (link.action === "contact") {
+    return (
+      <button type="button" className="dj-footer-link" onClick={onContact}>
+        {link.label}
+      </button>
+    );
+  }
+  if (link.external || link.href.startsWith("tel:") || link.href.startsWith("mailto:")) {
+    return (
+      <a href={link.href} {...(link.external ? { target: "_blank", rel: "noreferrer" } : {})}>
+        {link.label}
+      </a>
+    );
+  }
+  return <Link href={link.href}>{link.label}</Link>;
+}
 
 export function SiteFooter() {
   const pathname = usePathname();
@@ -33,283 +91,65 @@ export function SiteFooter() {
 
   if (pathname === "/cart" || pathname === "/checkout") return null;
 
+  const openContact = () => setIsContactOpen(true);
+
   return (
-    <footer
-      style={{
-        backgroundColor: "#FFFFFF",
-        paddingTop: "40px",
-        paddingBottom: "24px",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
-          padding: "0 32px",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "48px",
-          marginBottom: "48px",
-        }}
-      >
-        {/* Logo & Social */}
-        <div>
-          <Link
-            href="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              textDecoration: "none",
-              marginBottom: "24px",
-            }}
-          >
-            <Image
-              alt="DEER droneshop"
-              src="/assets/brand/deer-logo.svg"
-              width={100}
-              height={40}
-              style={{ width: "auto", height: "40px" }}
-            />
-          </Link>
+    <footer className="dj-footer">
+      <div className="dj-footer-cta">
+        <h3>Зөвлөгөө авмаар байна уу?</h3>
+        <p>Манай мэргэжилтнүүд танд тохирох DJI бүтээгдэхүүнийг сонгоход туслана.</p>
+        <button type="button" className="dj-btn dj-btn-lg" onClick={openContact}>
+          Холбоо барих
+        </button>
+      </div>
 
-          {/* Social Icons */}
-          <div
-            style={{
-              display: "flex",
-              gap: "16px",
-              marginTop: "16px",
-            }}
-          >
-            <a
-              aria-label="Facebook"
-              href="https://facebook.com"
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "32px",
-                height: "32px",
-                borderRadius: "8px",
-                backgroundColor: "#F8FAFC",
-                color: "#94A3B8",
-                textDecoration: "none",
-                transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#F0F4FF";
-                e.currentTarget.style.color = "#2563EB";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "#F8FAFC";
-                e.currentTarget.style.color = "#94A3B8";
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 2h-3a6 6 0 0 0-6 6v3H7v4h2v8h4v-8h3l1-4h-4V8a2 2 0 0 1 2-2h3z" />
-              </svg>
-            </a>
-
-            <a
-              aria-label="Instagram"
-              href="https://instagram.com"
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "32px",
-                height: "32px",
-                borderRadius: "8px",
-                backgroundColor: "#F8FAFC",
-                color: "#94A3B8",
-                textDecoration: "none",
-                transition: "all 250ms cubic-bezier(0.4, 0, 0.2, 1)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#F0F4FF";
-                e.currentTarget.style.color = "#2563EB";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "#F8FAFC";
-                e.currentTarget.style.color = "#94A3B8";
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                <circle cx="17.5" cy="6.5" r="1.5" />
-              </svg>
-            </a>
-          </div>
-        </div>
-
-        {/* Footer Sections */}
-        {footerSections.map((section) => (
-          <div key={section.title}>
-            <h6
-              style={{
-                fontSize: "0.95rem",
-                fontWeight: 600,
-                color: "#0F172A",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                marginBottom: "16px",
-              }}
-            >
-              {section.title}
-            </h6>
-
-            <ul
-              style={{
-                listStyle: "none",
-                padding: 0,
-                margin: 0,
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              {section.links.map((link) => (
-                <li key={link.label}>
-                  {link.action === "contact" ? (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setIsContactOpen(true);
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        fontSize: "0.9rem",
-                        color: "#64748B",
-                        textDecoration: "none",
-                        transition: "color 250ms",
-                        cursor: "pointer",
-                        textAlign: 'left'
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.color = "#2563EB")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.color = "#64748B")
-                      }
-                    >
-                      {link.label}
-                    </button>
-                  ) : link.href.startsWith("mailto:") || link.href.startsWith("tel:") ? (
-                    <a
-                      href={link.href}
-                      style={{
-                        fontSize: "0.9rem",
-                        color: "#64748B",
-                        textDecoration: "none",
-                        transition: "color 250ms",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.color = "#2563EB")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.color = "#64748B")
-                      }
-                    >
-                      {link.href.startsWith("mailto:") ? (
-                        <Mail size={14} />
-                      ) : (
-                        <Phone size={14} />
-                      )}
-                      {link.label}
-                    </a>
-                  ) : (
-                    <Link
-                      href={link.href}
-                      style={{
-                        fontSize: "0.9rem",
-                        color: "#64748B",
-                        textDecoration: "none",
-                        transition: "color 250ms",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.color = "#2563EB")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.color = "#64748B")
-                      }
-                    >
-                      {link.label}
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
+      <div className="dj-footer-cols">
+        {footerColumns.map((column, i) => (
+          <div key={i}>
+            {column.map((section) => (
+              <React.Fragment key={section.title}>
+                <h6>{section.title}</h6>
+                <ul>
+                  {section.links.map((link) => (
+                    <li key={link.label}>
+                      <FooterAnchor link={link} onContact={openContact} />
+                    </li>
+                  ))}
+                </ul>
+              </React.Fragment>
+            ))}
           </div>
         ))}
+      </div>
 
-        {/* Address Section */}
-        <div>
-          <h6
-            style={{
-              fontSize: "0.95rem",
-              fontWeight: 600,
-              color: "#0F172A",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              marginBottom: "16px",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-            }}
-          >
-            Хаяг
-          </h6>
-          <p
-            style={{
-              fontSize: "0.9rem",
-              color: "#64748B",
-              lineHeight: 1.6,
-              margin: 0,
-            }}
-          >
-            Улаанбаатар хот, Хан-Уул дүүрэг, 15-р хороо
-            Их наяд Плаза, Зүүн өндөр, 3-р давхар, 305 тоот
-          </p>
+      <div className="dj-footer-bottom">
+        <div className="dj-footer-bottom-left">
+          <Link href="/" aria-label="DEER Drone">
+            <Image alt="DEER Drone" src="/assets/brand/deer-logo.svg" width={90} height={24} />
+          </Link>
+          <Link href="/about">Бидний тухай</Link>
+          <button type="button" className="dj-footer-link" onClick={openContact}>Холбоо барих</button>
+          <Link href="/help/cooperate">Хамтран ажиллах</Link>
+        </div>
+        <div className="dj-footer-social">
+          <a aria-label="Facebook" href="https://www.facebook.com/Deerdroneshop2" target="_blank" rel="noreferrer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+          </a>
+          <a aria-label="Instagram" href="https://www.instagram.com/deer_drone_shop/" target="_blank" rel="noreferrer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><circle cx="17.5" cy="6.5" r="1.5" /></svg>
+          </a>
         </div>
       </div>
 
-      {/* Divider */}
-      <div
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
-          padding: "0 32px",
-          borderTop: "1px solid #E2E8F0",
-          paddingTop: "24px",
-        }}
-      >
-        <p
-          style={{
-            fontSize: "0.85rem",
-            color: "#94A3B8",
-            textAlign: "center",
-            margin: 0,
-          }}
-        >
-          © {new Date().getFullYear()} DEER Drone. Бүх эрхийг хуулиар
-          хамгаалагдсан.
-        </p>
-        <p style={{
-            fontSize: "0.85rem",
-            color: "#94A3B8",
-            textAlign: "center",
-            margin: 0,
-          }}>Designed & built by Baljka × Ihaw</p>
-
+      <div className="dj-footer-legal">
+        <Link href="/help/privacy">Нууцлалын бодлого</Link>
+        <span>·</span>
+        <Link href="/help/terms">Үйлчилгээний нөхцөл</Link>
+        <span>·</span>
+        <Link href="/help/delivery">Хүргэлтийн нөхцөл</Link>
+        <span style={{ flexBasis: "100%" }} />
+        <span>© {new Date().getFullYear()} DEER Drone. Бүх эрх хуулиар хамгаалагдсан. · Улаанбаатар, Хан-Уул дүүрэг, Их Наяд Плаза, Зүүн өндөр, 3 давхар, 305 тоот</span>
+        <span>Designed &amp; built by Baljka × Ihaw</span>
       </div>
 
       {/* Smooth Animated Contact Drawer */}

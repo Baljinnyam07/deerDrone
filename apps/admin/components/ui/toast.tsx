@@ -59,7 +59,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 pointerEvents: "auto",
                 minWidth: "300px",
                 maxWidth: "400px",
-                backgroundColor: "white",
+                backgroundColor: "var(--admin-card)",
                 borderRadius: "12px",
                 boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)",
                 border: "1px solid var(--admin-border)",

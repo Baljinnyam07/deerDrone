@@ -10,13 +10,20 @@ interface StatusBadgeProps {
   className?: string;
 }
 
+// Tinted from one colour so the badge reads on both light and dark surfaces.
+const tone = (color: string) => ({
+  bg: `color-mix(in srgb, ${color} 14%, transparent)`,
+  text: `color-mix(in srgb, ${color} 78%, var(--admin-text))`,
+  dot: color,
+});
+
 const variants: Record<BadgeVariant, { bg: string; text: string; dot: string }> = {
-  success: { bg: "#ecfdf5", text: "#065f46", dot: "#10b981" },
-  warning: { bg: "#fffbe3", text: "#92400e", dot: "#f59e0b" },
-  danger: { bg: "#fef2f2", text: "#991b1b", dot: "#ef4444" },
-  info: { bg: "#f0f9ff", text: "#075985", dot: "#0ea5e9" },
-  neutral: { bg: "#f8fafc", text: "#475569", dot: "#94a3b8" },
-  primary: { bg: "#eff6ff", text: "#1e40af", dot: "#2563eb" },
+  success: tone("#10b981"),
+  warning: tone("#f59e0b"),
+  danger: tone("#ef4444"),
+  info: tone("#0ea5e9"),
+  neutral: tone("#94a3b8"),
+  primary: tone("#1f7ae0"),
 };
 
 export function StatusBadge({ children, variant = "neutral" }: StatusBadgeProps) {
@@ -28,14 +35,13 @@ export function StatusBadge({ children, variant = "neutral" }: StatusBadgeProps)
         display: "inline-flex",
         alignItems: "center",
         gap: "6px",
-        padding: "2px 10px",
+        padding: "3px 10px",
         borderRadius: "99px",
         fontSize: "0.75rem",
         fontWeight: 600,
         backgroundColor: bg,
         color: text,
-        border: `1px solid ${bg === "#ffffff" ? "var(--admin-border)" : "transparent"}`,
-        whiteSpace: "nowrap",
+                whiteSpace: "nowrap",
       }}
     >
       <span

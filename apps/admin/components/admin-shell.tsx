@@ -9,7 +9,6 @@ import {
   ShoppingCart,
   MessageSquare,
   Search,
-  Bell,
   User,
   Menu,
   X,
@@ -23,6 +22,13 @@ import { ThemeToggle } from "./theme-toggle";
 import { motion, AnimatePresence } from "framer-motion";
 
 import Image from "next/image";
+
+const pageTitles: { prefix: string; title: string }[] = [
+  { prefix: "/products", title: "Бүтээгдэхүүн" },
+  { prefix: "/orders", title: "Захиалга" },
+  { prefix: "/chatbot", title: "Чатбот" },
+  { prefix: "/settings", title: "Тохиргоо" },
+];
 
 const navItems = [
   { href: "/", label: "Хяналтын самбар", icon: LayoutDashboard, section: "main" },
@@ -105,7 +111,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <span className="admin-nav-label">Үндсэн цэс</span>
             <div className="admin-nav-list">
               {navItems.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
                 return (
                   <Link
                     key={item.href}
@@ -132,7 +138,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
           <div className="admin-nav-section" style={{ marginTop: "auto" }}>
             <div className="admin-nav-divider" />
-            <Link href="/settings" className={`admin-nav-item ${pathname === '/settings' ? 'is-active' : ''}`}>
+            <Link href="/settings" className={`admin-nav-item ${pathname.startsWith('/settings') ? 'is-active' : ''}`}
+              onClick={() => setIsMobileMenuOpen(false)}>
               <div className="admin-nav-item-content">
                 <Settings size={18} />
                 <span>Тохиргоо</span>
@@ -154,7 +161,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </button>
 
           <div className="admin-header-start">
-            <h1 className="admin-header-title">Хяналтын самбар</h1>
+            <h1 className="admin-header-title">
+              {pageTitles.find((p) => pathname.startsWith(p.prefix))?.title ?? "Хяналтын самбар"}
+            </h1>
           </div>
 
           <div className="admin-header-center">
@@ -172,9 +181,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <div className="admin-header-end">
             <ThemeToggle />
 
-            <button className="admin-header-btn">
-              <Bell size={18} />
-            </button>
             <div className="admin-header-user" onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}>
               <div className="admin-header-avatar">
                 <User size={16} />
@@ -190,11 +196,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   exit={{ opacity: 0, y: 8, scale: 0.98 }}
                   className="admin-user-dropdown"
                 >
-                  <button className="admin-user-dropdown-item">
-                    <User size={14} />
-                    <span>Профайл</span>
-                  </button>
-                  <div className="admin-user-dropdown-divider" />
                   <button
                     className="admin-user-dropdown-item"
                     style={{ color: 'var(--admin-danger)' }}

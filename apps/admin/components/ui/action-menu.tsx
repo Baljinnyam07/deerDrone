@@ -57,10 +57,10 @@ export function ActionMenu({ items }: ActionMenuProps) {
         ref={btnRef}
         onClick={handleToggle}
         style={{
-          padding: "6px",
-          borderRadius: "6px",
-          border: "1px solid var(--admin-border-subtle)",
-          background: "white",
+          padding: "7px",
+          borderRadius: "999px",
+          border: "1px solid var(--admin-border)",
+          background: "var(--admin-card)",
           color: "var(--admin-text-secondary)",
           cursor: "pointer",
           display: "flex",
@@ -68,8 +68,8 @@ export function ActionMenu({ items }: ActionMenuProps) {
           justifyContent: "center",
           transition: "var(--admin-transition)",
         }}
-        onMouseOver={(e) => (e.currentTarget.style.borderColor = "var(--admin-border)")}
-        onMouseOut={(e) => (e.currentTarget.style.borderColor = "var(--admin-border-subtle)")}
+        onMouseOver={(e) => (e.currentTarget.style.background = "var(--admin-surface)")}
+        onMouseOut={(e) => (e.currentTarget.style.background = "var(--admin-card)")}
       >
         <MoreHorizontal size={16} />
       </button>
@@ -87,10 +87,10 @@ export function ActionMenu({ items }: ActionMenuProps) {
               top: coords.top,
               right: coords.right,
               width: "180px",
-              backgroundColor: "white",
-              borderRadius: "8px",
+              backgroundColor: "var(--admin-card)",
+              borderRadius: "12px",
               border: "1px solid var(--admin-border)",
-              boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+              boxShadow: "0 12px 32px rgba(0,0,0,0.14)",
               zIndex: 99999,
               padding: "4px",
             }}
@@ -107,8 +107,8 @@ export function ActionMenu({ items }: ActionMenuProps) {
                   display: "flex",
                   alignItems: "center",
                   gap: "10px",
-                  padding: "8px 12px",
-                  borderRadius: "6px",
+                  padding: "9px 12px",
+                  borderRadius: "8px",
                   border: "none",
                   background: "transparent",
                   fontSize: "0.85rem",
@@ -117,7 +117,7 @@ export function ActionMenu({ items }: ActionMenuProps) {
                   textAlign: "left",
                   transition: "background 0.15s",
                 }}
-                onMouseOver={(e) => (e.currentTarget.style.background = item.variant === "danger" ? "#fff1f2" : "var(--admin-surface)")}
+                onMouseOver={(e) => (e.currentTarget.style.background = item.variant === "danger" ? "rgba(239, 68, 68, 0.1)" : "var(--admin-surface)")}
                 onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
               >
                 <item.icon size={14} strokeWidth={2} />

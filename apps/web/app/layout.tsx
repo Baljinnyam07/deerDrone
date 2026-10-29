@@ -1,10 +1,17 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import type { Metadata } from "next";
-import { Inter, Sora } from "next/font/google";
+import { Inter, Open_Sans, Sora } from "next/font/google";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap"
+});
+
+const openSans = Open_Sans({
+  subsets: ["latin", "cyrillic"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-open-sans",
   display: "swap"
 });
 
@@ -16,6 +23,8 @@ const sora = Sora({
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
+import "./dji-theme.css";
+import "./product-detail.css";
 import { ChatbotWidget } from "../components/chatbot/chatbot-widget";
 import { NavProgress } from "../components/layout/nav-progress";
 import { SiteFooter } from "../components/layout/site-footer";
@@ -23,6 +32,8 @@ import { SiteHeader } from "../components/layout/site-header";
 import { ToastProvider } from "../components/layout/toast-provider";
 import { QueryProvider } from "../components/query-provider";
 import { getSiteUrl } from "../lib/server-env";
+import { getProducts } from "../lib/supabase/queries";
+import { resolveSeries } from "../lib/showcase";
 
 const siteUrl = getSiteUrl();
 
@@ -100,9 +111,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const navSeries = resolveSeries(await getProducts());
+
   return (
-    <html lang="mn" className={`${inter.variable} ${sora.variable}`}>
+    <html lang="mn" className={`${inter.variable} ${sora.variable} ${openSans.variable}`}>
       <head>
         <script
           type="application/ld+json"
@@ -144,7 +157,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <body>
         <QueryProvider>
           <NavProgress />
-          <SiteHeader />
+          <Suspense fallback={<div style={{ height: 64 }} />}>
+            <SiteHeader navSeries={navSeries} />
+          </Suspense>
           <main>{children}</main>
           <SiteFooter />
           <ChatbotWidget />

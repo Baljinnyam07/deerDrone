@@ -33,7 +33,6 @@ export default async function VideoSettingsPage() {
       <AdminPageHeader
         kicker="Settings / Videos & Hero"
         title="Нүүр хуудасны удирдлага"
-        description="Нүүр хуудасны дээр байрлах видео болон онцлох барааг удирдах хэсэг."
       />
 
       <div className="alert alert-info">

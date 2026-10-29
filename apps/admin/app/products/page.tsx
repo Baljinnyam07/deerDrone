@@ -47,7 +47,6 @@ export default async function ProductsPage(props: { searchParams: Promise<{ stoc
       <AdminPageHeader
         kicker="Catalog / Бүтээгдэхүүн"
         title="Бараа бүтээгдэхүүн"
-        description="Бүтээгдэхүүний каталог удирдах, үнэ болон үлдэгдэл шинэчлэх."
       />
 
       <ProductsClient

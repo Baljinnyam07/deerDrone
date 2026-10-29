@@ -61,11 +61,9 @@ export const getProducts = unstable_cache(
         query = query.order("created_at", { ascending: false });
     }
 
-    if (options.limit !== undefined) {
-      const from = options.offset ?? 0;
-      query = query.range(from, from + options.limit - 1);
-    }
-
+    // In-stock items come first, so sold-out ones sort after them on every page.
+    // PostgREST can't order by `stock_qty > 0`, so the (small) catalog is fetched
+    // whole and paged here; the stable sort keeps the chosen order inside each group.
     const { data, error } = await query;
 
     if (error) {
@@ -73,7 +71,13 @@ export const getProducts = unstable_cache(
       return [];
     }
 
-    return data.map((item: any) => mapProductRecord(item));
+    const products = data
+      .map((item: any) => mapProductRecord(item))
+      .sort((a: Product, b: Product) => Number(b.stockQty > 0) - Number(a.stockQty > 0));
+
+    if (options.limit === undefined) return products;
+    const from = options.offset ?? 0;
+    return products.slice(from, from + options.limit);
   },
   ["products-query"],
   { revalidate: 86400, tags: ["products"] }

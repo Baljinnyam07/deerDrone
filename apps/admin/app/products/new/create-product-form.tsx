@@ -321,8 +321,8 @@ export function CreateProductForm({ categories }: { categories: any[] }) {
               alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
-              color: "#64748b",
-              background: "#f8fafc",
+              color: "var(--admin-muted)",
+              background: "var(--admin-surface)",
             }}
           >
             <Upload size={24} style={{ marginBottom: "0.5rem" }} />
@@ -374,7 +374,7 @@ export function CreateProductForm({ categories }: { categories: any[] }) {
                   width: "42px",
                   border: "1px solid #fecaca",
                   color: "#dc2626",
-                  background: "#fff",
+                  background: "var(--admin-card)",
                   borderRadius: "8px",
                   cursor: "pointer",
                   display: "flex",
@@ -427,7 +427,7 @@ export function CreateProductForm({ categories }: { categories: any[] }) {
         <button
           type="submit"
           disabled={loading}
-          style={{ background: "#3b82f6", color: "#fff", border: "none", padding: "12px 32px", borderRadius: "8px", cursor: loading ? "wait" : "pointer", fontWeight: 600 }}
+          style={{ background: "var(--admin-primary)", color: "#fff", border: "none", padding: "12px 32px", borderRadius: "999px", cursor: loading ? "wait" : "pointer", fontWeight: 600 }}
         >
           {loading ? "Хадгалж байна..." : "Хадгалах"}
         </button>
@@ -442,7 +442,7 @@ const inputStyle = {
   borderRadius: "6px",
   border: "1px solid #cbd5e1",
   fontSize: "0.95rem",
-  outlineColor: "#3b82f6",
+  outlineColor: "var(--admin-primary)",
 };
 
 const labelStyle = {
@@ -450,7 +450,7 @@ const labelStyle = {
   marginBottom: "6px",
   fontSize: "0.75rem",
   fontWeight: 600,
-  color: "#64748b",
+  color: "var(--admin-muted)",
   textTransform: "uppercase" as const,
 };
 

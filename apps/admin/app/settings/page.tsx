@@ -1,16 +1,8 @@
 import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin-page-header";
-import { Video, Settings as SettingsIcon, Globe, Bell, Shield, MessageSquare } from "lucide-react";
+import { Video, MessageSquare } from "lucide-react";
 
 const settingsCategories = [
-  {
-    id: "general",
-    label: "Ерөнхий тохиргоо",
-    desc: "Вэбсайтын нэр, лого, холбоо барих мэдээлэл",
-    icon: Globe,
-    href: "/settings/general",
-    status: "Soon",
-  },
   {
     id: "videos",
     label: "Видео удирдлага",
@@ -18,22 +10,6 @@ const settingsCategories = [
     icon: Video,
     href: "/settings/videos",
     status: "Ready",
-  },
-  {
-    id: "notifications",
-    label: "Мэдэгдэл",
-    desc: "Шинэ захиалга, lead-ийн мэдэгдэл тохируулах",
-    icon: Bell,
-    href: "/settings/notifications",
-    status: "Soon",
-  },
-  {
-    id: "security",
-    label: "Аюулгүй байдал",
-    desc: "Админ нууц үг, хандалтын удирдлага",
-    icon: Shield,
-    href: "/settings/security",
-    status: "Soon",
   },
   {
     id: "chatbot",
@@ -49,9 +25,8 @@ export default function SettingsHubPage() {
   return (
     <section>
       <AdminPageHeader
-        kicker="Settings"
+        kicker="Тохиргоо"
         title="Системийн тохиргоо"
-        description="Вэбсайт болон админ самбарын ерөнхий тохиргоонууд."
       />
 
       <div className="admin-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
@@ -65,9 +40,6 @@ export default function SettingsHubPage() {
                 <div className="settings-content">
                   <div className="settings-header">
                     <h2>{cat.label}</h2>
-                    <span className={`settings-badge ${cat.status === "Ready" ? "ready" : "soon"}`}>
-                      {cat.status === "Ready" ? "IDEAL" : "SOON"}
-                    </span>
                   </div>
                   <p className="settings-desc">{cat.desc}</p>
                 </div>
