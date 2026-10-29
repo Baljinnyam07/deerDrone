@@ -32,14 +32,15 @@ export function AdminButton({
       justifyContent: "center",
       gap: "8px",
       fontWeight: 600,
-      borderRadius: "var(--admin-radius-sm)",
+      borderRadius: "999px",
       border: "1px solid transparent",
       cursor: props.disabled || isLoading ? "not-allowed" : "pointer",
       opacity: props.disabled || isLoading ? 0.6 : 1,
       transition: "var(--admin-transition)",
-      fontSize: size === "sm" ? "0.8rem" : "0.875rem",
-      padding: size === "sm" ? "6px 12px" : size === "lg" ? "12px 24px" : "8px 16px",
-      minHeight: size === "sm" ? "32px" : size === "lg" ? "48px" : "38px",
+      fontSize: size === "sm" ? "0.8rem" : "0.9rem",
+      padding: size === "sm" ? "0 14px" : size === "lg" ? "0 28px" : "0 20px",
+      minHeight: size === "sm" ? "34px" : size === "lg" ? "48px" : "40px",
+      whiteSpace: "nowrap",
     };
 
     switch (variant) {
@@ -48,7 +49,6 @@ export function AdminButton({
           ...baseStyles, 
           background: "var(--admin-primary)", 
           color: "white",
-          boxShadow: "0 1px 3px rgba(37, 99, 235, 0.2)",
         };
       case "secondary":
         return { 
@@ -56,7 +56,6 @@ export function AdminButton({
           background: "var(--admin-card)", 
           color: "var(--admin-text)", 
           borderColor: "var(--admin-border)",
-          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.03)",
         };
       case "outline":
         return { 
@@ -72,7 +71,6 @@ export function AdminButton({
           ...baseStyles, 
           background: "var(--admin-danger)", 
           color: "white",
-          boxShadow: "0 1px 3px rgba(239, 68, 68, 0.2)",
         };
       default:
         return baseStyles;
@@ -84,8 +82,7 @@ export function AdminButton({
 
   return (
     <motion.button
-      whileHover={!props.disabled && !isLoading ? { scale: 1.01, translateY: -1 } : {}}
-      whileTap={!props.disabled && !isLoading ? { scale: 0.98 } : {}}
+      whileTap={!props.disabled && !isLoading ? { scale: 0.97 } : {}}
       style={getStyles()}
       {...safeProps}
     >

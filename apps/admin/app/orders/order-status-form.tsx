@@ -32,7 +32,7 @@ export function OrderStatusForm({ orderId, currentStatus }: { orderId: string; c
         padding: "3px 8px",
         borderRadius: "6px",
         border: "1px solid #ddd",
-        background: isPending ? "#f1f1f1" : "#fff",
+        background: isPending ? "var(--admin-surface)" : "var(--admin-card)",
         cursor: isPending ? "wait" : "pointer",
       }}
     >

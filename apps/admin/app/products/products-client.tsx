@@ -201,7 +201,7 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
 
     const slug = formData.slug.trim() || slugify(formData.name);
     if (!formData.name.trim() || !slug || !formData.price) {
-      toast("Нэр, URL болон үнэ заавал шаардлагатай", "error");
+      toast("Нэр, хуудасны хаяг болон үнэ заавал шаардлагатай", "error");
       return;
     }
 
@@ -269,10 +269,9 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
   };
 
   const filterChips: { key: StockFilter; label: string; tone: string }[] = [
-    { key: "all", label: `Бүгд (${counts.all})`, tone: "" },
-    { key: "out", label: `Дууссан (${counts.out})`, tone: "danger" },
-    { key: "low", label: `Цөөн үлдсэн (${counts.low})`, tone: "warning" },
-    { key: "nospecs", label: `Үзүүлэлтгүй (${counts.nospecs})`, tone: "" },
+    { key: "all", label: "Нийт бараа", tone: "" },
+    { key: "out", label: "Дууссан", tone: "danger" },
+    { key: "low", label: "Цөөн үлдсэн", tone: "warning" },
   ];
 
   return (
@@ -322,24 +321,28 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
           </select>
         </div>
 
-        {/* Quick filters */}
-        <div className="products-chips" role="tablist" aria-label="Үлдэгдлээр шүүх">
+        {/* Summary cards double as quick filters */}
+        <div className="products-summary" role="tablist" aria-label="Үлдэгдлээр шүүх">
           {filterChips.map((chip) => (
             <button
               key={chip.key}
               type="button"
               role="tab"
               aria-selected={stockFilter === chip.key}
-              className={`products-chip ${chip.tone} ${stockFilter === chip.key ? "is-active" : ""}`}
+              className={`products-stat ${chip.tone} ${stockFilter === chip.key ? "is-active" : ""}`}
               onClick={() => setStockFilter(chip.key)}
             >
-              {chip.label}
+              <span className="products-stat-value">{counts[chip.key]}</span>
+              <span className="products-stat-label">{chip.label}</span>
             </button>
           ))}
-          <span className="products-result-count">
-            {visibleProducts.length} бараа
+        </div>
+
+        <div className="products-result-row">
+          <span>
+            {visibleProducts.length} бараа харагдаж байна
             {isFiltered && (
-              <button type="button" className="products-clear" onClick={clearFilters}>Цэвэрлэх</button>
+              <button type="button" className="products-clear" onClick={clearFilters}>Шүүлтүүр цэвэрлэх</button>
             )}
           </span>
         </div>
@@ -452,37 +455,43 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
             flex: 0 1 190px;
             min-width: 150px;
           }
-          .products-chips {
+          .products-summary {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 14px;
+          }
+          .products-stat {
             display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
-          }
-          .products-chip {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            padding: 14px 16px;
             border: 1px solid var(--admin-border);
-            background: transparent;
-            color: var(--admin-text-secondary, var(--admin-muted));
-            border-radius: 999px;
-            padding: 6px 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
+            border-radius: var(--admin-radius);
+            background: var(--admin-card);
+            color: var(--admin-text);
+            text-align: left;
             cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
           }
-          .products-chip.is-active {
-            background: var(--admin-primary);
+          .products-stat:hover { border-color: rgba(0, 0, 0, 0.22); }
+          .products-stat.is-active {
             border-color: var(--admin-primary);
-            color: #fff;
+            background: rgba(31, 122, 224, 0.06);
           }
-          .products-chip.danger:not(.is-active) { color: var(--admin-danger); }
-          .products-chip.warning:not(.is-active) { color: #b45309; }
-          .products-result-count {
-            margin-left: auto;
+          .products-stat-value { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+          .products-stat-label { font-size: 0.8rem; color: var(--admin-text-secondary); }
+          .products-stat.danger .products-stat-value { color: var(--admin-danger); }
+          .products-stat.warning .products-stat-value { color: var(--admin-warning); }
+          .products-result-row {
+            margin-bottom: 12px;
             font-size: 0.8rem;
             color: var(--admin-muted);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+          }
+          .products-result-row .products-clear { margin-left: 10px; }
+          @media (max-width: 720px) {
+            .products-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
           }
           .products-clear {
             border: none;
@@ -516,7 +525,6 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         title={selectedProduct ? "Бүтээгдэхүүн засах" : "Шинэ бүтээгдэхүүн нэмэх"}
-        description={selectedProduct ? `${selectedProduct.name} бүтээгдэхүүний мэдээллийг шинэчлэх.` : "Каталогт шинээр бараа бүртгэх."}
         footer={
           <>
             <AdminButton variant="secondary" onClick={() => setIsDrawerOpen(false)}>Цуцлах</AdminButton>
@@ -527,7 +535,7 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
         <form onSubmit={handleSave} className="admin-form">
           {/* Images Section */}
           <div className="form-section">
-            <h3 className="form-section-title">Бүтээгдэхүүний зураг</h3>
+            <h3 className="form-section-title">1. Зураг</h3>
             <ImageUploader images={images} onChange={setImages} />
           </div>
 
@@ -535,7 +543,7 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
 
           {/* Basic Info */}
           <div className="form-section">
-            <h3 className="form-section-title">Үндсэн мэдээлэл</h3>
+            <h3 className="form-section-title">2. Үндсэн мэдээлэл</h3>
             <div className="form-group">
               <label>Нэр</label>
               <input
@@ -552,7 +560,7 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
             </div>
 
             <div className="form-group">
-              <label>URL (slug)</label>
+              <label>Хуудасны хаяг</label>
               <input
                 type="text"
                 value={formData.slug}
@@ -566,7 +574,7 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
               />
               <p className="form-hint">
                 {siteUrl.replace(/^https?:\/\//, "")}/products/{formData.slug || "…"}
-                {selectedProduct ? " — өөрчилбөл хуучин холбоосууд ажиллахаа болино." : ""}
+                {selectedProduct ? " — өөрчилбөл хуучин холбоосууд ажиллахаа болино." : " — нэрээс автоматаар үүснэ."}
               </p>
             </div>
 
@@ -603,7 +611,7 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
 
           {/* Price & stock */}
           <div className="form-section">
-            <h3 className="form-section-title">Үнэ ба үлдэгдэл</h3>
+            <h3 className="form-section-title">3. Үнэ ба үлдэгдэл</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", alignItems: "end" }}>
               <div className="form-group">
                 <label>Үнэ (₮)</label>
@@ -617,7 +625,7 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
                 />
               </div>
               <div className="form-group">
-                <label>Хямдралын өмнөх үнэ</label>
+                <label>Хуучин үнэ (хямдралтай бол)</label>
                 <input
                   type="number"
                   min={0}
@@ -658,9 +666,9 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
 
           {/* Details */}
           <div className="form-section">
-            <h3 className="form-section-title">Дэлгэрэнгүй мэдээлэл</h3>
+            <h3 className="form-section-title">4. Тайлбар</h3>
             <div className="form-group">
-              <label>Онцлох шошго</label>
+              <label>Онцлох шошго (сонголттой)</label>
               <input
                 type="text"
                 value={formData.hero_note}
@@ -708,7 +716,7 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
           <div className="form-section">
             <h3 className="form-section-title">
               <Info size={14} />
-              Бүтээгдэхүүний үзүүлэлтүүд
+              5. Техникийн үзүүлэлт
             </h3>
 
             <div className="spec-list">
@@ -770,11 +778,9 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
             gap: 16px;
           }
           .form-section-title {
-            font-size: 0.75rem;
+            font-size: 0.95rem;
             font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--admin-muted);
+            color: var(--admin-text);
             margin: 0;
             display: flex;
             align-items: center;
@@ -793,7 +799,7 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
           }
           .form-hint-warn {
             margin-top: -8px;
-            color: #b45309;
+            color: var(--admin-warning);
           }
           .form-check {
             display: flex;
@@ -824,8 +830,8 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
             gap: 6px;
             border: 1px solid var(--admin-border);
             background: transparent;
-            color: var(--admin-fg);
-            border-radius: 8px;
+            color: var(--admin-text);
+            border-radius: 999px;
             padding: 8px 12px;
             font-weight: 600;
             cursor: pointer;
@@ -834,9 +840,9 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
           .spec-remove-btn {
             width: 36px;
             height: 36px;
-            border: 1px solid #fecaca;
-            color: #dc2626;
-            background: #fff;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: var(--admin-danger);
+            background: var(--admin-card);
             border-radius: 8px;
             display: inline-flex;
             align-items: center;

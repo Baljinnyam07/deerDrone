@@ -93,8 +93,8 @@ export default async function DashboardPage() {
   const metricCards = [
     { label: "Нийт борлуулалт", value: safeMoney(metrics.revenue), hint: "Нийт хугацааны дүн", tone: "accent" as const, icon: <Activity size={16} /> },
     { label: "Идэвхтэй захиалга", value: `${metrics.pendingOrders}`, hint: "Гүйцэтгэл хүлээж буй", tone: "warning" as const, icon: <ShoppingCart size={16} /> },
-    { label: "Шинэ хүсэлт", value: `${metrics.newLeads}`, hint: "Сүүлийн 30 хоног", tone: "accent" as const, icon: <User size={16} /> },
-    { label: "Барааны үлдэгдэл", value: `${metrics.products}`, hint: "Идэвхтэй бараа", tone: "success" as const, icon: <ShoppingCart size={16} /> },
+    { label: "Шинэ хүсэлт", value: `${metrics.newLeads}`, hint: "Хариулаагүй", tone: "accent" as const, icon: <User size={16} /> },
+    { label: "Бүтээгдэхүүн", value: `${metrics.products}`, hint: "Нийт бүртгэлтэй", tone: "success" as const, icon: <ShoppingCart size={16} /> },
   ];
 
   const statusMap: Record<string, { label: string; color: string }> = {
@@ -112,7 +112,6 @@ export default async function DashboardPage() {
       {/* Page Header */}
       <AdminPageHeader
         title="Ерөнхий тойм"
-        description="Бодит цагийн систем болон аудитын мэдээллийн тойм."
       />
 
       {/* Metric Cards */}
@@ -155,7 +154,7 @@ export default async function DashboardPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {recentOrders.map((order: any) => (
-                  <Link key={order.id} href={`/orders`} style={{ textDecoration: 'none', display: 'block' }}>
+                  <Link key={order.id} href={`/orders?open=${order.id}`} style={{ textDecoration: 'none', display: 'block' }}>
                     <div className="interactive-card" style={{ padding: '12px', borderRadius: '6px', border: '1px solid var(--admin-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <div className="font-semibold text-sm">{order.order_number}</div>

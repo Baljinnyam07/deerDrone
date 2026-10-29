@@ -188,7 +188,7 @@ export function EditProductForm({ categories, initialProduct }: { categories: an
                   width: "42px",
                   border: "1px solid #fecaca",
                   color: "#dc2626",
-                  background: "#fff",
+                  background: "var(--admin-card)",
                   borderRadius: "8px",
                   cursor: "pointer",
                   display: "flex",
@@ -226,10 +226,10 @@ export function EditProductForm({ categories, initialProduct }: { categories: an
       {error && <div style={{ color: "red" }}>{error}</div>}
 
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem", borderTop: "1px solid #eee", paddingTop: "2rem" }}>
-        <button type="button" disabled={loading} onClick={handleDelete} style={{ background: "#ef4444", color: "#fff", border: "none", padding: "12px 24px", borderRadius: "8px", cursor: "pointer" }}>Устгах</button>
+        <button type="button" disabled={loading} onClick={handleDelete} style={{ background: "var(--admin-danger)", color: "#fff", border: "none", padding: "12px 24px", borderRadius: "8px", cursor: "pointer" }}>Устгах</button>
         <div style={{ display: "flex", gap: "1rem" }}>
           <button type="button" onClick={() => router.back()} style={{ background: "none", border: "1px solid #ccc", padding: "12px 24px", borderRadius: "8px", cursor: "pointer" }}>Буцах</button>
-          <button type="submit" disabled={loading} style={{ background: "#3b82f6", color: "#fff", border: "none", padding: "12px 32px", borderRadius: "8px", cursor: "pointer" }}>Хадгалах</button>
+          <button type="submit" disabled={loading} style={{ background: "var(--admin-primary)", color: "#fff", border: "none", padding: "12px 32px", borderRadius: "999px", cursor: "pointer" }}>Хадгалах</button>
         </div>
       </div>
     </form>

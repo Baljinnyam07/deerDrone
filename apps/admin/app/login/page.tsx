@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import { Shield, Zap, Eye, EyeOff, LogIn } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 
 export default function AdminLoginPage() {
@@ -45,349 +45,62 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--admin-surface)",
-        fontFamily: "var(--font-body)",
-        padding: "16px",
-      }}
-    >
-      {/* Back Button */}
-      <button
-        onClick={() => (window.location.href = "/")}
-        style={{
-          position: "absolute",
-          top: "24px",
-          left: "24px",
-          padding: "10px 16px",
-          background: "white",
-          border: "1px solid var(--admin-border)",
-          borderRadius: "8px",
-          color: "var(--admin-text-secondary)",
-          fontSize: "0.9rem",
-          fontWeight: 500,
-          cursor: "pointer",
-          transition: "var(--admin-transition)",
-        }}
-      >
-        ← Буцах
-      </button>
-
-      {/* Main Card */}
-      <div
-        style={{
-          background: "white",
-          borderRadius: "16px",
-          border: "1px solid var(--admin-border)",
-          padding: "48px 40px",
-          width: "100%",
-          maxWidth: "420px",
-          boxShadow: "var(--admin-shadow-lg)",
-        }}
-      >
-        {/* Logo */}
-        <div
-          style={{
-            width: "64px",
-            height: "64px",
-            background: "transparent",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto 24px",
-          }}
-        >
-          <Image src="/brand/logo.svg" alt="Deer Drone" width={56} height={56} priority />
+    <div className="login-page">
+      <main className="login-card">
+        <div className="login-brand">
+          <Image src="/brand/logo.svg" alt="Deer Drone" width={48} height={48} priority />
+          <h1>Нэвтрэх</h1>
+          <p>DEER Drone удирдлагын самбар</p>
         </div>
 
-        {/* Title */}
-        <h1
-          style={{
-            fontSize: "24px",
-            fontWeight: 800,
-            color: "var(--admin-text)",
-            margin: "0 0 8px",
-            letterSpacing: "-0.02em",
-            fontFamily: "var(--font-display)",
-            textAlign: "center"
-          }}
-        >
-          DEER DRONE
-        </h1>
-
-        <p
-          style={{
-            fontSize: "14px",
-            color: "var(--admin-muted)",
-            margin: "0 0 32px",
-            textAlign: "center"
-          }}
-        >
-          Удирдлагын системд нэвтрэх
-        </p>
-
-        {/* Form */}
-        <form onSubmit={handleLogin}>
-          {/* Email Field */}
-          <div style={{ marginBottom: "20px" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "12px",
-                fontWeight: 600,
-                color: "var(--admin-text)",
-                marginBottom: "8px",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              Имэйл хаяг
-            </label>
+        <form onSubmit={handleLogin} className="login-form" noValidate={false}>
+          <label className="login-field">
+            <span>Имэйл хаяг</span>
             <input
               type="email"
               required
+              autoComplete="email"
+              autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@deerdrone.mn"
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                borderRadius: "8px",
-                border: "1px solid var(--admin-border)",
-                background: "var(--admin-surface)",
-                fontSize: "14px",
-                color: "var(--admin-text)",
-                outline: "none",
-                transition: "var(--admin-transition)",
-                boxSizing: "border-box",
-              }}
+              placeholder="name@deerdrone.mn"
             />
-          </div>
+          </label>
 
-          {/* Password Field */}
-          <div style={{ marginBottom: "24px" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "12px",
-                fontWeight: 600,
-                color: "var(--admin-text)",
-                marginBottom: "8px",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              Нууц үг
-            </label>
-            <div
-              style={{
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
+          <label className="login-field">
+            <span>Нууц үг</span>
+            <div className="login-password">
               <input
                 type={showPassword ? "text" : "password"}
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                style={{
-                  width: "100%",
-                  padding: "12px 16px 12px 16px",
-                  paddingRight: "44px",
-                  borderRadius: "8px",
-                  border: "1px solid var(--admin-border)",
-                  background: "var(--admin-surface)",
-                  fontSize: "14px",
-                  color: "var(--admin-text)",
-                  outline: "none",
-                  transition: "var(--admin-transition)",
-                  boxSizing: "border-box",
-                }}
+                placeholder="Нууц үгээ оруулна уу"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: "absolute",
-                  right: "12px",
-                  background: "none",
-                  border: "none",
-                  color: "var(--admin-muted)",
-                  cursor: "pointer",
-                  padding: "4px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transition: "var(--admin-transition)",
-                }}
+                aria-label={showPassword ? "Нууц үг нуух" : "Нууц үг харуулах"}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-          </div>
+          </label>
 
-          {/* Error Message */}
           {error && (
-            <div
-              style={{
-                background: "rgba(239, 68, 68, 0.1)",
-                border: "1px solid rgba(239, 68, 68, 0.3)",
-                borderRadius: "8px",
-                padding: "12px 16px",
-                marginBottom: "20px",
-                fontSize: "13px",
-                color: "var(--admin-danger)",
-              }}
-            >
+            <div className="login-error" role="alert">
               {error}
             </div>
           )}
 
-          {/* Login Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "12px 20px",
-              background: loading
-                ? "var(--admin-muted)"
-                : "var(--admin-primary)",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              fontSize: "14px",
-              fontWeight: 600,
-              cursor: loading ? "not-allowed" : "pointer",
-              transition: "var(--admin-transition)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-            }}
-          >
-            <LogIn size={16} />
+          <button type="submit" className="login-submit" disabled={loading}>
             {loading ? "Нэвтэрч байна..." : "Нэвтрэх"}
           </button>
         </form>
+      </main>
 
-        {/* Divider */}
-        <div
-          style={{
-            height: "1px",
-            background: "var(--admin-border-subtle)",
-            margin: "28px 0",
-          }}
-        />
-
-        {/* Trust Indicators */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <div
-            style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}
-          >
-            <Shield
-              size={18}
-              style={{ color: "var(--admin-primary)", flexShrink: 0, marginTop: "2px" }}
-            />
-            <div>
-              <p
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: "var(--admin-text)",
-                  margin: "0 0 2px",
-                }}
-              >
-                Аюулгүй хандалт
-              </p>
-              <p
-                style={{
-                  fontSize: "12px",
-                  color: "var(--admin-muted)",
-                  margin: 0,
-                }}
-              >
-                Төгсгөлөөс төгсгөл хүртэлх хамгаалалт
-              </p>
-            </div>
-          </div>
-
-          <div
-            style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}
-          >
-            <Zap
-              size={18}
-              style={{ color: "var(--admin-warning)", flexShrink: 0, marginTop: "2px" }}
-            />
-            <div>
-              <p
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: "var(--admin-text)",
-                  margin: "0 0 2px",
-                }}
-              >
-                Хурдан нэвтрэлт
-              </p>
-              <p
-                style={{
-                  fontSize: "12px",
-                  color: "var(--admin-muted)",
-                  margin: 0,
-                }}
-              >
-                Хүлээгдэлгүй гүйцэтгэл
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer Text */}
-      <p
-        style={{
-          marginTop: "32px",
-          fontSize: "12px",
-          color: "var(--admin-muted)",
-          textAlign: "center",
-        }}
-      >
-        © 2024 DEER Drone. Бүх эрх хуулиар хамгаалагдсан.
-      </p>
-
-      {/* Development Test Credentials */}
-      <div
-        style={{
-          marginTop: "24px",
-          padding: "12px 16px",
-          background: "var(--admin-surface)",
-          border: "1px solid var(--admin-border)",
-          borderRadius: "8px",
-          fontSize: "11px",
-          color: "var(--admin-muted)",
-          textAlign: "center",
-          maxWidth: "400px",
-        }}
-      >
-        <p style={{ margin: "0 0 6px", fontWeight: 600, color: "var(--admin-primary)" }}>
-          Туршилтын хандалт:
-        </p>
-        <p style={{ margin: "0 0 4px" }}>
-          <span style={{ fontWeight: 600 }}>Имэйл:</span> admin@deerdrone.mn
-        </p>
-        <p style={{ margin: 0 }}>
-          <span style={{ fontWeight: 600 }}>Нууц үг:</span> Supabase хэрэглэгч
-          үүсгэ
-        </p>
-      </div>
+      <p className="login-footer">© {new Date().getFullYear()} DEER Drone</p>
     </div>
   );
 }

@@ -227,7 +227,6 @@ export function OrdersClient({ initialOrders, initialFilter, initialOpenId }: Or
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         title={`Захиалга: ${selectedOrder?.order_number}`}
-        description="Захиалгын дэлгэрэнгүй мэдээлэл болон төлөв удирдах."
         maxWidth="600px"
         footer={
           <>

@@ -31,7 +31,6 @@ export default async function OrdersPage(props: { searchParams: Promise<{ status
       <AdminPageHeader
         kicker="Orders / Захиалга"
         title="Захиалгын удирдлага"
-        description="Бүх захиалгыг харах, төлөв шинэчлэх, дэлгэрэнгүй мэдээлэл хянах."
       />
 
       <OrdersClient

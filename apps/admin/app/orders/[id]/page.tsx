@@ -61,15 +61,25 @@ export default async function OrderDetailPage(props: { params: Promise<{ id: str
     cancelled: "#ef4444",
   };
 
+  const statusLabels: Record<string, string> = {
+    pending: "Хүлээгдэж буй",
+    paid: "Төлөгдсөн",
+    confirmed: "Баталгаажсан",
+    packing: "Савлаж буй",
+    shipped: "Илгээсэн",
+    delivered: "Хүргэгдсэн",
+    cancelled: "Цуцлагдсан",
+  };
+
   return (
     <div className="admin-order-detail">
       <div className="admin-title" style={{ marginBottom: '24px' }}>
-        <Link href="/" className="admin-muted" style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px', fontSize: '0.9rem' }}>
-          <ArrowLeft size={16} /> Dashboard руу буцах
+        <Link href="/orders" className="admin-muted" style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px', fontSize: '0.9rem' }}>
+          <ArrowLeft size={16} /> Захиалга руу буцах
         </Link>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <p className="admin-kicker">Order Detail</p>
+            <p className="admin-kicker">Захиалгын дэлгэрэнгүй</p>
             <h1 style={{ fontSize: '1.75rem' }}>{order.order_number || `#${order.id.slice(0, 8)}`}</h1>
           </div>
           <span
@@ -81,7 +91,7 @@ export default async function OrderDetailPage(props: { params: Promise<{ id: str
               fontSize: '0.9rem'
             }}
           >
-            {order.status}
+            {statusLabels[order.status] || order.status}
           </span>
         </div>
       </div>
