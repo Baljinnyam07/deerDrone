@@ -443,7 +443,7 @@ html[data-hero-theme="dark"] .dj-header.is-overlay .dj-logo img { filter: invert
   text-align: center;
 }
 .dj-compare h3 { font-size: 24px; font-weight: 600; margin: 0 0 4px; }
-.dj-compare p { color: var(--dj-text-2); margin: 0 0 16px; }
+.dj-compare p { color: var(--dj-text-2); margin: 0 0 24px; }
 
 @media (max-width: 767.98px) {
   .dj-grid { grid-template-columns: 1fr; padding: 12px 12px 0; gap: 12px; }

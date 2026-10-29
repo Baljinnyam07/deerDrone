@@ -1,14 +1,14 @@
 // products/page.tsx
 
 import { Suspense } from "react";
-import { ProductsSection } from "../../../components/product/products-section";
-import { SkeletonCard } from "../../../components/ui/skeleton-card";
-import { type SortOption } from "../../../lib/products-config";
+import { ProductsSection } from "../../../../components/product/products-section";
+import { SkeletonCard } from "../../../../components/ui/skeleton-card";
+import { type SortOption } from "../../../../lib/products-config";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getSiteUrl } from "../../../lib/server-env";
-import { getProducts, getCategories } from "../../../lib/supabase/queries";
-import { CATEGORY_LABELS, resolveSeries } from "../../../lib/showcase";
+import { getSiteUrl } from "../../../../lib/server-env";
+import { getProducts, getCategories } from "../../../../lib/supabase/queries";
+import { CATEGORY_LABELS, resolveSeries } from "../../../../lib/showcase";
 
 type ProductsSearchParams = Promise<{
   category?: string;
