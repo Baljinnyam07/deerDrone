@@ -189,7 +189,7 @@ export function MediaEditor({
               />
               Дээд хэсгийн арын дэвсгэрт видеог дуугүй, давтаж тоглуулах
             </label>
-            <span className="media-hint">Видеог "Видео үзэх" товчоор бүтнээр нь үргэлж үзэж болно.</span>
+            <span className="media-hint">Видеог «Видео үзэх» товчоор бүтнээр нь үргэлж үзэж болно.</span>
             <label className="media-check">
               <input
                 type="checkbox"
