@@ -16,6 +16,8 @@ export interface MediaChapter {
   title: string;
   text: string;
   images: MediaImage[];
+  /** Show images whole (no crop): for square or text-bearing artwork. */
+  natural?: boolean;
 }
 
 export interface ProductMedia {
@@ -24,6 +26,10 @@ export interface ProductMedia {
   /** Muted looping background for the hero; `poster` is an image id in the same folder. */
   heroVideo?: { id: string; poster: string };
   /** Light text over a dark scrim on the hero image (always true when there is a hero video). */
+  /** Play the official YouTube film (muted, looping) behind the hero when there is no clip file. */
+  heroYoutube?: boolean;
+  /** Shorter hero heading when the product name is a long SKU. */
+  heroTitle?: string;
   heroDark?: boolean;
   /** Full film opened from the hero's "watch video" button (video id in the same folder). */
   film?: string;
@@ -34,15 +40,23 @@ export interface ProductMedia {
   gallery: MediaImage[];
 }
 
+/** Images uploaded from the admin are stored as absolute URLs instead of Cloudinary ids. */
+function isAbsoluteUrl(id: string): boolean {
+  return /^https?:\/\//i.test(id);
+}
+
 export function mediaUrl(folder: string, id: string, width: number): string {
+  if (isAbsoluteUrl(id)) return id;
   return `${CLOUD_BASE}/f_auto,q_auto,w_${width}/deerdrone/${folder}/${id}`;
 }
 
 export function mediaVideoUrl(folder: string, id: string): string {
+  if (isAbsoluteUrl(id)) return id;
   return `${CLOUD_BASE.replace("/image/", "/video/")}/deerdrone/${folder}/${id}.mp4`;
 }
 
 export function mediaSrcSet(folder: string, id: string, widths = [800, 1400, 2400]): string {
+  if (isAbsoluteUrl(id)) return id;
   return widths.map((w) => `${mediaUrl(folder, id, w)} ${w}w`).join(", ");
 }
 
@@ -922,11 +936,309 @@ const MAVIC_4_PRO: ProductMedia = {
   gallery: [],
 };
 
+const POWER_2000: ProductMedia = {
+  folder: "power-2000",
+  youtube: "7oNAIv-yhBA",
+  hero: { id: "hero-kv", alt: "Үдшийн бүрийд, уулын өмнө тавьсан DJI Power 2000" },
+  heroVideo: { id: "hero-video", poster: "hero-poster" },
+  heroDark: true,
+  chapters: [
+    {
+      title: "2048Wh багтаамж, 3000W хүч",
+      text: "Авсаархан биед 2048Wh эрчим хүч агуулсан. 3000W гаралтаараа гэрийн ихэнх цахилгаан хэрэгслийг хялбархан ажиллуулна.",
+      images: [
+        { id: "workshop", alt: "Модон ажлын талбарт ажиллаж буй DJI Power 2000", caption: "Ажлын талбай" },
+        { id: "kitchen", alt: "Гал тогоонд кофе чанаж буй хүн", caption: "Гэрийн хэрэгсэл" },
+      ],
+    },
+    {
+      title: "Гэрийн нөөц цахилгаан",
+      text: "Цахилгаан тасрахад гэрийн чухал хэрэгслийг ажиллуулна. Багтаамжийг 22,528Wh хүртэл өргөтгөх боломжтой.",
+      images: [
+        { id: "living", alt: "Зочны өрөөнд ажиллаж буй DJI Power 2000", caption: "Гэртээ" },
+        { id: "night", alt: "Шөнө машинд тавьсан DJI Power 2000", caption: "Шөнийн цагт" },
+      ],
+    },
+    {
+      title: "Аялал, зусланд хаана ч",
+      text: "Кемпинг, зусланд зөөврийн компьютер, чийдэн, кофены аппаратаа цэнэглэнэ. Нарны панел болон машинаар ч цэнэглэх боломжтой.",
+      images: [
+        { id: "camp", alt: "Кемпингийн ширээн дээр ажиллаж буй DJI Power 2000", caption: "Кемпинг" },
+        { id: "picnic", alt: "Нарны панелийн хажууд кофе уугаад буй хүн", caption: "Нарны цахилгаан" },
+      ],
+    },
+    {
+      title: "Автомашин, RV аялалд",
+      text: "Нарны панелтай хамт RV, автомашин аялалд тасралтгүй цахилгаан өгнө.",
+      images: [{ id: "rv", alt: "Нарны панелтай RV дэргэд тавьсан DJI Power 2000" }],
+    },
+    {
+      title: "Бүтээлч ажилд",
+      text: "Зураг авалт, засвар, дрон, камерын төхөөрөмжүүдийг нэг дор цэнэглэнэ.",
+      images: [
+        { id: "edit", alt: "Видео засварлаж буй хүн", caption: "Видео засвар" },
+        { id: "drones", alt: "DJI дрон болон DJI Power 2000", caption: "Дрон, камер" },
+      ],
+    },
+    {
+      title: "55 минутад 80% цэнэглэнэ",
+      text: "Цахилгааны сүлжээнээс 55 минутад 0–80% хүртэл цэнэглэгдэнэ. Цэнэглэхээ мартсан ч удаан хүлээх шаардлагагүй.",
+      images: [{ id: "fleet", alt: "DJI Power 2000 болон олон төхөөрөмж" }],
+    },
+    {
+      title: "Чимээгүй, аюулгүй",
+      text: "30dB-ийн чимээгүй ажиллагаатай тул унтаж байхад ч саад болохгүй. Хэлхээний хавтанд нано түвшний бүрээс хийж аюулгүй байдлыг нэмэгдүүлсэн. Апп-аар алсаас удирдана.",
+      images: [
+        { id: "cells", alt: "DJI Power 2000-ийн батерейн эсүүд" },
+        { id: "explode", alt: "DJI Power 2000-ийн дотоод бүтэц" },
+      ],
+    },
+  ],
+  galleryTitle: "",
+  gallery: [],
+};
+
+const POWER_1000_MINI: ProductMedia = {
+  folder: "power-1000-mini",
+  youtube: "Qh1Gj3CJsQs",
+  hero: { id: "hero-kv", alt: "Уулын оройд DJI Power 1000 Mini барьсан хүн" },
+  heroVideo: { id: "hero-video", poster: "hero-poster" },
+  heroDark: true,
+  chapters: [
+    {
+      title: "1кВт·ц, хагас хэмжээтэй",
+      text: "DJI Power 1000-аас хагас хэмжээтэй ч 1008Wh багтаамжтай. DJI-ийн өнөөг хүртэлх хамгийн авсаархан 1кВт·ц цахилгаан станц.",
+      images: [
+        { id: "compare", alt: "DJI Power 1000 Mini болон том станцын харьцуулалт", caption: "Хагас хэмжээ" },
+        { id: "walk", alt: "DJI Power 1000 Mini барьж яваа хүн", caption: "Авч явахад хөнгөн" },
+      ],
+    },
+    {
+      title: "Кемпинг, аялалд",
+      text: "Ван, жийп, зусланд хөргөгч, чийдэн, зөөврийн төхөөрөмжөө цэнэглэнэ. Стандарт цэнэглэх үед 30dB-ээс хэтрэхгүй чимээтэй ажиллана.",
+      images: [
+        { id: "rv", alt: "Ван дотор хөргөгчийг тэжээж буй DJI Power 1000 Mini", caption: "Ван аялал" },
+        { id: "truck", alt: "Пикап машины дэргэд DJI Power 1000 Mini", caption: "Кемпинг" },
+      ],
+    },
+    {
+      title: "Суурилуулсан 400W машин цэнэглэгч ба MPPT",
+      text: "Машины батерей эсвэл нарны панелтай шууд холбож цэнэглэнэ, нэмэлт адаптер хэрэггүй (холбох кабель тусад нь).",
+      images: [
+        { id: "car", alt: "Машины дотор цэнэглэж буй DJI Power 1000 Mini", caption: "Машинаар цэнэглэх" },
+        { id: "solar", alt: "Нарны панелийн хажууд DJI Power 1000 Mini", caption: "Нарны панел" },
+      ],
+    },
+    {
+      title: "100W буцаж орох USB-C кабель",
+      text: "Суурилуулсан 0.8м USB-C кабелийг татаад л утас, таблет, зөөврийн компьютераа 100W хүртэл цэнэглэнэ. Ашиглаад тавихад өөрөө буцаж орно.",
+      images: [{ id: "phone", alt: "Утасаа цэнэглэж буй хүн, дэргэд нь DJI Power 1000 Mini" }],
+    },
+    {
+      title: "Гэрийн нөөц, ширээний цахилгаан",
+      text: "Роутер, чийдэн, зөөврийн компьютерийг цахилгаан тасрахад ч тасралтгүй ажиллуулна. UPS горимд 0.01 секундэд шилжинэ.",
+      images: [{ id: "router", alt: "Шүүгээн дээр роутер, чийдэнтэй DJI Power 1000 Mini" }],
+    },
+    {
+      title: "Дроны батерейг цэнэглэнэ",
+      text: "DJI Power SDC кабелийн (тусад нь) тусламжтайгаар DJI Air 3 цувралын батерейг 10%-аас 95% хүртэл 30 минутад цэнэглэнэ. Лабораторийн хэмжилт.",
+      images: [{ id: "pilot", alt: "Дрон нисгэж буй хүн, DJI Power 1000 Mini-тэй" }],
+    },
+    {
+      title: "58 минутад 80% цэнэглэнэ",
+      text: "Хурдан цэнэглэх горимд сүлжээгээр 0–80%-ийг 58 минут, 100%-ийг 75 минутад цэнэглэнэ.",
+      images: [{ id: "peak", alt: "Хадан дээр тавьсан DJI Power 1000 Mini" }],
+    },
+    {
+      title: "Аюулгүй, удаан эдэлгээтэй",
+      text: "LFP эстэй, 4000 цикл цэнэглэсний дараа ч багтаамжийнхаа 80 орчим хувийг хадгална. BMS хамгаалалт, 5000м хүртэлх өндөрт ажиллана.",
+      images: [
+        { id: "cells", alt: "DJI Power 1000 Mini-ийн LFP эс" },
+        { id: "bms", alt: "Ухаалаг BMS хамгаалалт" },
+        { id: "split", alt: "DJI Power 1000 Mini-ийн дотоод бүтэц" },
+      ],
+    },
+  ],
+  galleryTitle: "",
+  gallery: [],
+};
+
+const POWER_1000_V2: ProductMedia = {
+  folder: "power-1000-v2",
+  youtube: "5aJciQFtEQg",
+  hero: { id: "hero-kv", alt: "Харанхуйд тодорсон DJI Power 1000 V2" },
+  heroVideo: { id: "hero-video", poster: "hero-poster" },
+  heroDark: true,
+  chapters: [
+    {
+      title: "2600W тогтвортой гаралт",
+      text: "1024Wh багтаамжтай, 2600W-ыг тасралтгүй гаргана. Өдөр тутмын төхөөрөмжүүдийн 99 гаруй хувийг найдвартай ажиллуулна.",
+      images: [{ id: "ports", alt: "DJI Power 1000 V2-ийн гаралтын портууд" }],
+    },
+    {
+      title: "Хоёр 140W USB-C порт",
+      text: "Хоёр USB-C порт тус бүр 140W хүртэл хурдан цэнэглэнэ. Таблет, зөөврийн компьютерээ хурдан цэнэглэнэ (төхөөрөмж PD 3.1 дэмждэг байх шаардлагатай).",
+      images: [{ id: "tablet", alt: "Таблет цэнэглэж буй DJI Power 1000 V2" }],
+    },
+    {
+      title: "26dB чимээгүй",
+      text: "26dB-ийн чимээтэй тул унтлагын өрөөнд ч, кемпингт ч саад болохгүй.",
+      images: [{ id: "lamp", alt: "Чийдэнтэй өрөөнд ажиллаж буй DJI Power 1000 V2" }],
+    },
+    {
+      title: "Гэрийн нөөц цахилгаан",
+      text: "2048Wh-ийн 5 нэмэлт батерейг холбож багтаамжийг 11,264Wh хүртэл өргөтгөнө. Гэрийн цахилгааны найдвартай нөөц болно.",
+      images: [{ id: "home", alt: "Орон сууцанд нөөц цахилгаан болж буй DJI Power 1000 V2" }],
+    },
+    {
+      title: "Дроны батерейг хурдан цэнэглэнэ",
+      text: "DJI Power SDC-ээр дроны батерейг хурдан цэнэглэнэ (тохирох кабель тусад нь). Нислэгийн завсар цаг алдахгүй.",
+      images: [{ id: "drones", alt: "DJI дронууд болон DJI Power 1000 V2" }],
+    },
+    {
+      title: "Ажил, аялалд",
+      text: "Ажлын талбай, гэрийн засвар, аялалд цахилгаан багаж болон төхөөрөмжөө ажиллуулна. Нарны панел, машинаар ч цэнэглэнэ.",
+      images: [
+        { id: "workshop", alt: "Ажлын талбарт DJI Power 1000 V2", caption: "Ажлын талбай" },
+        { id: "solar", alt: "Нарны панелтай DJI Power 1000 V2", caption: "Нарны цахилгаан" },
+      ],
+    },
+    {
+      title: "37 минутад 80% цэнэглэнэ",
+      text: "0–80%-ийг 37 минутад, бүрэн цэнэглэлтийг 56 минутад хийнэ. DJI Home аппаар алсаас удирдана.",
+      images: [{ id: "phone", alt: "Утсаараа DJI Power 1000 V2-ийг удирдаж буй хүн" }],
+    },
+    {
+      title: "Аюулгүй, 10 жилийн эдэлгээ",
+      text: "LFP эстэй, шинэчилсэн аюулгүй байдлын системтэй. Ердийн хэрэглээнд 10 жил орчим ашиглах боломжтой.",
+      images: [
+        { id: "inside", alt: "DJI Power 1000 V2-ийн дотоод бүтэц" },
+        { id: "cells", alt: "LFP батерейн эс" },
+      ],
+    },
+  ],
+  galleryTitle: "",
+  gallery: [],
+};
+
+const OSMO_NANO: ProductMedia = {
+  folder: "osmo-nano",
+  youtube: "yECD9TzmW-A",
+  hero: { id: "hero-kv", alt: "Замын дугуйн жолоо дээр бэхлэгдсэн DJI Osmo Nano" },
+  heroVideo: { id: "hero-video", poster: "hero-poster" },
+  heroDark: true,
+  chapters: [
+    {
+      title: "Хаана ч наалддаг авсаархан камер",
+      text: "Хоёр талт соронзон бүтэцтэй, жижигхэн камер хувцас, малгай, тулгуурт шууд наалдана. Хэрэгтэй үедээ нэг хөдөлгөөнөөр авч, дахин бэхэлнэ.",
+      images: [
+        { id: "hat", alt: "Малгайнд соронзоор бэхлэгдсэн DJI Osmo Nano", caption: "Малгайнд" },
+        { id: "pole", alt: "Тулгуур шон дээр бэхлэгдсэн DJI Osmo Nano", caption: "Хаана ч" },
+      ],
+    },
+    {
+      title: "Өнцгөө чөлөөтэй сонго",
+      text: "Селфи болон урд талын дүрслэлийг хэдхэн секундэд сольж, өөрийгөө болон эргэн тойрныхоо агшинг хамтад нь буулгана.",
+      images: [
+        { id: "hands", alt: "Хоёр гараараа DJI Osmo Nano барьж буй хүн", caption: "Хоёр талт соронз" },
+        { id: "stick", alt: "Үл үзэгдэх селфи тулгууртай vlog хийж буй хүн", caption: "Vlog" },
+      ],
+    },
+    {
+      title: "Дугуй, замын аялалд",
+      text: "Дугуйны жолоо, дуулган дээр бэхлээд замын хөдөлгөөнийг тогтвортой, өргөн өнцгөөр буулгана. RockSteady 3.0 болон хэвтээ тэнцвэрийг хадгалах горимтой.",
+      images: [
+        { id: "road", alt: "Замын дугуйн жолоо дээрх DJI Osmo Nano", caption: "Жолоон дээр" },
+        { id: "cyclist", alt: "Замаар хурдтай давхиж буй дугуйчин", caption: "Замын дугуй" },
+      ],
+    },
+    {
+      title: "Бие дээрээ зүүгээд гараа чөлөөлнө",
+      text: "Цээжний бүс, соронзон хавчаараар бие дээрээ зүүгээд гараа чөлөөтэй байлгана. Нэг товшоод бичлэгээ эхлүүлнэ.",
+      images: [
+        { id: "chest", alt: "Цээжний бүсэнд бэхлэгдсэн камер", caption: "Цээжний бүс" },
+        { id: "tap", alt: "Хувцсанд соронзоор наалдсан камер, нэг товшилтоор бичлэг эхэлнэ", caption: "Нэг товшилт" },
+      ],
+    },
+    {
+      title: "Явган аялалд",
+      text: "Үүргэвчний оосор, толгойн бүсэнд бэхлээд явган аяллын агшнуудыг гараа хөдөлгөхгүйгээр буулгана.",
+      images: [
+        { id: "hike", alt: "Үүргэвчний оосорт бэхлэгдсэн камертай явган аялагч", caption: "Үүргэвчинд" },
+        { id: "headband", alt: "Толгойн бүсэнд бэхэлсэн камер", caption: "Толгойн бүс" },
+      ],
+    },
+    {
+      title: "Машин, усан дээр",
+      text: "Машины их бие, завины ирмэгт бэхлээд сонирхолтой агшныг буулгана. Камер 10м хүртэл усанд тэсвэртэй, Vision Dock нь шүрших усанд тэсвэртэй (IPX4).",
+      images: [
+        { id: "car", alt: "Машины их бие дээр бэхлэгдсэн камер", caption: "Машинд" },
+        { id: "kayak", alt: "Завины хошуунд бэхлэгдсэн камер", caption: "Усан дээр" },
+      ],
+    },
+    {
+      title: "Өдөр тутмын vlog",
+      text: "Өдөр тутмын агшнуудаа 4K-аар буулгаж, олон нийтэд хуваалцана. Авсаархан хэмжээтэй тул халаасанд ч багтана.",
+      images: [
+        { id: "vlog", alt: "Цээжин дээрээ DJI Osmo Nano барьж буй vlog хийгч" },
+        { id: "flat", alt: "Ширээн дээрх DJI Osmo Nano болон бусад хэрэгсэл" },
+      ],
+    },
+  ],
+  galleryTitle: "",
+  gallery: [],
+};
+
+const POTENSIC_ATOM_3: ProductMedia = {
+  folder: "potensic-atom-3",
+  youtube: "iwa4dKC3U0o",
+  heroTitle: "Potensic Atom 3",
+  heroYoutube: true,
+  hero: { id: "hero-photo", alt: "Нуур, уулын дунд нисч буй Potensic Atom 3" },
+  heroDark: true,
+  chapters: [
+    {
+      title: "Тод, цэвэр дүрс",
+      text: "1/1.3″ CMOS мэдрэгчтэй камер 4K 60fps HDR бичлэг, 50MP зураг авна. P-Log горимоор өнгө засварт уян хатан бичлэг хийж, шөнийн AI горимоор хотын гэрлийг 4K/30fps-ээр тод буулгана.",
+      natural: true,
+      images: [
+        { id: "s-sensor", alt: "Potensic Atom 3-ын 1/1.3 инчийн мэдрэгч, 4K 60fps, 50MP" },
+        { id: "s-night", alt: "Шөнийн хотын гэрлийг буулгасан Atom 3-ын кадр" },
+      ],
+    },
+    {
+      title: "16км дамжуулалт, 50 минутын нислэг",
+      text: "PixSync 5.0 технологи нь гурван давтамжаар 1080p/60fps дүрсийг 16км хүртэл тогтвортой дамжуулна. Стандарт батерейгаар 40 минут, өргөтгөсөн батерейгаар 50 минут хүртэл нисэх боломжтой.",
+      natural: true,
+      images: [
+        { id: "s-range", alt: "Уулын дээгүүр нисч буй Atom 3, 16км дамжуулалт" },
+        { id: "s-battery", alt: "Atom 3-ын өргөтгөсөн батерей: 50 минут, стандарт: 40 минут" },
+      ],
+    },
+    {
+      title: "249 граммаас хөнгөн, AI-аар дагана",
+      text: "249 граммаас бага жинтэй, эвхэгддэг тул цүнх, үүргэвчинд амархан багтана. AI Tracking 2.0 нь дугуйчин, явган хүнийг дагаж буулгана, дрифт, Spin Ascend, Dolly Zoom зэрэг AI Quickshot горимтой.",
+      natural: true,
+      images: [
+        { id: "s-light", alt: "Цүнхнээс Atom 3 дроныг гаргаж буй хүн" },
+        { id: "s-track", alt: "Замаар дугуй унаж буй хүнийг дагаж буй Atom 3" },
+      ],
+    },
+  ],
+  galleryTitle: "",
+  gallery: [],
+};
+
 const MEDIA_CATEGORIES = new Set(["drones", "cameras", "handheld", "power"]);
 
 /** Accessories share model names with their drone (e.g. "…lito-x1-battery"), so only real products match. */
 export function getProductMedia(slug: string, categorySlug: string): ProductMedia | null {
   if (!MEDIA_CATEGORIES.has(categorySlug)) return null;
+  if (/potensic-atom-3/i.test(slug)) return POTENSIC_ATOM_3;
+  if (/dji-nano/i.test(slug)) return OSMO_NANO;
+  if (/power-1000-mini/i.test(slug)) return POWER_1000_MINI;
+  if (/power-1000-v2/i.test(slug)) return POWER_1000_V2;
+  if (/power-2000/i.test(slug)) return POWER_2000;
   if (/lito-x1/i.test(slug)) return LITO_X1;
   if (/mini-5-pro/i.test(slug)) return MINI_5_PRO;
   if (/air-3s/i.test(slug)) return AIR_3S;
@@ -940,4 +1252,61 @@ export function getProductMedia(slug: string, categorySlug: string): ProductMedi
   if (/mavic-4/i.test(slug)) return MAVIC_4_PRO;
   if (/pocket-4(?!p)/i.test(slug)) return POCKET_4;
   return null;
+}
+
+const asText = (v: unknown, max = 2000): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
+
+function normalizeImage(raw: unknown): MediaImage | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const id = asText(r.id, 1000);
+  if (!id) return null;
+  const caption = asText(r.caption, 200);
+  return { id, alt: asText(r.alt, 300), ...(caption ? { caption } : {}) };
+}
+
+/** Validates content saved from the admin; returns null when it cannot render a page. */
+export function normalizeProductMedia(raw: unknown): ProductMedia | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const hero = normalizeImage(r.hero);
+  if (!hero) return null;
+
+  const images = (list: unknown): MediaImage[] =>
+    Array.isArray(list) ? list.map(normalizeImage).filter((i): i is MediaImage => !!i) : [];
+
+  const chapters: MediaChapter[] = (Array.isArray(r.chapters) ? r.chapters : [])
+    .map((c): MediaChapter | null => {
+      if (!c || typeof c !== "object") return null;
+      const ch = c as Record<string, unknown>;
+      const chapterImages = images(ch.images);
+      const title = asText(ch.title, 200);
+      if (!title && chapterImages.length === 0) return null;
+      return {
+        title,
+        text: asText(ch.text, 2000),
+        images: chapterImages,
+        ...(ch.natural === true ? { natural: true } : {}),
+      };
+    })
+    .filter((c): c is MediaChapter => !!c);
+
+  const heroVideo = r.heroVideo as { id?: unknown; poster?: unknown } | undefined;
+  const youtube = asText(r.youtube, 20);
+
+  return {
+    folder: asText(r.folder, 80),
+    hero,
+    ...(heroVideo && asText(heroVideo.id, 1000) && asText(heroVideo.poster, 1000)
+      ? { heroVideo: { id: asText(heroVideo.id, 1000), poster: asText(heroVideo.poster, 1000) } }
+      : {}),
+    ...(asText(r.film, 120) ? { film: asText(r.film, 120) } : {}),
+    ...(/^[\w-]{11}$/.test(youtube) ? { youtube } : {}),
+    ...(r.heroYoutube === true && /^[\w-]{11}$/.test(youtube) ? { heroYoutube: true } : {}),
+    ...(asText(r.heroTitle, 120) ? { heroTitle: asText(r.heroTitle, 120) } : {}),
+    ...(r.heroDark === true ? { heroDark: true } : {}),
+    chapters,
+    galleryTitle: asText(r.galleryTitle, 200),
+    gallery: images(r.gallery),
+  };
 }

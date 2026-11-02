@@ -121,6 +121,15 @@ export const SERIES: SeriesConfig[] = [
     tagline: "Square Up, Nail the Move",
   },
   {
+    id: "osmo-nano",
+    category: "cameras",
+    match: /dji nano/i,
+    title: "DJI OSMO NANO",
+    shortName: "Osmo Nano",
+    eyebrow: "Соронзон бэхэлгээтэй авсаархан камер",
+    tagline: "Хаана ч наалддаг камер",
+  },
+  {
     id: "flip",
     category: "drones",
     match: /dji flip/i,
@@ -146,6 +155,24 @@ export const SERIES: SeriesConfig[] = [
     shortName: "Osmo Mobile 8P",
     eyebrow: "Мэргэжлийн хүрээ, хяналттай утасны гимбал",
     tagline: "Wonders in Your Palm",
+  },
+  {
+    id: "power-1000-mini",
+    category: "power",
+    match: /power\s*1000 mini/i,
+    title: "DJI POWER 1000 MINI",
+    shortName: "Power 1000 Mini",
+    eyebrow: "1кВт·ц багтаамжтай зөөврийн цахилгаан станц",
+    tagline: "Хэмжээнээсээ илүү хүчтэй",
+  },
+  {
+    id: "power-2000",
+    category: "power",
+    match: /power\s*2000/i,
+    title: "DJI POWER 2000",
+    shortName: "Power 2000",
+    eyebrow: "2048Wh багтаамж, 3000W гаралт",
+    tagline: "Таны ертөнцийн цахилгаан",
   },
 ];
 

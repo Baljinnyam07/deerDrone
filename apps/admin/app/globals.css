@@ -2852,3 +2852,16 @@ input[type="radio"] {
     left: 8px;
   }
 }
+
+/* Back link above a page header */
+.admin-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--admin-text-secondary);
+  text-decoration: none;
+}
+.admin-back-link:hover { color: var(--admin-primary); }

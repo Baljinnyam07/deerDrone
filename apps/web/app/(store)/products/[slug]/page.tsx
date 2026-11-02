@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getProductBySlug, getSimilarProducts } from "../../../../lib/supabase/queries";
+import { getProductBySlug, getProductMediaOverride, getSimilarProducts } from "../../../../lib/supabase/queries";
 import ProductDetailView from "./ProductDetailView";
 import type { Metadata } from "next";
 import { getSiteUrl } from "../../../../lib/server-env";
@@ -48,7 +48,10 @@ export default async function ProductDetailPage({ params }: Props) {
   }
 
   const siteUrl = getSiteUrl();
-  const similarProducts = await getSimilarProducts(product.categoryId!, product.id!);
+  const [similarProducts, mediaOverride] = await Promise.all([
+    getSimilarProducts(product.categoryId!, product.id!),
+    getProductMediaOverride(slug),
+  ]);
 
   // Structured Data (JSON-LD)
   const jsonLd = {
@@ -78,7 +81,11 @@ export default async function ProductDetailPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <ProductDetailView product={product as any} similarProducts={similarProducts} />
+      <ProductDetailView
+        product={product as any}
+        similarProducts={similarProducts}
+        mediaOverride={mediaOverride}
+      />
     </>
   );
 }

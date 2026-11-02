@@ -4,6 +4,7 @@ import type { Product } from "@deer-drone/types";
 import { mapProductRecord } from "./catalog";
 import { productSearchFilter } from "./search";
 import type { SortOption } from "../products-config";
+import { normalizeProductMedia, type ProductMedia } from "../product-media";
 
 export const getProducts = unstable_cache(
   async (options: {
@@ -188,4 +189,21 @@ export const getSiteSettings = unstable_cache(
   },
   ["site-settings"],
   { revalidate: 86400, tags: ["settings"] }
+);
+
+/** Rich page content saved from the admin; null when the product keeps its built-in configuration. */
+export const getProductMediaOverride = unstable_cache(
+  async (slug: string): Promise<ProductMedia | null> => {
+    const supabase = await createPublicClient();
+    const { data, error } = await supabase
+      .from("product_media")
+      .select("data")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return normalizeProductMedia(data.data);
+  },
+  ["product-media-override"],
+  { revalidate: 86400, tags: ["product-media"] }
 );
