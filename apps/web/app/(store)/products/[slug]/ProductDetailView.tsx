@@ -21,6 +21,7 @@ import {
   mediaSrcSet,
   mediaUrl,
   mediaVideoUrl,
+  type ProductMedia,
 } from "../../../../lib/product-media";
 
 const NAV_LINKS = [
@@ -39,9 +40,11 @@ function scrollToSection(id: string) {
 export default function ProductDetailView({
   product,
   similarProducts = [],
+  mediaOverride = null,
 }: {
   product: Product;
   similarProducts?: Product[];
+  mediaOverride?: ProductMedia | null;
 }) {
   const router = useRouter();
   const { addToCart } = useStore();
@@ -49,6 +52,7 @@ export default function ProductDetailView({
   const [quantity, setQuantity] = useState(1);
   const [filmOpen, setFilmOpen] = useState(false);
   const heroVideoRef = useRef<HTMLVideoElement>(null);
+  const heroYtRef = useRef<HTMLIFrameElement>(null);
 
   const images =
     product.images?.length > 0
@@ -73,7 +77,7 @@ export default function ProductDetailView({
     }, {}) ?? {};
   const specGroups = Object.entries(groupedSpecs);
 
-  const media = getProductMedia(product.slug, product.categorySlug);
+  const media = mediaOverride ?? getProductMedia(product.slug, product.categorySlug);
   // Pages without a long film play their hero clip in the viewer.
   const youtubeId = media?.youtube;
   const filmId = media?.film ?? media?.heroVideo?.id;
@@ -99,6 +103,35 @@ export default function ProductDetailView({
     if (filmOpen) video.pause();
     else video.play().catch(() => {});
   }, [filmOpen]);
+
+  // Loop the YouTube hero ourselves: the `playlist` loop trick makes mobile show prev/next buttons.
+  useEffect(() => {
+    if (!media?.heroYoutube || filmOpen) return;
+    const frame = heroYtRef.current;
+    if (!frame) return;
+    const send = (payload: object) =>
+      frame.contentWindow?.postMessage(JSON.stringify(payload), "*");
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== frame.contentWindow || typeof e.data !== "string") return;
+      try {
+        const data = JSON.parse(e.data);
+        if (data.event === "onStateChange" && data.info === 0) {
+          send({ event: "command", func: "seekTo", args: [0, true] });
+          send({ event: "command", func: "playVideo", args: [] });
+        }
+      } catch {
+        /* not a player message */
+      }
+    };
+    const onLoad = () => send({ event: "listening", id: 1, channel: "widget" });
+    window.addEventListener("message", onMessage);
+    frame.addEventListener("load", onLoad);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      frame.removeEventListener("load", onLoad);
+    };
+  }, [media?.heroYoutube, filmOpen]);
+
   const inStock = product.stockQty > 0;
   const onSale = !!product.comparePrice && product.comparePrice > product.price;
 
@@ -168,7 +201,7 @@ export default function ProductDetailView({
 
       {/* Hero */}
       <section
-        className={`dp-hero${media ? " dp-hero-kv" : ""}${media?.heroVideo || media?.heroDark ? " has-video" : ""}${media?.heroDark && !media.heroVideo ? " is-still" : ""}`}
+        className={`dp-hero${media ? " dp-hero-kv" : ""}${media?.heroVideo || media?.heroYoutube || media?.heroDark ? " has-video" : ""}${media?.heroDark && !media.heroVideo && !media.heroYoutube ? " is-still" : ""}`}
         style={
           media
             ? {
@@ -178,8 +211,23 @@ export default function ProductDetailView({
         }
         aria-label={media?.hero.alt}
       >
-        {media?.heroDark && !media.heroVideo && (
+        {media?.heroDark && !media.heroVideo && !media.heroYoutube && (
           <div className="dp-hero-scrim" aria-hidden="true" />
+        )}
+        {media?.heroYoutube && youtubeId && !filmOpen && (
+          <>
+            <iframe
+              ref={heroYtRef}
+              className="dp-hero-yt"
+              src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=1&controls=0&enablejsapi=1&playsinline=1&rel=0&modestbranding=1&disablekb=1&iv_load_policy=3&fs=0`}
+              title="Албан ёсны бичлэг"
+              allow="autoplay; encrypted-media"
+              tabIndex={-1}
+              aria-hidden="true"
+              loading="lazy"
+            />
+            <div className="dp-hero-scrim" aria-hidden="true" />
+          </>
         )}
         {media?.heroVideo && (
           <>
@@ -198,7 +246,7 @@ export default function ProductDetailView({
             <div className="dp-hero-scrim" aria-hidden="true" />
           </>
         )}
-        <h1 className="dp-hero-title">{product.name.trim()}</h1>
+        <h1 className="dp-hero-title">{media?.heroTitle ?? product.name.trim()}</h1>
         {product.shortDescription &&
           product.shortDescription.trim() !== product.name.trim() && (
             <p className="dp-hero-tagline">{product.shortDescription}</p>
@@ -244,7 +292,7 @@ export default function ProductDetailView({
         <div id="features">
           {media.chapters.map((chapter, i) => (
             <section
-              key={chapter.title}
+              key={`${i}-${chapter.title}`}
               className={`dp-chapter${i % 2 === 1 ? " is-soft" : ""}`}
             >
               <div className="dp-chapter-head">
@@ -252,10 +300,10 @@ export default function ProductDetailView({
                 <p>{chapter.text}</p>
               </div>
               <div
-                className={`dp-chapter-media${chapter.images.length > 1 ? " is-pair" : ""}`}
+                className={`dp-chapter-media${chapter.images.length > 1 ? " is-pair" : ""}${chapter.natural ? " is-natural" : ""}`}
               >
-                {chapter.images.map((img) => (
-                  <figure key={img.id}>
+                {chapter.images.map((img, j) => (
+                  <figure key={`${j}-${img.id}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={mediaUrl(media.folder, img.id, 1400)}
@@ -284,8 +332,8 @@ export default function ProductDetailView({
             <h2 className="dp-h2">{media.galleryTitle}</h2>
           </div>
           <div className="dp-strip dp-strip-photos">
-            {media.gallery.map((img) => (
-              <div key={img.id} className="dp-strip-photo">
+            {media.gallery.map((img, j) => (
+              <div key={`${j}-${img.id}`} className="dp-strip-photo">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={mediaUrl(media.folder, img.id, 1200)}
@@ -511,7 +559,7 @@ export default function ProductDetailView({
           {youtubeId ? (
             <iframe
               className="dp-film-frame"
-              src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0&playsinline=1`}
+              src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0&playsinline=1${media?.heroYoutube ? "&mute=1" : ""}`}
               title={`${product.name} — бичлэг`}
               allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
               allowFullScreen

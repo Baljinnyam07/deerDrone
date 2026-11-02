@@ -8,7 +8,7 @@ import { ActionMenu } from "../../components/ui/action-menu";
 import { AdminButton } from "../../components/ui/admin-button";
 import { useToast } from "../../components/ui/toast";
 import { ImageUploader } from "../../components/ui/image-uploader";
-import { Plus, Edit2, Trash2, Package, Info, Search, ExternalLink, Minus } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, Info, Search, ExternalLink, Minus, LayoutTemplate } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface ProductsClientProps {
@@ -417,6 +417,7 @@ export function ProductsClient({ initialProducts, categories, siteUrl, initialSt
                   <ActionMenu
                     items={[
                       { label: "Засах", icon: Edit2, onClick: () => handleOpenEdit(product) },
+                      { label: "Дэлгэрэнгүй хуудас", icon: LayoutTemplate, onClick: () => router.push(`/products/${product.id}/media`) },
                       { label: "Сайтад харах", icon: ExternalLink, onClick: () => openOnSite(product) },
                       { label: "Устгах", icon: Trash2, onClick: () => handleDeleteClick(product), variant: "danger" },
                     ]}

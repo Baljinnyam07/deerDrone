@@ -328,6 +328,9 @@
 .dp-chapter-media img { display: block; width: 100%; height: auto; }
 .dp-chapter-media:not(.is-pair) img { max-height: 82svh; object-fit: cover; }
 .dp-chapter-media.is-pair img { aspect-ratio: 4 / 3; object-fit: cover; }
+/* whole, uncropped artwork */
+.dp-chapter-media.is-natural img { aspect-ratio: auto; max-height: none; object-fit: contain; }
+.dp-chapter-media.is-natural:not(.is-pair) { max-width: 860px; }
 .dp-chapter-media figcaption {
   position: absolute;
   left: 16px;
@@ -368,12 +371,23 @@
 /* Video hero (dark scrim, white text, like dji.com) */
 .dp-hero.has-video { color: #fff; background-color: #1a1a1a; }
 .dp-hero-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* Official YouTube film as a muted looping hero background, scaled to cover */
+.dp-hero-yt {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 190svh);
+  aspect-ratio: 16 / 9;
+  transform: translate(-50%, -50%);
+  border: 0;
+  pointer-events: none;
+}
 .dp-hero-scrim {
   position: absolute;
   inset: 0;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.1) 45%, rgba(0, 0, 0, 0.35) 100%);
 }
-.dp-hero.has-video > :not(.dp-hero-video):not(.dp-hero-scrim):not(.dp-soldout) { position: relative; z-index: 1; }
+.dp-hero.has-video > :not(.dp-hero-video):not(.dp-hero-yt):not(.dp-hero-scrim):not(.dp-soldout) { position: relative; z-index: 1; }
 .dp-hero.has-video > .dp-soldout { z-index: 1; }
 .dp-hero.has-video .dp-crumbs,
 .dp-hero.has-video .dp-crumbs a { color: rgba(255, 255, 255, 0.7); }
@@ -385,7 +399,7 @@
 .dp-hero.has-video .dp-pill:hover:not(:disabled) { background: rgba(255, 255, 255, 0.85); border-color: transparent; }
 .dp-hero.has-video .dp-text-link { color: #fff; }
 @media (prefers-reduced-motion: reduce) {
-  .dp-hero-video { display: none; }
+  .dp-hero-video, .dp-hero-yt { display: none; }
 }
 
 /* Watch-video button and full-film dialog */
