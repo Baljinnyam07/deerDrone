@@ -92,6 +92,12 @@ server.get("/webhook", async (request: any, reply: any) => {
 server.post("/webhook", async (request: any, reply: any) => {
   const body = request.body;
 
+  console.log(
+    `[webhook] object=${body?.object} entries=${(body?.entry || [])
+      .map((e: any) => `${e.id}(${e.messaging ? "messaging" : e.messages ? "messages" : e.changes ? "changes" : "other"})`)
+      .join(",")}`,
+  );
+
   if (body.object === "page" || body.object === "instagram") {
     const promises: Promise<any>[] = [];
 
