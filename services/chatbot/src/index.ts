@@ -100,12 +100,15 @@ server.post("/webhook", async (request: any, reply: any) => {
 
     // Build env fallback map for pages not yet in DB
     const envFallbacks: { pageId: string; token: string }[] = [];
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 10; i++) {
       const suffix = i === 1 ? "" : `_${i}`;
       const pid = process.env[`MESSENGER_PAGE_ID${suffix}`];
       const tok = process.env[`PAGE_ACCESS_TOKEN${suffix}`];
       if (pid && tok) {
         envFallbacks.push({ pageId: pid, token: tok });
+        // Instagram DMs arrive under the Instagram account id, not the Page id; it uses the Page's token.
+        const igId = process.env[`INSTAGRAM_ACCOUNT_ID${suffix}`];
+        if (igId) envFallbacks.push({ pageId: igId, token: tok });
       }
     }
 
