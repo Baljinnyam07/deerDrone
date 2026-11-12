@@ -117,6 +117,15 @@ server.post("/webhook", async (request: any, reply: any) => {
         if (igId) envFallbacks.push({ pageId: igId, token: tok });
       }
     }
+    // INSTAGRAM_LINKS="<instagramId>:<pageId>,…" reuses a known Page's token for its Instagram account.
+    for (const link of (process.env.INSTAGRAM_LINKS || "").split(",")) {
+      const [igId, linkedPageId] = link.split(":").map((s) => s.trim());
+      if (!igId || !linkedPageId) continue;
+      const token =
+        allConfigs.find((c: any) => c.page_id === linkedPageId)?.page_access_token ||
+        envFallbacks.find((f) => f.pageId === linkedPageId)?.token;
+      if (token) envFallbacks.push({ pageId: igId, token });
+    }
 
     for (const entry of body.entry || []) {
       const entryPageId: string = entry.id ?? "";
